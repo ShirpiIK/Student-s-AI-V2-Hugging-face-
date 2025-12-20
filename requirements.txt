@@ -1,5 +1,10 @@
 flask
-markdown
 google-generativeai
-Pillow
-importlib-metadata
+pillow
+langchain
+langchain-community
+langchain-google-genai
+chromadb
+sentence-transformers
+pypdf
+markdown
