@@ -100,6 +100,11 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    
     <title>Student's AI</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -121,56 +126,43 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* KEYBOARD LOCK FIX: USE FLEXBOX 100dvh */
+        /* PWA & LOCK FIX: FLEXBOX BODY */
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
             height: 100dvh; width: 100%; 
-            display: flex; flex-direction: column; /* THIS IS THE FIX */
-            overflow: hidden; /* No body scroll */
+            display: flex; flex-direction: column; 
+            overflow: hidden; 
         }
         
-        /* HEADER - STABLE IN FLEX */
+        /* HEADER - LOCKED */
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
-            flex-shrink: 0; /* Never shrink */
-            z-index: 3000; 
+            flex-shrink: 0; z-index: 3000; 
             transition: margin-top 0.3s ease;
         }
-        /* Hide Header Technique */
         header.hidden-header { margin-top: -71px; } 
         
         .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* CHAT BOX - TAKES REMAINING SPACE */
+        /* CHAT AREA - FLEX GROW */
         #chat-box { 
-            flex-grow: 1; /* Takes all space between header and input */
-            overflow-y: auto; /* Scrolls internally */
-            padding: 20px 5%; 
+            flex-grow: 1; overflow-y: auto; padding: 20px 5%; 
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
 
-        /* INPUT AREA - STICKS TO BOTTOM NATURALLY */
+        /* INPUT AREA - LOCKED BOTTOM */
         .input-wrapper { 
             background: var(--bg); padding: 15px; 
             border-top: 1px solid var(--border); width: 100%; 
-            flex-shrink: 0; /* Never shrink */
-            z-index: 40; 
+            flex-shrink: 0; z-index: 40; 
         }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* INTRO */
-        #intro-container { 
-            position: absolute; top: 40%; left: 0; width: 100%; 
-            padding-left: 25px; padding-right: 25px;
-            text-align: left; pointer-events: none; z-index: 10; 
-            animation: fadeIn 0.8s ease-out;
-        }
-
         /* OVERLAYS - TOP LOCKED */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
@@ -197,8 +189,8 @@ HTML_TEMPLATE = """
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* SPACING FIX FOR LABELS */
-        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; /* Added spacing */ font-weight:600; text-transform:uppercase; }
+        /* UNIFORM SPACING FIX */
+        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; font-weight:600; text-transform:uppercase; }
         
         input, select { 
             width: 100%; padding: 14px; background: var(--input-bg); 
@@ -208,8 +200,6 @@ HTML_TEMPLATE = """
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
         input:focus, select:focus { border-color: var(--text); }
         .input-error { border: 1px solid #ef4444 !important; }
-        
-        /* BUTTONS */
         .submit-btn, .get-started-btn { 
             width: 100%; padding: 14px; border-radius: 12px; 
             border: none; background: var(--text); color: var(--bg); 
@@ -225,7 +215,7 @@ HTML_TEMPLATE = """
         }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
 
-        /* CHAT BUBBLES */
+        /* CHAT UI */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -239,7 +229,7 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
-        /* WAVE LOADING ANIMATION */
+        /* WAVE LOADING */
         .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
         .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
         .typing-dot:nth-child(2) { animation-delay: -1.1s; }
@@ -260,7 +250,7 @@ HTML_TEMPLATE = """
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
         
-        /* SETTINGS */
+        /* SETTINGS & SEARCH */
         .search-bar-container { position:relative; width:100%; margin-bottom:20px; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; display:none; }
@@ -268,6 +258,7 @@ HTML_TEMPLATE = """
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
+        #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
 
         /* PROFILE */
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; }
@@ -397,7 +388,7 @@ HTML_TEMPLATE = """
             
             <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;">
                  <span class="form-label">Semester</span>
-                 <div class="profile-val" id="p-sem" style="margin-top:5px;">--</div> </div>
+                 <div class="profile-val" id="p-sem">--</div> </div>
 
             <span class="form-label">Subject (Tap to Edit)</span>
             <input type="text" id="p-subj-edit" value="">
@@ -443,7 +434,6 @@ HTML_TEMPLATE = """
             <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
         </div>
     </div>
-
     <script>
         let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
         
@@ -473,7 +463,11 @@ HTML_TEMPLATE = """
             }
         }
         function clearError(input) { input.classList.remove('input-error'); }
-        function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
+        function showNameBox() { 
+            document.getElementById("welcome-overlay").style.display = 'none'; 
+            const nameBox = document.getElementById("name-overlay"); 
+            nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; 
+        }
         
         function handleNameSubmit() {
             const input = document.getElementById("username-input");
@@ -650,16 +644,13 @@ HTML_TEMPLATE = """
         }
 
         function handleLogout() { localStorage.clear(); location.reload(); }
-
-        // NEW CHAT FIX: JUST CLEAR SCREEN, KEEP HISTORY
         function newChat() {
-            currentChatId = null; // Prepare for new chat
+            currentChatId = null;
             document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
             document.getElementById('sidebar').classList.remove('open');
-            // History remains safe until we actually delete it
         }
 
-        // CHAT SEND WITH WAVE ANIMATION
+        // CHAT SEND WITH WAVE
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
@@ -832,6 +823,27 @@ def chat():
         new_title = True
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
+
+# PWA MANIFEST ROUTE
+@app.route('/manifest.json')
+def manifest():
+    data = {
+        "name": "Student's AI",
+        "short_name": "StudentAI",
+        "start_url": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#09090b",
+        "theme_color": "#09090b",
+        "icons": [
+            {
+                "src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png",
+                "sizes": "192x192",
+                "type": "image/png"
+            }
+        ]
+    }
+    return Response(json.dumps(data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
