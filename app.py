@@ -128,7 +128,7 @@ HTML_TEMPLATE = """
             height: 100dvh; width: 100%; overflow: hidden; position: fixed; 
         }
         
-        /* HEADER - LOCKED */
+        /* HEADER - FIXED & STABLE */
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
@@ -138,7 +138,7 @@ HTML_TEMPLATE = """
         .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:1001; }
         
-        /* CONTAINER & SCROLL */
+        /* CONTAINER */
         #app-container { display: flex; flex-direction: column; height: 100%; padding-top: 70px; width:100%; position:relative; }
         #chat-box { 
             flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 120px; 
@@ -148,8 +148,10 @@ HTML_TEMPLATE = """
         
         /* INTRO - LEFT ALIGNED & PADDED */
         #intro-container { 
-            position: absolute; top: 40%; left: 0; transform: translateY(-50%); 
-            width: 100%; padding: 0 30px; text-align: left; pointer-events: none; z-index: 10; 
+            position: absolute; top: 40%; left: 0; width: 100%; 
+            padding-left: 30px; /* Added Padding as requested */
+            padding-right: 30px;
+            text-align: left; pointer-events: none; z-index: 10; 
             transition: opacity 0.3s ease;
         }
 
@@ -157,8 +159,9 @@ HTML_TEMPLATE = """
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
-            align-items: center; justify-content: flex-start; /* FIX: START, NOT CENTER */
-            padding-top: 90px; /* FIXED TOP GAP */
+            align-items: center; 
+            justify-content: flex-start; /* FIX: Top aligned */
+            padding-top: 80px; /* Reduced Gap from top edge */
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
             transition: opacity 0.3s; 
@@ -172,16 +175,21 @@ HTML_TEMPLATE = """
             background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
-        
-        /* DATA BOX - LOCKED POSITION */
+        .get-started-btn {
+            padding: 12px 25px; border-radius: 12px; border: none; background: var(--text); color: var(--bg); 
+            font-weight: 700; font-size: 15px; cursor: pointer; display: inline-block; font-family: 'Outfit', sans-serif;
+        }
+
+        /* DATA BOX - STABLE TOP LOCK */
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; position: relative;
+            margin-top: 10px; /* Minimized top gap */
+            margin-bottom: 100px; /* Gap for scrolling */
             animation: fadeInUp 0.5s ease-out;
-            margin-bottom: 50px;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -197,7 +205,7 @@ HTML_TEMPLATE = """
         .input-error { border: 1px solid #ef4444 !important; }
         .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: var(--text); color: var(--bg); font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; }
 
-        /* CHAT BUBBLES */
+        /* CHAT MESSAGES */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -219,20 +227,21 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
-        /* SIDEBAR */
+        /* SIDEBAR - LANDSCAPE SCROLL FIX */
         #sidebar { 
             position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
             background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); transition: transform 0.3s ease-in-out; 
-            display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow-y: auto; 
+            display: flex; flex-direction: column; border-right: 1px solid var(--border); 
+            overflow-y: auto; /* IMPORTANT FOR SCROLL */
         }
         #sidebar.open { transform: translateY(0); }
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
         
-        /* SETTINGS & SEARCH BAR */
-        .search-bar-container { position:relative; width:100%; margin-bottom:20px; }
+        /* SETTINGS SEARCH BAR - X BUTTON */
+        .search-bar-container { position:relative; width:100%; margin-bottom:20px; margin-top: 10px; /* Reduced Top Gap */ }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; display:none; }
         
@@ -240,9 +249,13 @@ HTML_TEMPLATE = """
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         
-        /* PROFILE EDIT */
-        .profile-header { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 20px; position: relative; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; position: relative; margin-bottom: 15px; align-self: center; } /* CENTERED AVATAR */
+        /* PROFILE EDIT - CENTERED AVATAR */
+        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; } /* CENTERED */
+        .profile-avatar { 
+            width: 80px; height: 80px; border-radius: 50%; background: #222; 
+            border: 2px solid var(--text); position: relative; margin-bottom: 15px; 
+            display: flex; align-items: center; justify-content: center; /* PERFECT CENTER */
+        }
         
         /* CUSTOM MODAL */
         #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 3000; display:none; align-items:center; justify-content:center; }
@@ -284,6 +297,8 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="details-overlay" class="overlay hidden">
+        <div style="width:100%; max-width:350px; display:flex; justify-content:flex-start; margin-bottom:5px;">
+            </div>
         <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 5px 0; font-family:'Outfit',sans-serif;">Student Details</h2>
             
@@ -314,7 +329,7 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="settings-overlay" class="overlay hidden">
-        <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px; margin-bottom:10px;">
+        <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px; margin-bottom:0px;">
             <div onclick="closeSettings()" style="font-size:24px; cursor:pointer; color:var(--text);">&times;</div>
         </div>
         
@@ -348,9 +363,9 @@ HTML_TEMPLATE = """
         </div>
         
         <div class="data-box profile-box" style="margin-top:0;">
-            <div class="profile-header" style="align-items:center;">
+            <div class="profile-header">
                 <div class="profile-avatar">
-                    <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;">
                     <i class="fas fa-user" id="profile-icon" style="font-size:30px; color:#fff;"></i>
                     <label for="profile-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:25px; height:25px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label>
                 </div>
@@ -551,7 +566,6 @@ HTML_TEMPLATE = """
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
-            // Sync Profile Pic
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 document.getElementById('profile-pic-display').src = pic;
@@ -601,6 +615,7 @@ HTML_TEMPLATE = """
             const box = document.getElementById('chat-box');
             let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
             
+            // USER MSG WITH EDIT ICON
             box.insertAdjacentHTML('beforeend', `
                 <div class="msg user-msg">
                     <div class="user-content">${txt.replace(/</g, "&lt;")}${imgHtml}</div>
@@ -660,15 +675,32 @@ HTML_TEMPLATE = """
         }
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
-        async function renameChat(cid) { showCustomModal("Rename Chat", true, async (val) => { if(val) { await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); loadHistory(); } }); }
-        async function deleteChat(cid) { showCustomModal("Delete Chat?", false, async () => { await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}); if(currentChatId === cid) newChat(); else loadHistory(); }); }
+        // INSTANT HISTORY UPDATES
+        async function renameChat(cid) { 
+            showCustomModal("Rename Chat", true, async (val) => { 
+                if(val) { 
+                    await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); 
+                    loadHistory(); 
+                } 
+            }); 
+        }
+        async function deleteChat(cid) { 
+            showCustomModal("Delete Chat?", false, async () => { 
+                // Instant UI Removal (Optional but smoother)
+                const item = document.getElementById('chat-'+cid);
+                if(item) item.remove(); 
+                
+                await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}); 
+                if(currentChatId === cid) newChat(); else loadHistory(); 
+            }); 
+        }
 
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
              const list = document.getElementById('history-list'); list.innerHTML = "";
              Object.keys(data.chats).reverse().forEach(cid => {
-                 list.innerHTML += `<div class="history-item" onclick="loadChat('${cid}')"><span class="h-title">${data.chats[cid].title || "Chat"}</span><div style="display:flex; gap:10px;"><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
+                 list.innerHTML += `<div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')"><span class="h-title">${data.chats[cid].title || "Chat"}</span><div style="display:flex; gap:10px;"><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
              });
         }
         async function loadChat(cid) {
@@ -679,7 +711,8 @@ HTML_TEMPLATE = """
             data.messages.forEach(m => {
                 let cls = m.role === 'user' ? 'user' : 'ai';
                 let content = m.role === 'user' ? m.content : marked.parse(m.content);
-                let actions = cls === 'ai' ? `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').innerText)"></i><i class="fas fa-share-alt action-icon"></i><i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='Regenerate'; send();"></i></div>` : `<div class="msg-actions"><i class="fas fa-copy action-icon"></i><i class="fas fa-pen action-icon"></i></div>`;
+                // USER EDIT ICON ADDED HERE
+                let actions = cls === 'ai' ? `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').innerText)"></i><i class="fas fa-share-alt action-icon"></i><i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='Regenerate'; send();"></i></div>` : `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${m.content}')"></i><i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${m.content}'; document.getElementById('input').focus();"></i></div>`;
                 box.insertAdjacentHTML('beforeend', `<div class="msg ${cls}-msg"><div class="${cls}-content">${content}</div>${actions}</div>`);
             });
             document.getElementById('sidebar').classList.remove('open');
@@ -696,7 +729,6 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
 # --- ROUTES ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
