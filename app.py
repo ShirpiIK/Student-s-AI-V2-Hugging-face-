@@ -127,17 +127,21 @@ HTML_TEMPLATE = """
             height: 100dvh; width: 100%; overflow: hidden; position: fixed; 
         }
         
-        /* HEADER - HARD LOCKED (Z-INDEX 3000 to beat everything) */
+        /* HEADER - FIXED TOP (Visible only on Chat) */
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
             position: fixed; top: 0; left: 0; right: 0; z-index: 3000; 
             backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
         }
+        /* Class to hide header on non-chat pages */
+        header.hidden-header { transform: translateY(-100%); pointer-events: none; }
+        
         .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* APP LAYOUT */
+        /* CONTAINER */
         #app-container { display: flex; flex-direction: column; height: 100%; padding-top: 70px; width:100%; position:relative; }
         #chat-box { 
             flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 120px; 
@@ -145,41 +149,42 @@ HTML_TEMPLATE = """
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
         
-        /* INTRO - LEFT ALIGNED & PADDED */
+        /* INTRO - ANIMATED & PADDED */
         #intro-container { 
             position: absolute; top: 40%; left: 0; width: 100%; 
-            padding-left: 25px; /* Added Padding */
+            padding-left: 25px; padding-right: 25px;
             text-align: left; pointer-events: none; z-index: 10; 
             transition: opacity 0.3s ease;
+            animation: fadeIn 0.8s ease-out;
         }
 
-        /* OVERLAYS - TOP LOCKED (NO CENTERING) */
+        /* OVERLAYS - FIXED TOP LOCK (NO HEADER GAP NEEDED FOR SOME) */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
-            /* KEY FIX: Start from top, don't center vertically */
-            justify-content: flex-start; 
             align-items: center; 
-            padding-top: 80px; /* Safe distance from header */
+            justify-content: flex-start; /* FIX: Top aligned */
+            padding-top: 20px; /* Reduced gap since header is hidden */
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
             transition: opacity 0.3s; 
         }
         .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        /* DATA BOX - FIXED MARGINS (NO JUMPING) */
+        /* DATA BOX - LOCKED & ANIMATED */
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 10px; /* Fixed distance from top padding */
-            margin-bottom: 100px; /* Space for scrolling */
+            margin-top: 10px; 
+            margin-bottom: 50px; 
             position: relative;
-            animation: fadeInUp 0.5s ease-out;
+            animation: fadeInUp 0.6s ease-out; /* FADE ANIMATION */
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; font-weight:600; text-transform:uppercase; }
         
@@ -191,10 +196,24 @@ HTML_TEMPLATE = """
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
         input:focus, select:focus { border-color: var(--text); }
         .input-error { border: 1px solid #ef4444 !important; }
-        .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: var(--text); color: var(--bg); font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; }
+        
+        /* PROFESSIONAL RECTANGULAR CURVE BUTTON */
+        .submit-btn, .get-started-btn { 
+            width: 100%; padding: 14px; 
+            border-radius: 12px; /* Rectangular Curve */
+            border: none; background: var(--text); color: var(--bg); 
+            font-weight: 700; font-size: 16px; cursor: pointer; 
+            margin-top: 10px; font-family: 'Outfit', sans-serif; 
+            transition: transform 0.1s;
+        }
+        .submit-btn:active { transform: scale(0.98); }
 
         /* WELCOME SCREEN */
-        .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 20px; }
+        .welcome-container { 
+            width: 85%; max-width: 400px; text-align: left; 
+            margin-bottom: 30px; margin-top: 50px; 
+            animation: fadeIn 1s ease-out; /* Fade Animation */
+        }
         .welcome-title { 
             font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
             background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -223,21 +242,22 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
-        /* SIDEBAR - SCROLL FIX */
+        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
-            background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; 
+            background: var(--bg); z-index: 3002; /* Higher than header */
+            padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); transition: transform 0.3s ease-in-out; 
             display: flex; flex-direction: column; border-right: 1px solid var(--border); 
-            overflow-y: auto; /* KEY FIX FOR LANDSCAPE */
+            overflow-y: auto;
         }
         #sidebar.open { transform: translateY(0); }
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
         
-        /* SETTINGS SEARCH - TOP GAP FIXED */
-        .search-bar-container { position:relative; width:100%; margin-bottom:20px; margin-top: 5px; }
+        /* SETTINGS & SEARCH */
+        .search-bar-container { position:relative; width:100%; margin-bottom:20px; margin-top: 0px; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; display:none; }
         
@@ -245,7 +265,10 @@ HTML_TEMPLATE = """
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         
-        /* PROFILE EDIT - CENTER AVATAR */
+        /* "BACK" BUTTON STYLE */
+        .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
+
+        /* PROFILE */
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; }
         .profile-avatar { 
             width: 80px; height: 80px; border-radius: 50%; background: #222; 
@@ -254,13 +277,16 @@ HTML_TEMPLATE = """
         }
         
         /* MODAL */
-        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 3000; display:none; align-items:center; justify-content:center; }
+        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 4000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
 
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
+
+        /* NO RESULTS */
+        .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
     </style>
     </head>
 <body>
@@ -286,7 +312,7 @@ HTML_TEMPLATE = """
     <div id="name-overlay" class="overlay hidden">
         <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)">
+            <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
@@ -315,30 +341,30 @@ HTML_TEMPLATE = """
             </div>
 
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." onfocus="clearError(this)">
+            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
 
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
 
     <div id="settings-overlay" class="overlay hidden">
-        <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px; margin-bottom:0px;">
-            <div onclick="closeSettings()" style="font-size:24px; cursor:pointer; color:var(--text);">&times;</div>
+        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px;">
+            <div class="nav-back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i> Back</div>
         </div>
         
         <div style="width:90%; max-width:350px;">
             <div class="search-bar-container">
-                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="toggleSearchClear(this)">
+                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="handleSearch(this)">
                 <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()"></i>
             </div>
             
-            <div class="settings-container">
-                <div class="settings-option" onclick="openProfileFromSettings()">
+            <div id="settings-list" class="settings-container">
+                <div class="settings-option" data-search="student profile" onclick="openProfileFromSettings()">
                     <span>Student Profile</span> <i class="fas fa-chevron-right" style="font-size:12px;"></i>
                 </div>
                 <div class="divider"></div>
                 
-                <div style="padding:15px; color:var(--text);">
+                <div class="settings-option" data-search="theme light dark system" style="padding:15px; display:block; cursor:default;">
                     <div style="font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:600; letter-spacing:1px;">THEME</div>
                     <div style="display:flex; gap:10px;">
                         <button class="icon-btn" onclick="setTheme('light')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-sun"></i></button>
@@ -347,12 +373,13 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
             </div>
+            <div id="search-no-results" class="no-results">No results found</div>
         </div>
     </div>
 
     <div id="profile-overlay" class="overlay hidden">
         <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px;">
-            <div onclick="backToSettings()" style="font-size:16px; cursor:pointer; color:var(--text);"><i class="fas fa-arrow-left"></i> Back</div>
+            <div class="nav-back-btn" onclick="backToSettings()"><i class="fas fa-arrow-left"></i> Back</div>
         </div>
         
         <div class="data-box profile-box" style="margin-top:0;">
@@ -404,7 +431,7 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="app-container">
-        <header>
+        <header id="main-header" class="hidden-header">
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
             <span class="app-title">Student's AI</span>
             <div style="width:40px;"></div>
@@ -418,7 +445,7 @@ HTML_TEMPLATE = """
             <div class="input-container">
                 <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
                 <input type="file" id="file-input" hidden onchange="handleFile(this)">
-                <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+                <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
                 <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
             </div>
         </div>
@@ -447,10 +474,17 @@ HTML_TEMPLATE = """
                     const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
                 }
+            } else {
+                // Intro Page - Ensure Header is Hidden
+                document.getElementById('main-header').classList.add('hidden-header');
             }
         }
         function clearError(input) { input.classList.remove('input-error'); }
-        function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
+        function showNameBox() { 
+            document.getElementById("welcome-overlay").style.display = 'none'; 
+            const nameBox = document.getElementById("name-overlay"); 
+            nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; 
+        }
         
         function handleNameSubmit() {
             const input = document.getElementById("username-input");
@@ -517,6 +551,9 @@ HTML_TEMPLATE = """
 
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
+            // SHOW HEADER ONLY ON APP START
+            document.getElementById('main-header').classList.remove('hidden-header');
+            
             loadHistory();
             if(!currentChatId && !document.getElementById('intro-container')) {
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
@@ -531,16 +568,28 @@ HTML_TEMPLATE = """
             }
         }
 
-        // SETTINGS
+        // SETTINGS (Search Logic & Header Hiding)
         function openSettings() {
              document.getElementById('settings-overlay').classList.remove('hidden');
              document.getElementById('settings-overlay').style.display = 'flex';
              document.getElementById('sidebar').classList.remove('open');
+             // HIDE HEADER
+             document.getElementById('main-header').classList.add('hidden-header');
              clearSearch();
         }
-        function closeSettings() { document.getElementById('settings-overlay').style.display = 'none'; }
-        function openProfileFromSettings() { document.getElementById('settings-overlay').style.display = 'none'; openProfile(); }
-        function backToSettings() { document.getElementById('profile-overlay').style.display = 'none'; openSettings(); }
+        function closeSettings() { 
+            document.getElementById('settings-overlay').style.display = 'none'; 
+            // SHOW HEADER AGAIN
+            document.getElementById('main-header').classList.remove('hidden-header');
+        }
+        function openProfileFromSettings() { 
+            document.getElementById('settings-overlay').style.display = 'none'; 
+            openProfile(); 
+        }
+        function backToSettings() { 
+            document.getElementById('profile-overlay').style.display = 'none'; 
+            document.getElementById('settings-overlay').style.display = 'flex';
+        }
         
         function openProfile() {
             document.getElementById('p-name').innerText = currentUser;
@@ -559,6 +608,9 @@ HTML_TEMPLATE = """
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
+            // Hide Header for Profile
+            document.getElementById('main-header').classList.add('hidden-header');
+            
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 document.getElementById('profile-pic-display').src = pic;
@@ -574,6 +626,7 @@ HTML_TEMPLATE = """
             userContext = parts.join(',');
             localStorage.setItem("student_ai_context", userContext);
             document.getElementById('profile-overlay').style.display = 'none';
+            document.getElementById('main-header').classList.remove('hidden-header');
             alert("Saved!");
         }
         function handleProfilePic(input) {
@@ -596,11 +649,30 @@ HTML_TEMPLATE = """
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
         }
         
+        // SEARCH LOGIC
         function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'block' : 'none'; }
-        function clearSearch() { const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); }
+        function clearSearch() { 
+            const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); 
+        }
+        function handleSearch(el) {
+            const term = el.value.toLowerCase();
+            const items = document.querySelectorAll('.settings-option');
+            let hasResult = false;
+            items.forEach(item => {
+                const keywords = item.getAttribute('data-search');
+                if(keywords && keywords.includes(term)) {
+                    item.style.display = 'flex'; hasResult = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            document.querySelector('.divider').style.display = term ? 'none' : 'block';
+            document.getElementById('search-no-results').style.display = hasResult ? 'none' : 'block';
+        }
+
         function handleLogout() { localStorage.clear(); location.reload(); }
 
-        // CHAT
+        // CHAT & ACTIONS
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
@@ -643,7 +715,7 @@ HTML_TEMPLATE = """
                     <div class="msg-actions" style="opacity:0; transition:opacity 0.5s;">
                         <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').querySelector('.ai-content').innerText)"></i>
                         <i class="fas fa-share-alt action-icon" onclick="if(navigator.share) navigator.share({text:this.closest('.ai-msg').querySelector('.ai-content').innerText})"></i>
-                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
+                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='Regenerate'; send();"></i>
                     </div>`);
 
                 for (let i = 0; i < words.length; i++) {
