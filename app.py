@@ -5,37 +5,32 @@ import markdown
 from flask import Flask, request, jsonify, render_template_string
 import google.generativeai as genai
 
-# ==========================================
-# 👇 API KEYS (Hugging Face Secrets vazhiya edukiradhu) 👇
-# ==========================================
-# Secrets la 'API_KEYS' nu irukura variable ah eduthu, comma vachu pirikudhu
+# --- API KEYS FROM SECRETS ---
 api_keys_str = os.getenv("API_KEYS", "") 
 API_KEYS = [k.strip() for k in api_keys_str.split(",") if k.strip()]
 
-# Backup: Oruvelai Secrets set pannalana, error varama irukka dummy list (Work aagadhu)
 if not API_KEYS:
-    print("⚠️ Warning: API_KEYS not found in Secrets! Please add them.")
+    # Fallback for testing if secrets are missing
+    print("⚠️ Warning: API_KEYS not found in Secrets!")
     API_KEYS = [] 
-# ==========================================
 
 current_key_index = 0
 app = Flask(__name__)
 user_db = {} 
 
-# --- 🧠 PERMANENT MEMORY ---
+# --- MEMORY PROMPT ---
 SYSTEM_INSTRUCTION = """
 You are 'Student's AI', a smart coding assistant.
-CRITICAL RULES (NEVER FORGET):
+CRITICAL RULES:
 1. BLACK BOX ONLY: All code MUST be inside Markdown code blocks (```python ... ```).
-2. NO TRUNCATION: Never shorten the code. Split into 'Part 1' & 'Part 2' if needed.
+2. NO TRUNCATION: Never shorten code. Split into 'Part 1' & 'Part 2' if needed.
 3. LANGUAGE: Explain simply in Tanglish (Tamil + English).
-4. INDENTATION: Ensure Python code has perfect indentation.
-5. EDITABLE: Always provide code that fits the Black Box UI.
+4. INDENTATION: Python code must have perfect indentation.
 """
 
 def generate_with_retry(prompt, history=[]):
     global current_key_index
-    if not API_KEYS: return "⚠️ **Error:** No API Keys found. Please add 'API_KEYS' in Hugging Face Secrets."
+    if not API_KEYS: return "⚠️ Error: No API Keys in Secrets."
     
     for attempt in range(len(API_KEYS) * 2):
         key = API_KEYS[current_key_index]
@@ -50,9 +45,7 @@ def generate_with_retry(prompt, history=[]):
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             if "429" in str(e): time.sleep(1)
             continue
-    return "⚠️ **System Busy:** All API keys are overloaded. Please wait 1 minute."
-
-def save_db(db): pass 
+    return "⚠️ **System Busy:** All keys overloaded. Wait 1 min."
 
 # --- ROUTES ---
 @app.route("/", methods=["GET"])
@@ -96,10 +89,12 @@ def chat():
     u, cid, msg, ctx = d.get("username"), d.get("chat_id"), d.get("message"), d.get("user_context", "")
     if u not in user_db: user_db[u] = {}
     if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
+    
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
     
     history = [{'role': 'user' if m['role'] == 'user' else 'model', 'parts': [m['content']]} for m in user_db[u][cid]['messages'][:-1]]
-    final_prompt = f"User Context: {ctx}\nQuestion: {msg}" if ctx else msg
+    final_prompt = f"Context: {ctx}\n\nQuestion: {msg}" if ctx else msg
+    
     reply = generate_with_retry(final_prompt, history)
     
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
@@ -107,14 +102,14 @@ def chat():
     if len(user_db[u][cid]["messages"]) <= 2:
         user_db[u][cid]["title"] = " ".join(msg.split()[:4])
         new_title = True
+        
     return jsonify({"response": reply, "new_title": new_title})
-    # --- UI TEMPLATE ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>Student's AI</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -122,26 +117,62 @@ HTML_TEMPLATE = """
     <style>
         :root { --bg: #000; --sidebar: #0a0a0a; --header: rgba(0,0,0,0.95); --user-bg: #222; --text: #ececec; --accent: #fff; --dim: #888; --border: #333; --card: #111; }
         [data-theme="light"] { --bg: #f5f5f5; --sidebar: #fff; --header: rgba(255,255,255,0.95); --user-bg: #e0e0e0; --text: #000; --accent: #000; --dim: #666; --border: #ddd; --card: #fff; }
+        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; overflow: hidden; }
 
-        .overlay { position: fixed; inset: 0; z-index: 2000; background: var(--bg); display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
+        /* FIXED OVERLAY (Fix for Keyboard moving elements) */
+        .overlay { 
+            position: fixed; inset: 0; z-index: 2000; 
+            background: var(--bg); 
+            display: flex; flex-direction: column; align-items: center; 
+            overflow-y: auto; /* Landscape scroll fix */
+        }
         .hidden { display: none !important; }
-        .data-box { width: 90%; max-width: 350px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px; flex-shrink: 0; }
         
-        .top-bar-full { width: 100%; background: var(--bg); padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        /* ZERO GAP TOP BAR (Fix for Settings/Profile Gap) */
+        .top-bar-full { 
+            width: 100%; background: var(--bg); padding: 15px 20px; 
+            display: flex; align-items: center; border-bottom: 1px solid var(--border); 
+            position: sticky; top: 0; z-index: 10; 
+        }
+
+        /* SEARCH BAR (Added Clear X) */
         .search-container { position: relative; width: 100%; }
         .search-input { width: 100%; padding: 12px 40px 12px 15px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); outline: none; font-size: 16px; }
         .search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--dim); cursor: pointer; display: none; padding: 5px; }
 
-        .profile-avatar { width: 90px; height: 90px; background: #222; border-radius: 50%; margin: 0 auto 10px auto; position: relative; display: flex; justify-content: center; align-items: center; border: 2px solid var(--border); }
+        /* DATA BOX */
+        .data-box { width: 90%; max-width: 350px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 50px; flex-shrink: 0; }
+
+        /* PROFILE ICON (Centering Fix) */
+        .profile-avatar { 
+            width: 90px; height: 90px; background: #222; border-radius: 50%; 
+            margin: 0 auto 10px auto; position: relative; 
+            display: flex; justify-content: center; align-items: center; /* PERFECT CENTER */
+            border: 2px solid var(--border); 
+        }
         .form-label { font-size: 13px; color: var(--dim); margin-bottom: -10px; font-weight: 600; margin-left: 5px; }
-        .welcome-container { padding: 40px; text-align: left; margin-top: auto; margin-bottom: auto; width: 100%; max-width: 500px; padding-left: 50px; } /* Added Padding */
         
-        header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; padding: 0 20px; background: var(--header); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; z-index: 100; backdrop-filter: blur(10px); }
+        /* INTRO SCREEN (Left Padding Fix) */
+        .welcome-container { 
+            padding: 40px; text-align: left; margin-top: auto; margin-bottom: auto; 
+            width: 100%; max-width: 500px; 
+            padding-left: 40px; /* Fix for sticking to left corner */
+        }
+        .welcome-title { font-size: 42px; font-weight: 800; line-height: 1.1; margin-bottom: 20px; background: linear-gradient(45deg, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* HEADER LOCK (Keyboard fix) */
+        header { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
+            padding: 0 20px; background: var(--header); border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 100; backdrop-filter: blur(10px); 
+        }
         #chat-box { flex: 1; overflow-y: auto; padding: 80px 20px 80px 20px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 800px; margin: 0 auto; }
         
-        .msg { display: flex; flex-direction: column; width: 100%; position: relative; }
+        .msg { display: flex; flex-direction: column; width: 100%; animation: fade 0.3s forwards; position: relative; }
+        @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
         .user-msg { align-items: flex-end; }
         .user-msg .user-content { background: var(--user-bg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; }
         .ai-msg { align-items: flex-start; }
@@ -159,7 +190,7 @@ HTML_TEMPLATE = """
         .action-icon { font-size: 12px; color: var(--dim); margin-left: 10px; cursor: pointer; opacity: 0.7; }
         .msg-actions { display: flex; justify-content: flex-end; margin-top: 5px; padding-right: 5px; }
 
-        #sidebar { position: fixed; inset: 0; width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); transform: translateX(-100%); transition: 0.3s; z-index: 2001; padding: 20px; display: flex; flex-direction: column; }
+        #sidebar { position: fixed; inset: 0; width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); transform: translateX(-100%); transition: 0.3s; z-index: 2001; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; /* Scroll fix for Landscape */ }
         #sidebar.open { transform: translateX(0); }
         .overlay-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: none; }
         .overlay-bg.active { display: block; }
@@ -169,13 +200,29 @@ HTML_TEMPLATE = """
     </style>
 </head>
 <body>
+"""
+# --- HTML BODY & JS ---
+HTML_TEMPLATE += """
     <div id="custom-modal"><div class="modal-box"><h3 id="modal-title" style="margin-bottom:15px;">Alert</h3><input type="text" id="modal-input" style="display:none; margin-bottom:15px;" placeholder="Type here..."><div style="display:flex; gap:10px;"><button class="submit-btn" style="background:var(--dim); flex:1;" onclick="closeModal()">Cancel</button><button class="submit-btn" style="flex:1;" id="modal-confirm-btn">OK</button></div></div></div>
-    <div id="welcome-overlay" class="overlay"><div class="welcome-container"><h1 class="welcome-title" style="font-size:48px; margin-bottom:20px;">Student's AI</h1><p style="color:var(--dim); font-size:18px; line-height:1.6; margin-bottom:30px;">Your smart academic companion.</p><button class="submit-btn" style="width:auto; padding:15px 40px;" onclick="showNameBox()">Get Started <i class="fas fa-arrow-right"></i></button></div></div>
+
+    <div id="welcome-overlay" class="overlay"><div class="welcome-container"><h1 class="welcome-title">Student's AI</h1><p style="color:var(--dim); font-size:18px; line-height:1.6; margin-bottom:30px;">Your smart academic companion.</p><button class="submit-btn" style="width:auto; padding:15px 40px;" onclick="showNameBox()">Get Started <i class="fas fa-arrow-right"></i></button></div></div>
+
     <div id="name-overlay" class="overlay hidden" style="justify-content:center;"><div class="data-box"><h2>Who are you?</h2><input type="text" id="username-input" placeholder="Enter Name"><button class="submit-btn" onclick="handleNameSubmit()">Next</button></div></div>
-    <div id="details-overlay" class="overlay hidden" style="justify-content:center;"><div class="data-box" style="margin-top:auto; margin-bottom:auto;"><h2>Student Details</h2><span class="form-label">Name</span><div id="disp-user-name" style="padding:10px; color:var(--accent);"></div><span class="form-label">Level</span><select id="edu-level" onchange="updateEduOptions()"><option value="" disabled selected>Select</option><option value="school">School</option><option value="college">College</option></select><span class="form-label" id="lbl-year">Year/Class</span><select id="edu-year" onchange="updateSem()"><option value="" disabled selected>Select</option></select><div id="sem-box" style="display:none; flex-direction:column;"><span class="form-label">Semester</span><select id="edu-sem"><option value="" disabled selected>Select</option></select></div><span class="form-label">Subject</span><input type="text" id="edu-subj" placeholder="Ex: Maths"><button class="submit-btn" onclick="handleDetailsSubmit()">Start</button></div></div>
+
+    <div id="details-overlay" class="overlay hidden" style="justify-content:flex-start; padding-top:60px;">
+        <div class="data-box" style="margin-top:auto; margin-bottom:auto;">
+            <h2>Student Details</h2>
+            <span class="form-label">Name</span><div id="disp-user-name" style="padding:10px; color:var(--accent); font-weight:bold;"></div>
+            <span class="form-label">Level</span><select id="edu-level" onchange="updateEduOptions()"><option value="" disabled selected>Select</option><option value="school">School</option><option value="college">College</option></select>
+            <span class="form-label" id="lbl-year">Year/Class</span><select id="edu-year" onchange="updateSem()"><option value="" disabled selected>Select</option></select>
+            <div id="sem-box" style="display:none; flex-direction:column;"><span class="form-label">Semester</span><select id="edu-sem"><option value="" disabled selected>Select</option></select></div>
+            <span class="form-label">Subject</span><input type="text" id="edu-subj" placeholder="Ex: Maths">
+            <button class="submit-btn" onclick="handleDetailsSubmit()">Start</button>
+        </div>
+    </div>
 
     <div id="settings-overlay" class="overlay hidden">
-        <div class="top-bar-full" style="padding:10px 15px;">
+        <div class="top-bar-full">
             <div class="search-container">
                 <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="toggleSearchClear(this)">
                 <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()"></i>
@@ -197,18 +244,18 @@ HTML_TEMPLATE = """
     <div id="profile-overlay" class="overlay hidden">
         <div class="top-bar-full"><div onclick="backToSettings()" style="cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-arrow-left"></i> Back</div></div>
         <div class="data-box" style="margin-top:20px; border:none; background:transparent;">
-            <div class="profile-avatar"><img id="p-pic-disp" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;"><i class="fas fa-user" id="p-icon-disp" style="font-size:30px; color:#fff; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);"></i><label for="p-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label></div><input type="file" id="p-upload" hidden onchange="handlePic(this)">
+            <div class="profile-avatar"><img id="p-pic-disp" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;"><i class="fas fa-user" id="p-icon-disp" style="font-size:30px; color:#fff;"></i><label for="p-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label></div><input type="file" id="p-upload" hidden onchange="handlePic(this)">
+            
             <span class="form-label">Name</span><div id="p-name" style="padding:10px; background:var(--bg); border-radius:8px;">--</div>
             <span class="form-label">Level</span><div id="p-level" style="padding:10px; background:var(--bg); border-radius:8px;">--</div>
             <span class="form-label">Year/Class</span><div id="p-year" style="padding:10px; background:var(--bg); border-radius:8px;">--</div>
             <div id="p-sem-row" style="display:none; flex-direction:column;"><span class="form-label">Semester</span><div id="p-sem" style="padding:10px; background:var(--bg); border-radius:8px;">--</div></div>
+            
             <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:20px;" onclick="handleLogout()">Log Out</button>
             <div style="height:50px;"></div>
         </div>
     </div>
-"""
-# --- JAVASCRIPT ---
-HTML_TEMPLATE += """
+
     <div class="overlay-bg" id="overlay-bg" onclick="toggleSidebar()"></div>
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -245,8 +292,11 @@ HTML_TEMPLATE += """
         function closeSettings(){document.getElementById('settings-overlay').classList.add('hidden');}
         function openProfile(){closeSettings(); const p=document.getElementById('profile-overlay'); p.classList.remove('hidden'); document.getElementById('p-name').innerText=currUser; const c=context.split(','); document.getElementById('p-level').innerText=c[0]; document.getElementById('p-year').innerText=c[1]; if(c[0]==='college'){document.getElementById('p-sem-row').style.display='flex'; document.getElementById('p-sem').innerText=c[2];} updatePic();}
         function backToSettings(){document.getElementById('profile-overlay').classList.add('hidden'); openSettings();}
+        
+        // SEARCH FIX
         function toggleSearchClear(el){document.getElementById('search-clear-btn').style.display=el.value?'block':'none';}
         function clearSearch(){document.getElementById('setting-search').value=''; document.getElementById('search-clear-btn').style.display='none';}
+        
         function handlePic(inp){if(inp.files[0]){const r=new FileReader(); r.onload=(e)=>{localStorage.setItem("pic",e.target.result); updatePic();}; r.readAsDataURL(inp.files[0]);}}
         function updatePic(){const p=localStorage.getItem("pic"); if(p){['p-pic-disp','sb-pic'].forEach(id=>{const el=document.getElementById(id); el.src=p; el.style.display='block';}); document.getElementById('p-icon-disp').style.display='none';}}
         function setTheme(t){localStorage.setItem("theme",t); if(t==='light')document.documentElement.setAttribute('data-theme','light'); else document.documentElement.removeAttribute('data-theme');}
@@ -257,6 +307,7 @@ HTML_TEMPLATE += """
             const inp=document.getElementById('input'); const txt=inp.value.trim(); if(!txt)return;
             if(!currChat) await newChat(true);
             const box=document.getElementById('chat-box');
+            // USER EDIT ICON ADDED
             box.insertAdjacentHTML('beforeend',`<div class="msg user-msg"><div class="user-content">${txt}</div><div class="msg-actions"><i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${txt}';document.getElementById('input').focus()"></i><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${txt}')"></i></div></div>`);
             inp.value=''; box.scrollTo(0,box.scrollHeight);
             const tid="ai-"+Date.now(); box.insertAdjacentHTML('beforeend',`<div id="${tid}" class="msg ai-msg"><div class="ai-content">...</div></div>`);
@@ -271,6 +322,7 @@ HTML_TEMPLATE += """
             const r=await fetch('/get_history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:currUser})});
             const d=await r.json(); const l=document.getElementById('history-list'); l.innerHTML="";
             Object.keys(d.chats).reverse().forEach(cid=>{
+                // INSTANT UPDATE UI
                 l.innerHTML+=`<div id="h-${cid}" style="padding:10px; display:flex; justify-content:space-between; cursor:pointer;" onclick="loadChat('${cid}')"><span>${d.chats[cid].title}</span><div><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
             });
         }
