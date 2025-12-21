@@ -9,16 +9,13 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
-# --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
-# ==========================================
-# 👇 API KEYS SETUP 👇
-# ==========================================
+# API KEYS
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
 
-# --- 💾 DATABASE ---
+# DATABASE
 DB_FILE = "chat_db.json"
 def load_db():
     try:
@@ -35,22 +32,32 @@ user_db = load_db()
 current_key_index = 0
 app = Flask(__name__)
 
-# --- 🧠 SYSTEM INSTRUCTION ---
+# SYSTEM PROMPT
 BASE_INSTRUCTION = """
 ROLE: You are "Student's AI", a professional academic tutor.
 RULES:
 1. **MATH:** Use LaTeX for formulas ($$ ... $$).
-2. **DIAGRAMS:** Use Mermaid.js (```mermaid ... ```).
-3. **LANGUAGE:** English by default. Use Tamil/Tanglish ONLY if requested.
-4. **FORMAT:** Markdown. Bold key terms.
+2. **FORMAT:** Markdown. Bold key terms.
 """
 
-# --- 🧬 MODEL FUNCTIONS ---
+# --- 1. ROBUST MODEL FINDER (FIXED "SYSTEM BUSY") ---
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
-        return 'gemini-1.5-flash'
+        models = list(genai.list_models())
+        # Filter for models that support generating content
+        chat_models = [m for m in models if 'generateContent' in m.supported_generation_methods]
+        
+        # Priority 1: Flash 1.5
+        for m in chat_models:
+            if "flash" in m.name.lower() and "1.5" in m.name: return m.name
+        # Priority 2: Pro 1.5
+        for m in chat_models:
+            if "pro" in m.name.lower() and "1.5" in m.name: return m.name
+        # Priority 3: Any Gemini model
+        if chat_models: return chat_models[0].name
     except: return None
+    return None
 
 def process_image(image_data):
     try:
@@ -71,9 +78,9 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
     current_parts = []
     full_prompt = prompt
     if user_context:
-        full_prompt = f"[Student Context: {user_context}]\nQuestion: {prompt}"
+        full_prompt = f"[Context: {user_context}]\nQuestion: {prompt}"
 
-    if file_text: current_parts.append(f"analyzing file:\n{file_text}\n\n")
+    if file_text: current_parts.append(f"File Content:\n{file_text}\n\n")
     current_parts.append(full_prompt)
     if image_data:
         img = process_image(image_data)
@@ -81,10 +88,18 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
 
     for i in range(len(API_KEYS)):
         key = API_KEYS[current_key_index]
+        model_name = get_working_model(key) # Dynamic Model Selection
+        
+        if not model_name:
+            current_key_index = (current_key_index + 1) % len(API_KEYS)
+            continue
+
         try:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=BASE_INSTRUCTION)
-            if image_data or file_text: response = model.generate_content(current_parts)
+            model = genai.GenerativeModel(model_name=model_name, system_instruction=BASE_INSTRUCTION)
+            
+            if image_data or file_text:
+                response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
                 response = chat.send_message(full_prompt)
@@ -92,7 +107,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
         except Exception as e:
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
-    return "⚠️ System Busy. Please try again."
+    return "⚠️ System Busy. Please try again later."
 
 # --- UI TEMPLATE ---
 HTML_TEMPLATE = """
@@ -118,18 +133,37 @@ HTML_TEMPLATE = """
         /* --- ANIMATIONS --- */
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* --- OVERLAYS (LOCKED TOP POSITION) --- */
+        /* --- HEADER (LOCKED) --- */
+        header { 
+            height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
+            position: fixed; top: 0; left: 0; right: 0; z-index: 50; /* Fixed position locks it */
+        }
+        .app-title { font-size: 20px; font-weight: 700; color: #fff; text-align:center; flex:1; }
+        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:60; }
+        
+        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 100px; display: flex; flex-direction: column; gap: 20px; width:100%; position: relative; }
+        
+        /* --- INTRO TEXT (LOCKED POSITION) --- */
+        #intro-container { 
+            position: absolute; top: 100px; /* Fixed from top relative to chat-box */
+            left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; 
+            text-align: center; pointer-events: none; z-index: 10; 
+        }
+
+        /* --- OVERLAYS (BOX LOCK & POSITION FIX) --- */
         .overlay { 
             position: fixed; inset: 0; background: #000; z-index: 2000; 
             display: flex; flex-direction: column; 
-            /* LOCK POSITION: Top 15% - Wont move with keyboard */
-            padding-top: 15vh; align-items: center; justify-content: flex-start;
+            /* LOCK POSITION: Top 10% - Even higher to avoid keyboard */
+            padding-top: 10vh; align-items: center; justify-content: flex-start;
             transition: opacity 0.3s; 
         }
         .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        /* 1. WELCOME SCREEN */
-        .welcome-container { width: 85%; max-width: 400px; text-align: left; animation: fadeInUp 0.8s ease-out; }
+        /* WELCOME SCREEN */
+        .welcome-container { width: 85%; max-width: 400px; text-align: left; animation: fadeInUp 0.8s ease-out; margin-top: 10vh; }
         .welcome-title { 
             font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
             background: linear-gradient(to right, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -141,22 +175,22 @@ HTML_TEMPLATE = """
             font-weight: 700; font-size: 15px; cursor: pointer; transition: transform 0.1s; 
             display: inline-block; opacity: 0; animation: fadeInUp 0.8s 0.6s forwards;
         }
-        .get-started-btn:active { transform: scale(0.95); }
 
-        /* 2. DATA BOX STYLE */
+        /* DATA BOX (LOCKED) */
         .data-box { 
             width: 90%; max-width: 350px; background: #0a0a0a; 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: fadeInUp 0.5s ease-out;
+            position: relative; /* Ensure it stays put */
         }
         
-        .form-label { font-size: 12px; color: #777; margin-left: 2px; margin-bottom:-10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+        .form-label { font-size: 12px; color: #777; margin-left: 2px; margin-bottom:-8px; font-weight:600; text-transform:uppercase; }
         
         input, select { 
             width: 100%; padding: 14px; background: #131315; 
             border: 1px solid #27272a; color: #fff; border-radius: 10px; 
-            outline: none; font-size: 15px; font-family: 'Outfit', sans-serif; transition: 0.2s;
+            outline: none; font-size: 15px; font-family: 'Outfit', sans-serif;
             appearance: none; -webkit-appearance: none; 
         }
         select {
@@ -165,23 +199,10 @@ HTML_TEMPLATE = """
         }
         input:focus, select:focus { border-color: #555; background: #18181b; }
         .input-error { border: 1px solid #ef4444 !important; }
-
         .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: #fff; color: #000; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
 
-        /* --- MAIN UI --- */
-        header { 
-            height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
-            border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
-            position: absolute; top: 0; left: 0; right: 0; z-index: 50; 
-        }
-        .app-title { font-size: 20px; font-weight: 700; color: #fff; text-align:center; flex:1; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:60; }
-        
-        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 100px; display: flex; flex-direction: column; gap: 20px; width:100%; }
-        
-        /* MESSAGES */
-        .msg { display: flex; flex-direction: column; opacity: 0; animation: fadeInstant 0.3s forwards; }
+        /* MESSAGES & ACTIONS (ICONS RESTORED) */
+        .msg { display: flex; flex-direction: column; opacity: 0; animation: fadeInstant 0.3s forwards; position: relative; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
         .user-content { background: var(--user-msg); padding: 10px 16px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: #fff; word-wrap: break-word; }
@@ -189,8 +210,13 @@ HTML_TEMPLATE = """
         .ai-content { width: 100%; color: #d4d4d8; }
         .ai-content strong { color: #fff; }
 
-        /* TYPE BAR RESTORED */
-        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position:fixed; bottom:0; left:0; z-index:40; }
+        .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.6; transition: opacity 0.2s; }
+        .msg:hover .msg-actions { opacity: 1; }
+        .action-icon { cursor: pointer; color: #71717a; font-size: 14px; }
+        .action-icon:hover { color: #fff; }
+
+        /* TYPE BAR (LOCKED BOTTOM) */
+        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position: fixed; bottom: 0; left: 0; z-index: 40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 8px 12px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: #fff; font-size: 17px; max-height: 120px; padding: 10px 5px; resize: none; outline: none; font-family: 'Outfit', sans-serif; }
         .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; flex-shrink: 0; }
@@ -205,17 +231,47 @@ HTML_TEMPLATE = """
             display: flex; flex-direction: column; border-right: 1px solid #222;
         }
         #sidebar.open { transform: translateY(0); }
-        .sidebar-footer { margin-top: auto; border-top: 1px solid #222; padding-top: 20px; }
-        .settings-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: #ddd; cursor: pointer; border-radius: 12px; }
+        
+        /* HISTORY ITEMS & ACTIONS */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: #18181b; border-radius: 12px; cursor: pointer; color: #a1a1aa; font-size: 14px; }
+        .history-item:active { background: #222; color: #fff; }
+        .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
+        .h-actions { display: none; gap: 12px; }
+        .history-item.active-mode .h-actions { display: flex; }
+        .h-icon { font-size: 14px; color: #fff; padding: 5px; }
 
-        /* PROFILE */
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 30px; color: #fff; }
-        .profile-val { color: #fff; font-size: 16px; font-weight: 600; padding: 12px; background: #18181b; border-radius: 10px; border: 1px solid #333; margin-bottom: 12px; }
+        /* PROFILE UI (LEFT ALIGNED) */
+        .profile-header { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 20px; position: relative; }
+        .profile-avatar { 
+            width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid #fff; 
+            display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; 
+            position: relative;
+        }
+        .edit-badge {
+            position: absolute; bottom: -5px; right: -5px; background: #fff; color: #000;
+            width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; cursor: pointer; border: 2px solid #000;
+        }
+        .profile-box { 
+            text-align: left; /* LEFT ALIGN */
+            align-items: flex-start; width: 100%;
+        }
+        .profile-val { 
+            color: #fff; font-size: 16px; font-weight: 600; padding: 12px; 
+            background: #18181b; border-radius: 10px; border: 1px solid #333; margin-bottom: 12px; width: 100%;
+        }
+        /* Editable Input Style */
+        .profile-input {
+            width: 100%; padding: 12px; background: #131315; border: 1px solid #3f3f46; color: #fff; border-radius: 10px;
+            font-size: 16px; font-family: 'Outfit', sans-serif;
+        }
 
-        #intro-container { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; text-align: center; pointer-events: none; z-index: 10; }
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
+        
+        /* Smooth Scroll for Settings */
+        .overlay { -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body>
@@ -267,7 +323,7 @@ HTML_TEMPLATE = """
             </div>
 
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." onfocus="clearError(this)">
+            <input type="text" id="edu-subject" placeholder="Maths, CS, Bio..." onfocus="clearError(this)">
 
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
@@ -277,18 +333,32 @@ HTML_TEMPLATE = """
         <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px;">
             <div onclick="closeProfile()" style="font-size:24px; cursor:pointer; color:#fff;">&times;</div>
         </div>
-        <div class="profile-avatar"><i class="fas fa-user"></i></div>
-        <h2 style="color:#fff; margin-bottom:20px;">Student Profile</h2>
-        <div class="data-box" style="margin-top:0;">
+        
+        <div class="data-box profile-box" style="margin-top:0;">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <i class="fas fa-user" id="profile-icon"></i>
+                    <img id="profile-pic-display" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:none;">
+                    <label for="profile-upload" class="edit-badge"><i class="fas fa-camera"></i></label>
+                </div>
+                <input type="file" id="profile-upload" hidden accept="image/*" onchange="handleProfilePic(this)">
+                <h2 style="color:#fff; margin:10px 0 0 0;">Student Profile</h2>
+            </div>
+
             <div class="form-label">Name</div>
             <div class="profile-val" id="p-name">--</div>
+
             <div class="form-label">Level</div>
             <div class="profile-val" id="p-level">--</div>
+
             <div class="form-label" id="lbl-year">Class/Year</div>
             <div class="profile-val" id="p-year">--</div>
-            <div class="form-label" id="lbl-subj">Subject</div>
-            <div class="profile-val" id="p-subj">--</div>
-            <button class="submit-btn" style="background:#ef4444; color:#fff;" onclick="handleLogout()">Log Out</button>
+
+            <div class="form-label" id="lbl-subj">Subject (Editable)</div>
+            <input type="text" class="profile-input" id="p-subj-edit" value="">
+
+            <button class="submit-btn" style="background:#fff; color:#000; margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
+            <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
@@ -301,7 +371,7 @@ HTML_TEMPLATE = """
         <div style="color:#71717a; font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
         <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
         <div class="sidebar-footer">
-            <div class="settings-item" onclick="openProfile()"><i class="fas fa-cog"></i><span>Settings</span></div>
+            <div class="settings-item" onclick="openProfile()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
         </div>
     </div>
 
@@ -325,10 +395,12 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
-
     <script>
         let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
+        let longPressTimer;
+
         function getIntroHtml(name) { return `<div id="intro-container"><div class="msg ai-msg"><div class="ai-content"><h1>Hi ${name},</h1><p>Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div></div></div>`; }
+        
         function checkLogin() {
             const u = localStorage.getItem("student_ai_user");
             const c = localStorage.getItem("student_ai_context");
@@ -366,7 +438,7 @@ HTML_TEMPLATE = """
             yearSelect.innerHTML = '<option value="" disabled selected>Select</option>';
             if(level === 'college') {
                 semContainer.style.display = 'flex';
-                ["1st", "2nd", "3rd", "4th"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
+                ["1st Year", "2nd Year", "3rd Year", "4th Year"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
             } else {
                 semContainer.style.display = 'none';
                 ["6th", "7th", "8th", "9th", "10th", "11th", "12th"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
@@ -399,26 +471,77 @@ HTML_TEMPLATE = """
             if(!currentChatId && !document.getElementById('intro-container')) {
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
             }
+            // Load Profile Pic
+            const pic = localStorage.getItem("student_profile_pic");
+            if(pic) {
+                document.getElementById('profile-pic-display').src = pic;
+                document.getElementById('profile-pic-display').style.display = 'block';
+                document.getElementById('profile-icon').style.display = 'none';
+            }
         }
+        
+        // PROFILE & SETTINGS
         function openProfile() {
             document.getElementById('p-name').innerText = currentUser;
             const parts = userContext.split(',');
             const level = parts[0];
             document.getElementById('p-level').innerText = level.toUpperCase();
             document.getElementById('p-year').innerText = parts[1];
+            
+            let subjVal = "";
             if(level === 'college' && parts.length >= 4) {
                  document.getElementById('lbl-subj').innerText = "Sem / Subject";
-                 document.getElementById('p-subj').innerText = `${parts[2]} - ${parts[3]}`;
+                 subjVal = `${parts[2]} - ${parts[3]}`;
             } else {
                  document.getElementById('lbl-subj').innerText = "Subject";
-                 document.getElementById('p-subj').innerText = parts[2];
+                 subjVal = parts[2];
             }
+            document.getElementById('p-subj-edit').value = subjVal; // Editable
+            
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
             document.getElementById('sidebar').classList.remove('open');
         }
         function closeProfile() { document.getElementById('profile-overlay').style.display = 'none'; }
         function handleLogout() { localStorage.clear(); location.reload(); }
+        function saveProfileChanges() {
+            // Update Subject only logic
+            const newSubj = document.getElementById('p-subj-edit').value;
+            const parts = userContext.split(',');
+            if(parts[0] === 'college') parts[3] = newSubj;
+            else parts[2] = newSubj;
+            userContext = parts.join(',');
+            localStorage.setItem("student_ai_context", userContext);
+            closeProfile();
+            alert("Updated!");
+        }
+        function handleProfilePic(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const res = e.target.result;
+                    localStorage.setItem("student_profile_pic", res);
+                    document.getElementById('profile-pic-display').src = res;
+                    document.getElementById('profile-pic-display').style.display = 'block';
+                    document.getElementById('profile-icon').style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // HISTORY ACTIONS
+        function handleHistoryTouchStart(e, cid) {
+            longPressTimer = setTimeout(() => {
+                e.target.closest('.history-item').classList.add('active-mode');
+            }, 600);
+        }
+        function handleHistoryTouchEnd(e) { clearTimeout(longPressTimer); }
+        async function deleteChat(cid) {
+            const el = document.getElementById('chat-' + cid); if(el) el.remove();
+            await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
+            if(currentChatId === cid) newChat();
+        }
+
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function handleFile(input) {
             if(input.files[0]) {
@@ -436,6 +559,7 @@ HTML_TEMPLATE = """
             document.getElementById('preview-area').style.display = 'none';
             document.getElementById('file-input').value = "";
         }
+        
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
@@ -443,7 +567,17 @@ HTML_TEMPLATE = """
             if(intro) intro.remove();
             const box = document.getElementById('chat-box');
             let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
-            box.insertAdjacentHTML('beforeend', `<div class="msg user-msg"><div class="user-content">${txt}${imgHtml}</div></div>`);
+            
+            // User Msg with Actions
+            box.insertAdjacentHTML('beforeend', `
+                <div class="msg user-msg">
+                    <div class="user-content">${txt}${imgHtml}</div>
+                    <div class="msg-actions">
+                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${txt}')"></i>
+                        <i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${txt}'"></i>
+                    </div>
+                </div>`);
+                
             document.getElementById('input').value = "";
             let imgData = currentAttachment;
             clearAttachment();
@@ -453,26 +587,42 @@ HTML_TEMPLATE = """
             try {
                 if(!currentChatId) {
                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                    const d = await r.json(); currentChatId = d.chat_id;
+                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
                 const res = await fetch('/chat', {
                     method:'POST', headers:{'Content-Type':'application/json'},
                     body:JSON.stringify({message:txt, image:imgData, username:currentUser, chat_id:currentChatId, user_context:userContext})
                 });
                 const data = await res.json();
-                document.getElementById(msgId).innerHTML = `<div class="ai-content">${marked.parse(data.response)}</div>`;
+                
+                // AI Msg with Actions
+                const aiHTML = `
+                    <div class="ai-content">${marked.parse(data.response)}</div>
+                    <div class="msg-actions">
+                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').innerText)"></i>
+                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
+                    </div>`;
+                document.getElementById(msgId).innerHTML = aiHTML;
                 hljs.highlightAll();
                 box.scrollTo(0, box.scrollHeight);
                 if(data.new_title) loadHistory();
             } catch(e) { document.getElementById(msgId).innerText = "Error."; }
         }
+        
         async function loadHistory() {
              try {
                 const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
                 const data = await res.json();
                 const list = document.getElementById('history-list'); list.innerHTML = "";
                 Object.keys(data.chats).reverse().forEach(cid => {
-                    list.innerHTML += `<div style="padding:10px; margin-bottom:5px; background:#18181b; border-radius:8px; cursor:pointer;" onclick="loadChat('${cid}')">${data.chats[cid].title || "Chat"}</div>`;
+                    list.innerHTML += `
+                    <div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')" 
+                         ontouchstart="handleHistoryTouchStart(event, '${cid}')" ontouchend="handleHistoryTouchEnd(event)">
+                        <span class="h-title">${data.chats[cid].title || "Chat"}</span>
+                        <div class="h-actions">
+                            <i class="fas fa-trash h-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i>
+                        </div>
+                    </div>`;
                 });
             } catch(e){}
         }
@@ -494,6 +644,7 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
+
 # --- BACKEND ROUTES ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
@@ -506,6 +657,15 @@ def new_chat():
     user_db[u][nid] = {"title": "New Chat", "messages": []}
     save_db(user_db)
     return jsonify({"chat_id": nid})
+
+@app.route("/delete_chat", methods=["POST"])
+def delete_chat():
+    d = request.json
+    u, cid = d.get("username"), d.get("chat_id")
+    if u in user_db and cid in user_db[u]:
+        del user_db[u][cid]
+        save_db(user_db)
+    return jsonify({"status":"ok"})
 
 @app.route("/get_history", methods=["POST"])
 def get_history():
@@ -536,20 +696,6 @@ def chat():
         new_title = True
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
-
-@app.route('/manifest.json')
-def manifest():
-    data = {
-        "name": "Student's AI",
-        "short_name": "StudentAI",
-        "start_url": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#09090b",
-        "theme_color": "#09090b",
-        "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png", "sizes": "192x192", "type": "image/png"}]
-    }
-    return Response(json.dumps(data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
