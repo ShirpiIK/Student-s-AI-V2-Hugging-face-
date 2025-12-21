@@ -131,9 +131,10 @@ HTML_TEMPLATE = """
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
-            position: fixed; top: 0; left: 0; right: 0; z-index: 3000; 
+            position: fixed; top: 0; left: 0; right: 0; z-index: 3000; /* High Z-index */
             backdrop-filter: blur(10px);
             transition: transform 0.3s ease;
+            transform: translateY(0); /* Force Stay */
         }
         /* Class to hide header on non-chat pages */
         header.hidden-header { transform: translateY(-100%); pointer-events: none; }
@@ -158,13 +159,13 @@ HTML_TEMPLATE = """
             animation: fadeIn 0.8s ease-out;
         }
 
-        /* OVERLAYS - FIXED TOP LOCK (NO HEADER GAP NEEDED FOR SOME) */
+        /* OVERLAYS - FIXED TOP LOCK FOR ALL BOXES */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
             justify-content: flex-start; /* FIX: Top aligned */
-            padding-top: 20px; /* Reduced gap since header is hidden */
+            padding-top: 20px; /* Locked top padding */
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
             transition: opacity 0.3s; 
@@ -178,10 +179,10 @@ HTML_TEMPLATE = """
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 10px; 
-            margin-bottom: 50px; 
+            margin-top: 10px; /* Hard Fixed top margin */
+            margin-bottom: 100px; /* Extra space for scrolling if keyboard hides */
             position: relative;
-            animation: fadeInUp 0.6s ease-out; /* FADE ANIMATION */
+            animation: fadeInUp 0.6s ease-out;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -200,7 +201,7 @@ HTML_TEMPLATE = """
         /* PROFESSIONAL RECTANGULAR CURVE BUTTON */
         .submit-btn, .get-started-btn { 
             width: 100%; padding: 14px; 
-            border-radius: 12px; /* Rectangular Curve */
+            border-radius: 12px; 
             border: none; background: var(--text); color: var(--bg); 
             font-weight: 700; font-size: 16px; cursor: pointer; 
             margin-top: 10px; font-family: 'Outfit', sans-serif; 
@@ -212,7 +213,7 @@ HTML_TEMPLATE = """
         .welcome-container { 
             width: 85%; max-width: 400px; text-align: left; 
             margin-bottom: 30px; margin-top: 50px; 
-            animation: fadeIn 1s ease-out; /* Fade Animation */
+            animation: fadeIn 1s ease-out; 
         }
         .welcome-title { 
             font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
@@ -228,13 +229,24 @@ HTML_TEMPLATE = """
         .ai-msg { align-items: flex-start; width: 100%; }
         .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
         .ai-content strong { color: var(--text); font-weight: 700; }
-        .ai-content h1, .ai-content h2 { margin-top: 20px; color: var(--text); font-family: 'Outfit', sans-serif; }
-        .ai-content pre { background: #111 !important; padding: 15px; border-radius: 10px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
         .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
         .action-icon { cursor: pointer; color: var(--dim); font-size: 16px; transition: 0.2s; }
         .action-icon:hover { color: var(--text); transform: scale(1.1); }
 
-        /* INPUT BAR - FIXED BOTTOM */
+        /* LOADING WAVE ANIMATION */
+        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
+        .typing-dot {
+            width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%;
+            animation: wave 1.3s linear infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: -1.1s; }
+        .typing-dot:nth-child(3) { animation-delay: -0.9s; }
+        @keyframes wave {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        /* INPUT BAR */
         .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position: fixed; bottom: 0; left: 0; z-index: 40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
@@ -245,7 +257,7 @@ HTML_TEMPLATE = """
         /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
-            background: var(--bg); z-index: 3002; /* Higher than header */
+            background: var(--bg); z-index: 3002; 
             padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); transition: transform 0.3s ease-in-out; 
             display: flex; flex-direction: column; border-right: 1px solid var(--border); 
@@ -265,7 +277,7 @@ HTML_TEMPLATE = """
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         
-        /* "BACK" BUTTON STYLE */
+        /* BACK BUTTON */
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
 
         /* PROFILE */
@@ -284,8 +296,6 @@ HTML_TEMPLATE = """
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
-
-        /* NO RESULTS */
         .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
     </style>
     </head>
@@ -475,7 +485,6 @@ HTML_TEMPLATE = """
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
                 }
             } else {
-                // Intro Page - Ensure Header is Hidden
                 document.getElementById('main-header').classList.add('hidden-header');
             }
         }
@@ -551,9 +560,7 @@ HTML_TEMPLATE = """
 
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
-            // SHOW HEADER ONLY ON APP START
             document.getElementById('main-header').classList.remove('hidden-header');
-            
             loadHistory();
             if(!currentChatId && !document.getElementById('intro-container')) {
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
@@ -568,18 +575,15 @@ HTML_TEMPLATE = """
             }
         }
 
-        // SETTINGS (Search Logic & Header Hiding)
         function openSettings() {
              document.getElementById('settings-overlay').classList.remove('hidden');
              document.getElementById('settings-overlay').style.display = 'flex';
              document.getElementById('sidebar').classList.remove('open');
-             // HIDE HEADER
              document.getElementById('main-header').classList.add('hidden-header');
              clearSearch();
         }
         function closeSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
-            // SHOW HEADER AGAIN
             document.getElementById('main-header').classList.remove('hidden-header');
         }
         function openProfileFromSettings() { 
@@ -608,9 +612,7 @@ HTML_TEMPLATE = """
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
-            // Hide Header for Profile
             document.getElementById('main-header').classList.add('hidden-header');
-            
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 document.getElementById('profile-pic-display').src = pic;
@@ -649,11 +651,8 @@ HTML_TEMPLATE = """
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
         }
         
-        // SEARCH LOGIC
         function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'block' : 'none'; }
-        function clearSearch() { 
-            const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); 
-        }
+        function clearSearch() { const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); }
         function handleSearch(el) {
             const term = el.value.toLowerCase();
             const items = document.querySelectorAll('.settings-option');
@@ -672,7 +671,7 @@ HTML_TEMPLATE = """
 
         function handleLogout() { localStorage.clear(); location.reload(); }
 
-        // CHAT & ACTIONS
+        // CHAT SEND WITH WAVE ANIMATION
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
@@ -694,7 +693,8 @@ HTML_TEMPLATE = """
             box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
             
             const msgId = "ai-" + Date.now();
-            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content">...</div></div>`);
+            // NEW WAVE ANIMATION HTML
+            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`);
             
             try {
                 if(!currentChatId) {
@@ -715,7 +715,7 @@ HTML_TEMPLATE = """
                     <div class="msg-actions" style="opacity:0; transition:opacity 0.5s;">
                         <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').querySelector('.ai-content').innerText)"></i>
                         <i class="fas fa-share-alt action-icon" onclick="if(navigator.share) navigator.share({text:this.closest('.ai-msg').querySelector('.ai-content').innerText})"></i>
-                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='Regenerate'; send();"></i>
+                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
                     </div>`);
 
                 for (let i = 0; i < words.length; i++) {
