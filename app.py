@@ -837,7 +837,7 @@ def manifest():
         "theme_color": "#09090b",
         "icons": [
             {
-                "src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png",
+                "src": "https://huggingface.co/spaces/Shirpi/student-ai-v2/resolve/main/Picsart_25-12-20_06-52-45-979.png",
                 "sizes": "192x192",
                 "type": "image/png"
             }
