@@ -69,8 +69,6 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
         formatted_history.append({"role": role, "parts": [m["content"]]})
 
     current_parts = []
-    
-    # --- PHASE 1: CONTEXT INTEGRATION ---
     full_prompt = prompt
     if user_context:
         full_prompt = f"[Student Context: {user_context}]\nQuestion: {prompt}"
@@ -117,69 +115,72 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100dvh; overflow: hidden; }
         
+        /* --- ANIMATIONS --- */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* --- OVERLAYS (LOCKED TOP POSITION) --- */
+        .overlay { 
+            position: fixed; inset: 0; background: #000; z-index: 2000; 
+            display: flex; flex-direction: column; 
+            /* LOCK POSITION: Top 15% - Wont move with keyboard */
+            padding-top: 15vh; align-items: center; justify-content: flex-start;
+            transition: opacity 0.3s; 
+        }
+        .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
+        
+        /* 1. WELCOME SCREEN */
+        .welcome-container { width: 85%; max-width: 400px; text-align: left; animation: fadeInUp 0.8s ease-out; }
+        .welcome-title { 
+            font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
+            background: linear-gradient(to right, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .welcome-desc { color: #888; font-size: 15px; line-height: 1.6; margin-bottom: 30px; opacity: 0; animation: fadeInUp 0.8s 0.3s forwards; }
+        
+        .get-started-btn {
+            padding: 12px 25px; border-radius: 12px; border: none; background: #fff; color: #000; 
+            font-weight: 700; font-size: 15px; cursor: pointer; transition: transform 0.1s; 
+            display: inline-block; opacity: 0; animation: fadeInUp 0.8s 0.6s forwards;
+        }
+        .get-started-btn:active { transform: scale(0.95); }
+
+        /* 2. DATA BOX STYLE */
+        .data-box { 
+            width: 90%; max-width: 350px; background: #0a0a0a; 
+            border: 1px solid var(--border); border-radius: 20px; 
+            padding: 25px; display:flex; flex-direction:column; gap:15px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .form-label { font-size: 12px; color: #777; margin-left: 2px; margin-bottom:-10px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+        
+        input, select { 
+            width: 100%; padding: 14px; background: #131315; 
+            border: 1px solid #27272a; color: #fff; border-radius: 10px; 
+            outline: none; font-size: 15px; font-family: 'Outfit', sans-serif; transition: 0.2s;
+            appearance: none; -webkit-appearance: none; 
+        }
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: right 15px center; background-size: 15px;
+        }
+        input:focus, select:focus { border-color: #555; background: #18181b; }
+        .input-error { border: 1px solid #ef4444 !important; }
+
+        .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: #fff; color: #000; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; }
+
         /* --- MAIN UI --- */
         header { 
             height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
             position: absolute; top: 0; left: 0; right: 0; z-index: 50; 
         }
-        .app-title { font-size: 24px; font-weight: 800; color: #fff; text-align:center; flex:1; margin-right:40px; }
+        .app-title { font-size: 20px; font-weight: 700; color: #fff; text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:60; }
         
         #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
         #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 100px; display: flex; flex-direction: column; gap: 20px; width:100%; }
         
-        /* --- OVERLAYS (KEYBOARD LOCK FIX) --- */
-        .overlay { 
-            position: fixed; inset: 0; background: #000; z-index: 2000; 
-            display: flex; flex-direction: column; align-items: center; 
-            /* FIXED TOP PADDING -> Prevents moving up when keyboard opens */
-            justify-content: flex-start; padding-top: 80px; 
-            overflow-y: auto;
-            transition: opacity 0.3s; 
-        }
-        .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
-        
-        /* 1. WELCOME SCREEN */
-        .welcome-title { font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 10px; background: linear-gradient(to right, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .welcome-subtitle { color: #777; font-size: 16px; margin-bottom: 40px; text-align: center; padding: 0 20px; }
-        
-        /* 2. DATA BOX STYLE (Overflow Fix) */
-        .data-box { 
-            width: 90%; max-width: 350px; background: #0a0a0a; 
-            border: 1px solid var(--border); border-radius: 24px; 
-            padding: 25px; display:flex; flex-direction:column; gap:15px; 
-            margin-bottom: 50px; /* Space for scrolling */
-        }
-        
-        .form-label { font-size: 13px; color: #aaa; margin-left: 5px; margin-bottom:-10px; font-weight:600; }
-        input, select { 
-            width: 100%; padding: 15px; background: #18181b; 
-            border: 1px solid #333; color: #fff; border-radius: 12px; 
-            outline: none; font-size: 16px; font-family: 'Outfit', sans-serif; transition: 0.2s;
-            appearance: none; -webkit-appearance: none; /* Professional Look */
-        }
-        input:focus, select:focus { border-color: #fff; }
-        .input-error { border: 1px solid #ef4444 !important; }
-        
-        .get-started-btn {
-            width: 100%; padding: 16px; border-radius: 50px; 
-            border: none; background: #fff; color: #000; 
-            font-weight: 700; font-size: 18px; cursor: pointer; 
-            margin-top: 10px; transition: transform 0.1s;
-        }
-        .get-started-btn:active { transform: scale(0.98); }
-
-        /* --- PROFILE UI --- */
-        .profile-avatar {
-            width: 100px; height: 100px; border-radius: 50%; background: #222; border: 2px solid #fff;
-            display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;
-            font-size: 40px; color: #fff;
-        }
-        .profile-label { color: #777; font-size: 12px; margin-bottom: 5px; }
-        .profile-val { color: #fff; font-size: 16px; font-weight: 600; padding: 15px; background: #18181b; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; }
-
-        /* --- CHAT MESSAGES & INPUT --- */
+        /* MESSAGES */
         .msg { display: flex; flex-direction: column; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -188,6 +189,7 @@ HTML_TEMPLATE = """
         .ai-content { width: 100%; color: #d4d4d8; }
         .ai-content strong { color: #fff; }
 
+        /* TYPE BAR RESTORED */
         .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position:fixed; bottom:0; left:0; z-index:40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 8px 12px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: #fff; font-size: 17px; max-height: 120px; padding: 10px 5px; resize: none; outline: none; font-family: 'Outfit', sans-serif; }
@@ -195,7 +197,7 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: #a1a1aa; }
         .send-btn { background: #fff; color: #000; }
 
-        /* --- SIDEBAR --- */
+        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
             background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; 
@@ -203,53 +205,71 @@ HTML_TEMPLATE = """
             display: flex; flex-direction: column; border-right: 1px solid #222;
         }
         #sidebar.open { transform: translateY(0); }
-        
         .sidebar-footer { margin-top: auto; border-top: 1px solid #222; padding-top: 20px; }
-        .settings-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: #ddd; cursor: pointer; border-radius: 12px; transition: 0.2s; }
-        .settings-item:active { background: #222; }
+        .settings-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: #ddd; cursor: pointer; border-radius: 12px; }
 
-        /* INTRO TEXT */
+        /* PROFILE */
+        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 30px; color: #fff; }
+        .profile-val { color: #fff; font-size: 16px; font-weight: 600; padding: 12px; background: #18181b; border-radius: 10px; border: 1px solid #333; margin-bottom: 12px; }
+
         #intro-container { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; text-align: center; pointer-events: none; z-index: 10; }
-        
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
     </style>
 </head>
 <body>
-
-    <div id="welcome-overlay" class="overlay">
-        <div style="width:90%; max-width:400px; text-align:center;">
+<div id="welcome-overlay" class="overlay">
+        <div class="welcome-container">
             <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
-            <p class="welcome-subtitle">Your personal academic tutor tailored for your success.</p>
-            
-            <div class="data-box" style="margin:0 auto;">
-                <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)">
-                <button class="get-started-btn" onclick="handleStart()">Get Started</button>
-            </div>
+            <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects with personalized AI guidance.</p>
+            <button class="get-started-btn" onclick="showNameBox()">Get Started</button>
+        </div>
+    </div>
+
+    <div id="name-overlay" class="overlay hidden">
+        <div class="data-box">
+            <h2 style="color:#fff; margin:0 0 10px 0; font-size:22px;">Who are you?</h2>
+            <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)">
+            <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
 
     <div id="details-overlay" class="overlay hidden">
-        <h2 style="color:#fff; margin-bottom:20px;">Student Details</h2>
         <div class="data-box">
+            <h2 style="color:#fff; margin:0 0 5px 0; font-size:20px;">Student Details</h2>
             
             <span class="form-label">Education Level</span>
             <select id="edu-level" onchange="updateEduOptions()" onfocus="clearError(this)">
-                <option value="" disabled selected>Select Level</option>
+                <option value="" disabled selected>Select</option>
                 <option value="school">School (6th - 12th)</option>
                 <option value="college">College (Arts/Engg)</option>
             </select>
 
             <span class="form-label">Class / Year</span>
             <select id="edu-year" onfocus="clearError(this)">
-                <option value="" disabled selected>Select Year</option>
+                <option value="" disabled selected>Select</option>
             </select>
+            
+            <div id="sem-container" style="display:none; flex-direction:column; gap:12px;">
+                <span class="form-label">Semester</span>
+                <select id="edu-sem" onfocus="clearError(this)">
+                    <option value="" disabled selected>Select</option>
+                    <option value="Sem 1">Semester 1</option>
+                    <option value="Sem 2">Semester 2</option>
+                    <option value="Sem 3">Semester 3</option>
+                    <option value="Sem 4">Semester 4</option>
+                    <option value="Sem 5">Semester 5</option>
+                    <option value="Sem 6">Semester 6</option>
+                    <option value="Sem 7">Semester 7</option>
+                    <option value="Sem 8">Semester 8</option>
+                </select>
+            </div>
 
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Maths, CS, Bio..." onfocus="clearError(this)">
+            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." onfocus="clearError(this)">
 
-            <button class="get-started-btn" style="margin-top:20px;" onclick="handleDetailsSubmit()">Start Learning</button>
+            <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
 
@@ -257,43 +277,31 @@ HTML_TEMPLATE = """
         <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px;">
             <div onclick="closeProfile()" style="font-size:24px; cursor:pointer; color:#fff;">&times;</div>
         </div>
-        
         <div class="profile-avatar"><i class="fas fa-user"></i></div>
-        <h2 style="color:#fff; margin-bottom:20px;">Student Details</h2>
-
-        <div class="data-box">
-            <div class="profile-label">Student Name</div>
+        <h2 style="color:#fff; margin-bottom:20px;">Student Profile</h2>
+        <div class="data-box" style="margin-top:0;">
+            <div class="form-label">Name</div>
             <div class="profile-val" id="p-name">--</div>
-
-            <div class="profile-label">Education Level</div>
+            <div class="form-label">Level</div>
             <div class="profile-val" id="p-level">--</div>
-
-            <div class="profile-label" id="lbl-year">Class/Year</div>
+            <div class="form-label" id="lbl-year">Class/Year</div>
             <div class="profile-val" id="p-year">--</div>
-
-            <div class="profile-label" id="lbl-subj">Subject</div>
+            <div class="form-label" id="lbl-subj">Subject</div>
             <div class="profile-val" id="p-subj">--</div>
-
-            <button class="get-started-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
+            <button class="submit-btn" style="background:#ef4444; color:#fff;" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <div style="font-size:20px; font-weight:700; color:#fff;">Hi <span id="display-name">User</span></div>
+            <div style="font-size:18px; font-weight:700; color:#fff;">Hi <span id="display-name">User</span></div>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
         </div>
-        
-        <button class="get-started-btn" style="margin:0 0 20px 0; padding:12px; font-size:16px; border-radius:12px;" onclick="newChat()">New Chat</button>
-        
-        <div style="color:#71717a; font-size:13px; font-weight:600; text-transform:uppercase;">Chat History</div>
+        <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
+        <div style="color:#71717a; font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
         <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
-        
         <div class="sidebar-footer">
-            <div class="settings-item" onclick="openProfile()">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </div>
+            <div class="settings-item" onclick="openProfile()"><i class="fas fa-cog"></i><span>Settings</span></div>
         </div>
     </div>
 
@@ -303,13 +311,11 @@ HTML_TEMPLATE = """
             <span class="app-title">Student's AI</span>
             <div style="width:40px;"></div>
         </header>
-
         <div id="chat-box"></div>
-
         <div class="input-wrapper">
              <div id="preview-area">
                 <div class="preview-box"><img id="preview-img" class="preview-img"></div>
-                <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px;">×</button>
+                <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button>
             </div>
             <div class="input-container">
                 <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
@@ -319,92 +325,74 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
+
     <script>
-        let currentUser = null;
-        let currentChatId = null;
-        let userContext = "";
-        let currentAttachment = null;
-
-        function getIntroHtml(name) {
-            return `<div id="intro-container"><div class="msg ai-msg"><div class="ai-content"><h1>Hi ${name},</h1><p>Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div></div></div>`;
-        }
-
-        // --- AUTH & VALIDATION ---
+        let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
+        function getIntroHtml(name) { return `<div id="intro-container"><div class="msg ai-msg"><div class="ai-content"><h1>Hi ${name},</h1><p>Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div></div></div>`; }
         function checkLogin() {
             const u = localStorage.getItem("student_ai_user");
             const c = localStorage.getItem("student_ai_context");
-            
             if(u) {
                 currentUser = u;
                 document.getElementById('welcome-overlay').style.display = 'none';
                 if(c) {
                     userContext = c;
+                    document.getElementById('name-overlay').style.display = 'none';
                     document.getElementById('details-overlay').style.display = 'none';
                     showApp();
                 } else {
+                    document.getElementById('name-overlay').style.display = 'none';
                     const sel = document.getElementById('details-overlay');
-                    sel.classList.remove('hidden'); 
-                    sel.style.display = 'flex';
+                    sel.classList.remove('hidden'); sel.style.display = 'flex';
                 }
             }
         }
-
         function clearError(input) { input.classList.remove('input-error'); }
-
-        // 1. START SCREEN
-        function handleStart() {
+        function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
+        function handleNameSubmit() {
             const input = document.getElementById("username-input");
             const name = input.value.trim();
             if(!name) { input.classList.add('input-error'); return; }
-            
             localStorage.setItem("student_ai_user", name);
             currentUser = name;
-
-            document.getElementById("welcome-overlay").style.display = 'none';
+            document.getElementById("name-overlay").style.display = 'none';
             const details = document.getElementById("details-overlay");
             details.classList.remove('hidden'); details.style.display = 'flex';
         }
-
         function updateEduOptions() {
             const level = document.getElementById('edu-level').value;
             const yearSelect = document.getElementById('edu-year');
-            yearSelect.innerHTML = '<option value="" disabled selected>Select Year</option>';
-            
-            let opts = [];
-            if(level === 'school') opts = ["6th", "7th", "8th", "9th", "10th", "11th", "12th"];
-            else if(level === 'college') opts = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-
-            opts.forEach(o => {
-                let op = document.createElement('option');
-                op.value = o; op.innerText = o;
-                yearSelect.appendChild(op);
-            });
+            const semContainer = document.getElementById('sem-container');
+            yearSelect.innerHTML = '<option value="" disabled selected>Select</option>';
+            if(level === 'college') {
+                semContainer.style.display = 'flex';
+                ["1st", "2nd", "3rd", "4th"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
+            } else {
+                semContainer.style.display = 'none';
+                ["6th", "7th", "8th", "9th", "10th", "11th", "12th"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
+            }
         }
-
-        // 2. DETAILS SCREEN (Force Check)
         function handleDetailsSubmit() {
             const lElem = document.getElementById('edu-level');
             const yElem = document.getElementById('edu-year');
             const sElem = document.getElementById('edu-subject');
-            
-            const l = lElem.value;
-            const y = yElem.value;
-            const s = sElem.value.trim();
-            
+            const semElem = document.getElementById('edu-sem');
+            const l = lElem.value, y = yElem.value, s = sElem.value.trim();
             let isValid = true;
             if(!l) { lElem.classList.add('input-error'); isValid = false; }
             if(!y) { yElem.classList.add('input-error'); isValid = false; }
             if(!s) { sElem.classList.add('input-error'); isValid = false; }
-            
+            let semVal = "";
+            if(l === 'college') {
+                semVal = semElem.value;
+                if(!semVal) { semElem.classList.add('input-error'); isValid = false; }
+            }
             if(!isValid) return;
-
-            userContext = `${l}, ${y}, ${s}`;
+            userContext = l === 'college' ? `${l}, ${y}, ${semVal}, ${s}` : `${l}, ${y}, ${s}`;
             localStorage.setItem("student_ai_context", userContext);
-            
             document.getElementById('details-overlay').style.display = 'none';
             showApp();
         }
-
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
             loadHistory();
@@ -412,35 +400,26 @@ HTML_TEMPLATE = """
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
             }
         }
-
-        // 3. PROFILE & LOGOUT
         function openProfile() {
             document.getElementById('p-name').innerText = currentUser;
             const parts = userContext.split(',');
-            if(parts.length >= 3) {
-                const level = parts[0];
-                document.getElementById('p-level').innerText = level.toUpperCase();
-                document.getElementById('p-year').innerText = parts[1];
-                document.getElementById('p-subj').innerText = parts[2];
-                document.getElementById('lbl-year').innerText = level === 'school' ? 'Standard' : 'Year';
-                document.getElementById('lbl-subj').innerText = level === 'school' ? 'Subject' : 'Semester/Subject';
+            const level = parts[0];
+            document.getElementById('p-level').innerText = level.toUpperCase();
+            document.getElementById('p-year').innerText = parts[1];
+            if(level === 'college' && parts.length >= 4) {
+                 document.getElementById('lbl-subj').innerText = "Sem / Subject";
+                 document.getElementById('p-subj').innerText = `${parts[2]} - ${parts[3]}`;
+            } else {
+                 document.getElementById('lbl-subj').innerText = "Subject";
+                 document.getElementById('p-subj').innerText = parts[2];
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
             document.getElementById('sidebar').classList.remove('open');
         }
-
-        function closeProfile() {
-            document.getElementById('profile-overlay').style.display = 'none';
-        }
-
-        function handleLogout() {
-            localStorage.clear();
-            location.reload();
-        }
-
+        function closeProfile() { document.getElementById('profile-overlay').style.display = 'none'; }
+        function handleLogout() { localStorage.clear(); location.reload(); }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-
         function handleFile(input) {
             if(input.files[0]) {
                 const reader = new FileReader();
@@ -457,26 +436,20 @@ HTML_TEMPLATE = """
             document.getElementById('preview-area').style.display = 'none';
             document.getElementById('file-input').value = "";
         }
-
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
-
             const intro = document.getElementById('intro-container');
             if(intro) intro.remove();
-
             const box = document.getElementById('chat-box');
             let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
             box.insertAdjacentHTML('beforeend', `<div class="msg user-msg"><div class="user-content">${txt}${imgHtml}</div></div>`);
-            
             document.getElementById('input').value = "";
             let imgData = currentAttachment;
             clearAttachment();
             box.scrollTo(0, box.scrollHeight);
-
             const msgId = "ai-" + Date.now();
             box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg">...</div>`);
-            
             try {
                 if(!currentChatId) {
                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
@@ -493,7 +466,6 @@ HTML_TEMPLATE = """
                 if(data.new_title) loadHistory();
             } catch(e) { document.getElementById(msgId).innerText = "Error."; }
         }
-
         async function loadHistory() {
              try {
                 const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
@@ -504,7 +476,6 @@ HTML_TEMPLATE = """
                 });
             } catch(e){}
         }
-
         async function loadChat(cid) {
             currentChatId = cid;
             const res = await fetch('/get_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
@@ -518,15 +489,12 @@ HTML_TEMPLATE = """
             document.getElementById('sidebar').classList.remove('open');
             hljs.highlightAll();
         }
-
-        // Init
         checkLogin();
     </script>
 </body>
 </html>
 """
-
-# --- ROUTES ---
+# --- BACKEND ROUTES ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
 
@@ -568,6 +536,20 @@ def chat():
         new_title = True
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
+
+@app.route('/manifest.json')
+def manifest():
+    data = {
+        "name": "Student's AI",
+        "short_name": "StudentAI",
+        "start_url": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#09090b",
+        "theme_color": "#09090b",
+        "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png", "sizes": "192x192", "type": "image/png"}]
+    }
+    return Response(json.dumps(data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
