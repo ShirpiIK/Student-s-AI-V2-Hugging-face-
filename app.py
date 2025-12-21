@@ -96,7 +96,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             time.sleep(1)
     return "⚠️ System Busy. Please try again."
 
-# --- UI TEMPLATE (RESTORED MAIN UI + NEW PROFESSIONAL OVERLAYS) ---
+# --- UI TEMPLATE ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -114,50 +114,54 @@ HTML_TEMPLATE = """
 
     <style>
         :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100dvh; overflow: hidden; }
         
-        /* --- MAIN UI RESTORED (FIXED) --- */
+        /* --- MAIN UI --- */
         header { 
             height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
             position: absolute; top: 0; left: 0; right: 0; z-index: 50; 
         }
-        .app-title { font-size: 24px; font-weight: 800; color: #fff; text-align:center; flex:1; }
+        .app-title { font-size: 24px; font-weight: 800; color: #fff; text-align:center; flex:1; margin-right:40px; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:60; }
-        .settings-icon { width: 40px; height: 40px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color: #aaa; cursor: pointer; z-index:60; }
-
-        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 80px; display: flex; flex-direction: column; gap: 20px; width:100%; }
         
-        /* --- NEW PROFESSIONAL OVERLAYS --- */
+        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 100px; display: flex; flex-direction: column; gap: 20px; width:100%; }
+        
+        /* --- OVERLAYS (KEYBOARD LOCK FIX) --- */
         .overlay { 
             position: fixed; inset: 0; background: #000; z-index: 2000; 
             display: flex; flex-direction: column; align-items: center; 
-            /* LOCK POSITION: Top align + padding prevents keyboard jump */
-            justify-content: flex-start; padding-top: 120px; 
+            /* FIXED TOP PADDING -> Prevents moving up when keyboard opens */
+            justify-content: flex-start; padding-top: 80px; 
+            overflow-y: auto;
             transition: opacity 0.3s; 
         }
         .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        /* 1. WELCOME SCREEN STYLE */
+        /* 1. WELCOME SCREEN */
         .welcome-title { font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 10px; background: linear-gradient(to right, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .welcome-subtitle { color: #777; font-size: 16px; margin-bottom: 40px; text-align: center; }
+        .welcome-subtitle { color: #777; font-size: 16px; margin-bottom: 40px; text-align: center; padding: 0 20px; }
         
-        /* 2. DATA BOX STYLE */
-        .data-box { width: 90%; max-width: 350px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 24px; padding: 30px; display:flex; flex-direction:column; gap:15px; }
+        /* 2. DATA BOX STYLE (Overflow Fix) */
+        .data-box { 
+            width: 90%; max-width: 350px; background: #0a0a0a; 
+            border: 1px solid var(--border); border-radius: 24px; 
+            padding: 25px; display:flex; flex-direction:column; gap:15px; 
+            margin-bottom: 50px; /* Space for scrolling */
+        }
         
         .form-label { font-size: 13px; color: #aaa; margin-left: 5px; margin-bottom:-10px; font-weight:600; }
         input, select { 
             width: 100%; padding: 15px; background: #18181b; 
             border: 1px solid #333; color: #fff; border-radius: 12px; 
             outline: none; font-size: 16px; font-family: 'Outfit', sans-serif; transition: 0.2s;
+            appearance: none; -webkit-appearance: none; /* Professional Look */
         }
         input:focus, select:focus { border-color: #fff; }
-        
-        /* VALIDATION ERROR STYLE */
         .input-error { border: 1px solid #ef4444 !important; }
         
-        /* GET STARTED BUTTON (Curved) */
         .get-started-btn {
             width: 100%; padding: 16px; border-radius: 50px; 
             border: none; background: #fff; color: #000; 
@@ -166,27 +170,45 @@ HTML_TEMPLATE = """
         }
         .get-started-btn:active { transform: scale(0.98); }
 
+        /* --- PROFILE UI --- */
+        .profile-avatar {
+            width: 100px; height: 100px; border-radius: 50%; background: #222; border: 2px solid #fff;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;
+            font-size: 40px; color: #fff;
+        }
+        .profile-label { color: #777; font-size: 12px; margin-bottom: 5px; }
+        .profile-val { color: #fff; font-size: 16px; font-weight: 600; padding: 15px; background: #18181b; border-radius: 12px; border: 1px solid #333; margin-bottom: 15px; }
+
         /* --- CHAT MESSAGES & INPUT --- */
         .msg { display: flex; flex-direction: column; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
-        .user-content { background: var(--user-msg); padding: 10px 16px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: #fff; }
+        .user-content { background: var(--user-msg); padding: 10px 16px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: #fff; word-wrap: break-word; }
         .ai-msg { align-items: flex-start; }
         .ai-content { width: 100%; color: #d4d4d8; }
         .ai-content strong { color: #fff; }
 
-        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position:absolute; bottom:0; left:0; z-index:40; }
+        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position:fixed; bottom:0; left:0; z-index:40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 8px 12px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: #fff; font-size: 17px; max-height: 120px; padding: 10px 5px; resize: none; outline: none; font-family: 'Outfit', sans-serif; }
-        .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; }
+        .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; flex-shrink: 0; }
         .icon-btn { background: transparent; color: #a1a1aa; }
         .send-btn { background: #fff; color: #000; }
 
-        /* SIDEBAR (Restored) */
-        #sidebar { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.4s; }
+        /* --- SIDEBAR --- */
+        #sidebar { 
+            position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
+            background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; 
+            transform: translateY(-100%); transition: transform 0.4s; 
+            display: flex; flex-direction: column; border-right: 1px solid #222;
+        }
         #sidebar.open { transform: translateY(0); }
         
-        /* INTRO TEXT (Locked) */
+        .sidebar-footer { margin-top: auto; border-top: 1px solid #222; padding-top: 20px; }
+        .settings-item { display: flex; align-items: center; gap: 15px; padding: 15px; color: #ddd; cursor: pointer; border-radius: 12px; transition: 0.2s; }
+        .settings-item:active { background: #222; }
+
+        /* INTRO TEXT */
         #intro-container { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; text-align: center; pointer-events: none; z-index: 10; }
         
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
@@ -225,9 +247,34 @@ HTML_TEMPLATE = """
             </select>
 
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, Computer Science" onfocus="clearError(this)">
+            <input type="text" id="edu-subject" placeholder="Maths, CS, Bio..." onfocus="clearError(this)">
 
             <button class="get-started-btn" style="margin-top:20px;" onclick="handleDetailsSubmit()">Start Learning</button>
+        </div>
+    </div>
+
+    <div id="profile-overlay" class="overlay hidden">
+        <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px;">
+            <div onclick="closeProfile()" style="font-size:24px; cursor:pointer; color:#fff;">&times;</div>
+        </div>
+        
+        <div class="profile-avatar"><i class="fas fa-user"></i></div>
+        <h2 style="color:#fff; margin-bottom:20px;">Student Details</h2>
+
+        <div class="data-box">
+            <div class="profile-label">Student Name</div>
+            <div class="profile-val" id="p-name">--</div>
+
+            <div class="profile-label">Education Level</div>
+            <div class="profile-val" id="p-level">--</div>
+
+            <div class="profile-label" id="lbl-year">Class/Year</div>
+            <div class="profile-val" id="p-year">--</div>
+
+            <div class="profile-label" id="lbl-subj">Subject</div>
+            <div class="profile-val" id="p-subj">--</div>
+
+            <button class="get-started-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
@@ -236,11 +283,17 @@ HTML_TEMPLATE = """
             <div style="font-size:20px; font-weight:700; color:#fff;">Hi <span id="display-name">User</span></div>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
         </div>
+        
         <button class="get-started-btn" style="margin:0 0 20px 0; padding:12px; font-size:16px; border-radius:12px;" onclick="newChat()">New Chat</button>
+        
         <div style="color:#71717a; font-size:13px; font-weight:600; text-transform:uppercase;">Chat History</div>
-        <div id="history-list" style="margin-top:10px;"></div>
-        <div style="position:absolute; bottom:30px; width:100%; left:0; text-align:center;">
-             <div style="color:#ef4444; cursor:pointer; font-weight:600;" onclick="handleLogout()">Log Out</div>
+        <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
+        
+        <div class="sidebar-footer">
+            <div class="settings-item" onclick="openProfile()">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </div>
         </div>
     </div>
 
@@ -248,7 +301,7 @@ HTML_TEMPLATE = """
         <header>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
             <span class="app-title">Student's AI</span>
-            <div class="settings-icon" onclick="openSettings()"><i class="fas fa-cog"></i></div>
+            <div style="width:40px;"></div>
         </header>
 
         <div id="chat-box"></div>
@@ -266,7 +319,6 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
-
     <script>
         let currentUser = null;
         let currentChatId = null;
@@ -277,7 +329,7 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="msg ai-msg"><div class="ai-content"><h1>Hi ${name},</h1><p>Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div></div></div>`;
         }
 
-        // --- AUTH & VALIDATION LOGIC ---
+        // --- AUTH & VALIDATION ---
         function checkLogin() {
             const u = localStorage.getItem("student_ai_user");
             const c = localStorage.getItem("student_ai_context");
@@ -297,28 +349,20 @@ HTML_TEMPLATE = """
             }
         }
 
-        function clearError(input) {
-            input.classList.remove('input-error');
-        }
+        function clearError(input) { input.classList.remove('input-error'); }
 
-        // 1. WELCOME SCREEN LOGIC
+        // 1. START SCREEN
         function handleStart() {
             const input = document.getElementById("username-input");
             const name = input.value.trim();
-            
-            if(!name) {
-                input.classList.add('input-error');
-                return;
-            }
+            if(!name) { input.classList.add('input-error'); return; }
             
             localStorage.setItem("student_ai_user", name);
             currentUser = name;
 
-            // Transition
             document.getElementById("welcome-overlay").style.display = 'none';
             const details = document.getElementById("details-overlay");
-            details.classList.remove('hidden'); 
-            details.style.display = 'flex';
+            details.classList.remove('hidden'); details.style.display = 'flex';
         }
 
         function updateEduOptions() {
@@ -337,7 +381,7 @@ HTML_TEMPLATE = """
             });
         }
 
-        // 2. STUDENT DETAILS LOGIC (With Red Validation)
+        // 2. DETAILS SCREEN (Force Check)
         function handleDetailsSubmit() {
             const lElem = document.getElementById('edu-level');
             const yElem = document.getElementById('edu-year');
@@ -369,15 +413,30 @@ HTML_TEMPLATE = """
             }
         }
 
+        // 3. PROFILE & LOGOUT
+        function openProfile() {
+            document.getElementById('p-name').innerText = currentUser;
+            const parts = userContext.split(',');
+            if(parts.length >= 3) {
+                const level = parts[0];
+                document.getElementById('p-level').innerText = level.toUpperCase();
+                document.getElementById('p-year').innerText = parts[1];
+                document.getElementById('p-subj').innerText = parts[2];
+                document.getElementById('lbl-year').innerText = level === 'school' ? 'Standard' : 'Year';
+                document.getElementById('lbl-subj').innerText = level === 'school' ? 'Subject' : 'Semester/Subject';
+            }
+            const prof = document.getElementById('profile-overlay');
+            prof.classList.remove('hidden'); prof.style.display = 'flex';
+            document.getElementById('sidebar').classList.remove('open');
+        }
+
+        function closeProfile() {
+            document.getElementById('profile-overlay').style.display = 'none';
+        }
+
         function handleLogout() {
             localStorage.clear();
             location.reload();
-        }
-
-        function openSettings() {
-            const sel = document.getElementById("details-overlay");
-            sel.classList.remove('hidden');
-            sel.style.display = 'flex';
         }
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
