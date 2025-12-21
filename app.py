@@ -208,7 +208,7 @@ HTML_TEMPLATE = """
     </div>
 """
 # --- JAVASCRIPT ---
-    HTML_TEMPLATE += """
+HTML_TEMPLATE += """
     <div class="overlay-bg" id="overlay-bg" onclick="toggleSidebar()"></div>
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
