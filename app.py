@@ -96,7 +96,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             time.sleep(1)
     return "⚠️ System Busy. Please try again."
 
-# --- UI TEMPLATE ---
+# --- UI TEMPLATE (RESTORED MAIN UI + NEW PROFESSIONAL OVERLAYS) ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -116,30 +116,57 @@ HTML_TEMPLATE = """
         :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; height: 100dvh; overflow: hidden; }
         
-        /* HEADER */
-        header { height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: absolute; top: 0; width: 100%; z-index: 50; }
-        .app-title { font-size: 24px; font-weight: 800; color: #fff; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; }
-        .settings-icon { font-size: 18px; color: #aaa; cursor: pointer; }
+        /* --- MAIN UI RESTORED (FIXED) --- */
+        header { 
+            height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
+            position: absolute; top: 0; left: 0; right: 0; z-index: 50; 
+        }
+        .app-title { font-size: 24px; font-weight: 800; color: #fff; text-align:center; flex:1; }
+        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:60; }
+        .settings-icon { width: 40px; height: 40px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color: #aaa; cursor: pointer; z-index:60; }
 
-        /* MAIN CONTAINER */
-        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 80px; display: flex; flex-direction: column; gap: 20px; }
+        #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; width:100%; position:relative; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 80px; display: flex; flex-direction: column; gap: 20px; width:100%; }
         
-        /* OVERLAYS (LOGIN & SELECTION) */
-        .overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: flex-start; justify-content: center; padding-top: 150px; transition: opacity 0.3s; }
-        
-        /* IMPORTANT: 'hidden' class with !important to force hide */
+        /* --- NEW PROFESSIONAL OVERLAYS --- */
+        .overlay { 
+            position: fixed; inset: 0; background: #000; z-index: 2000; 
+            display: flex; flex-direction: column; align-items: center; 
+            /* LOCK POSITION: Top align + padding prevents keyboard jump */
+            justify-content: flex-start; padding-top: 120px; 
+            transition: opacity 0.3s; 
+        }
         .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        .login-box { width: 90%; max-width: 350px; text-align: center; padding: 30px; border: 1px solid var(--border); border-radius: 20px; background: #0a0a0a; }
+        /* 1. WELCOME SCREEN STYLE */
+        .welcome-title { font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 10px; background: linear-gradient(to right, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .welcome-subtitle { color: #777; font-size: 16px; margin-bottom: 40px; text-align: center; }
         
-        /* FORM ELEMENTS */
-        .form-label { display: block; text-align: left; font-size: 12px; color: #aaa; margin-bottom: 5px; margin-top: 15px; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 5px; background: #18181b; border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; font-size: 16px; font-family: 'Outfit', sans-serif; }
-        .start-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #fff; font-weight: 800; cursor: pointer; font-size: 16px; margin-top: 25px; }
+        /* 2. DATA BOX STYLE */
+        .data-box { width: 90%; max-width: 350px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 24px; padding: 30px; display:flex; flex-direction:column; gap:15px; }
+        
+        .form-label { font-size: 13px; color: #aaa; margin-left: 5px; margin-bottom:-10px; font-weight:600; }
+        input, select { 
+            width: 100%; padding: 15px; background: #18181b; 
+            border: 1px solid #333; color: #fff; border-radius: 12px; 
+            outline: none; font-size: 16px; font-family: 'Outfit', sans-serif; transition: 0.2s;
+        }
+        input:focus, select:focus { border-color: #fff; }
+        
+        /* VALIDATION ERROR STYLE */
+        .input-error { border: 1px solid #ef4444 !important; }
+        
+        /* GET STARTED BUTTON (Curved) */
+        .get-started-btn {
+            width: 100%; padding: 16px; border-radius: 50px; 
+            border: none; background: #fff; color: #000; 
+            font-weight: 700; font-size: 18px; cursor: pointer; 
+            margin-top: 10px; transition: transform 0.1s;
+        }
+        .get-started-btn:active { transform: scale(0.98); }
 
-        /* MESSAGES */
+        /* --- CHAT MESSAGES & INPUT --- */
         .msg { display: flex; flex-direction: column; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -148,53 +175,59 @@ HTML_TEMPLATE = """
         .ai-content { width: 100%; color: #d4d4d8; }
         .ai-content strong { color: #fff; }
 
-        /* INPUT AREA */
-        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); }
+        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position:absolute; bottom:0; left:0; z-index:40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 8px 12px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: #fff; font-size: 17px; max-height: 120px; padding: 10px 5px; resize: none; outline: none; font-family: 'Outfit', sans-serif; }
         .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; }
         .icon-btn { background: transparent; color: #a1a1aa; }
         .send-btn { background: #fff; color: #000; }
 
-        /* SIDEBAR */
+        /* SIDEBAR (Restored) */
         #sidebar { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.4s; }
         #sidebar.open { transform: translateY(0); }
         
-        /* INTRO */
+        /* INTRO TEXT (Locked) */
         #intro-container { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 600px; text-align: center; pointer-events: none; z-index: 10; }
         
-        #preview-area { display:none; position:absolute; bottom:85px; left:20px; }
+        #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay" class="overlay">
-        <div class="login-box">
-            <h1 class="app-title" style="margin-bottom:10px;">Student's AI</h1>
-            <input type="text" id="username-input" placeholder="Your Name">
-            <button class="start-btn" onclick="handleLogin()">Next</button>
+    <div id="welcome-overlay" class="overlay">
+        <div style="width:90%; max-width:400px; text-align:center;">
+            <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
+            <p class="welcome-subtitle">Your personal academic tutor tailored for your success.</p>
+            
+            <div class="data-box" style="margin:0 auto;">
+                <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)">
+                <button class="get-started-btn" onclick="handleStart()">Get Started</button>
+            </div>
         </div>
     </div>
 
-    <div id="selection-overlay" class="overlay hidden">
-        <div class="login-box">
-            <h2 style="color:#fff; margin-top:0;">Customize Profile</h2>
+    <div id="details-overlay" class="overlay hidden">
+        <h2 style="color:#fff; margin-bottom:20px;">Student Details</h2>
+        <div class="data-box">
             
             <span class="form-label">Education Level</span>
-            <select id="edu-level" onchange="updateEduOptions()">
+            <select id="edu-level" onchange="updateEduOptions()" onfocus="clearError(this)">
+                <option value="" disabled selected>Select Level</option>
                 <option value="school">School (6th - 12th)</option>
                 <option value="college">College (Arts/Engg)</option>
             </select>
 
             <span class="form-label">Class / Year</span>
-            <select id="edu-year"></select>
+            <select id="edu-year" onfocus="clearError(this)">
+                <option value="" disabled selected>Select Year</option>
+            </select>
 
-            <span class="form-label">Subject (Optional)</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, Physics...">
+            <span class="form-label">Main Subject</span>
+            <input type="text" id="edu-subject" placeholder="Ex: Maths, Computer Science" onfocus="clearError(this)">
 
-            <button class="start-btn" onclick="handleSelection()">Start Learning</button>
+            <button class="get-started-btn" style="margin-top:20px;" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
 
@@ -203,7 +236,7 @@ HTML_TEMPLATE = """
             <div style="font-size:20px; font-weight:700; color:#fff;">Hi <span id="display-name">User</span></div>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
         </div>
-        <button class="start-btn" style="margin:0 0 20px 0; padding:12px;" onclick="newChat()">New Chat</button>
+        <button class="get-started-btn" style="margin:0 0 20px 0; padding:12px; font-size:16px; border-radius:12px;" onclick="newChat()">New Chat</button>
         <div style="color:#71717a; font-size:13px; font-weight:600; text-transform:uppercase;">Chat History</div>
         <div id="history-list" style="margin-top:10px;"></div>
         <div style="position:absolute; bottom:30px; width:100%; left:0; text-align:center;">
@@ -244,53 +277,59 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="msg ai-msg"><div class="ai-content"><h1>Hi ${name},</h1><p>Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div></div></div>`;
         }
 
-        // --- AUTH & PHASE 1 LOGIC (FIXED) ---
+        // --- AUTH & VALIDATION LOGIC ---
         function checkLogin() {
             const u = localStorage.getItem("student_ai_user");
             const c = localStorage.getItem("student_ai_context");
             
             if(u) {
                 currentUser = u;
-                // Previously logged in? Hide Login
-                document.getElementById('login-overlay').style.display = 'none';
-                
+                document.getElementById('welcome-overlay').style.display = 'none';
                 if(c) {
-                    // Context exists? Go to App
                     userContext = c;
-                    document.getElementById('selection-overlay').style.display = 'none';
+                    document.getElementById('details-overlay').style.display = 'none';
                     showApp();
                 } else {
-                    // Context missing? Show Selection
-                    const sel = document.getElementById('selection-overlay');
+                    const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); 
-                    sel.style.display = 'flex'; // FORCE SHOW
-                    updateEduOptions();
+                    sel.style.display = 'flex';
                 }
             }
         }
 
-        function handleLogin() {
-            const name = document.getElementById("username-input").value.trim();
-            if(!name) { alert("Please enter a name"); return; }
+        function clearError(input) {
+            input.classList.remove('input-error');
+        }
+
+        // 1. WELCOME SCREEN LOGIC
+        function handleStart() {
+            const input = document.getElementById("username-input");
+            const name = input.value.trim();
+            
+            if(!name) {
+                input.classList.add('input-error');
+                return;
+            }
             
             localStorage.setItem("student_ai_user", name);
             currentUser = name;
 
-            // --- FORCE TRANSITION TO SELECTION ---
-            document.getElementById("login-overlay").style.display = 'none'; // Hide Login
-            
-            const sel = document.getElementById("selection-overlay");
-            sel.classList.remove('hidden'); 
-            sel.style.display = 'flex'; // FORCE SHOW
-            
-            updateEduOptions();
+            // Transition
+            document.getElementById("welcome-overlay").style.display = 'none';
+            const details = document.getElementById("details-overlay");
+            details.classList.remove('hidden'); 
+            details.style.display = 'flex';
         }
 
         function updateEduOptions() {
             const level = document.getElementById('edu-level').value;
             const yearSelect = document.getElementById('edu-year');
-            yearSelect.innerHTML = "";
-            let opts = level === 'school' ? ["6th", "7th", "8th", "9th", "10th", "11th", "12th"] : ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+            yearSelect.innerHTML = '<option value="" disabled selected>Select Year</option>';
+            
+            let opts = [];
+            if(level === 'school') opts = ["6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+            else if(level === 'college') opts = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+
             opts.forEach(o => {
                 let op = document.createElement('option');
                 op.value = o; op.innerText = o;
@@ -298,16 +337,27 @@ HTML_TEMPLATE = """
             });
         }
 
-        function handleSelection() {
-            const l = document.getElementById('edu-level').value;
-            const y = document.getElementById('edu-year').value;
-            const s = document.getElementById('edu-subject').value;
+        // 2. STUDENT DETAILS LOGIC (With Red Validation)
+        function handleDetailsSubmit() {
+            const lElem = document.getElementById('edu-level');
+            const yElem = document.getElementById('edu-year');
+            const sElem = document.getElementById('edu-subject');
             
+            const l = lElem.value;
+            const y = yElem.value;
+            const s = sElem.value.trim();
+            
+            let isValid = true;
+            if(!l) { lElem.classList.add('input-error'); isValid = false; }
+            if(!y) { yElem.classList.add('input-error'); isValid = false; }
+            if(!s) { sElem.classList.add('input-error'); isValid = false; }
+            
+            if(!isValid) return;
+
             userContext = `${l}, ${y}, ${s}`;
             localStorage.setItem("student_ai_context", userContext);
             
-            // Hide Selection -> Show App
-            document.getElementById('selection-overlay').style.display = 'none';
+            document.getElementById('details-overlay').style.display = 'none';
             showApp();
         }
 
@@ -325,7 +375,7 @@ HTML_TEMPLATE = """
         }
 
         function openSettings() {
-            const sel = document.getElementById("selection-overlay");
+            const sel = document.getElementById("details-overlay");
             sel.classList.remove('hidden');
             sel.style.display = 'flex';
         }
