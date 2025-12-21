@@ -111,28 +111,40 @@ HTML_TEMPLATE = """
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <style>
-        :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
+        /* VARIABLES FOR THEME */
+        :root { 
+            --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
+            --border: #27272a; --dim: #71717a; --accent: #fff; --input-bg: #131315;
+        }
+        [data-theme="light"] {
+            --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b;
+            --border: #d4d4d8; --dim: #71717a; --accent: #000; --input-bg: #ffffff;
+        }
+
+        /* DISABLE SELECT GLOBALLY */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+        input, textarea { -webkit-user-select: text; user-select: text; }
+
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
             height: 100dvh; width: 100%; overflow: hidden; position: fixed; 
         }
         
-        /* HEADER - FIXED TOP */
+        /* HEADER - LOCKED */
         header { 
-            height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98); 
+            height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
             position: fixed; top: 0; left: 0; right: 0; z-index: 1000; 
+            backdrop-filter: blur(10px);
         }
-        .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: #fff; text-align:center; flex:1; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; color:#fff; z-index:1001; }
+        .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
+        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:1001; }
         
-        /* CONTAINER */
+        /* APP CONTAINER */
         #app-container { display: flex; flex-direction: column; height: 100%; padding-top: 70px; width:100%; position:relative; }
         
-        /* CHAT AREA - SMOOTH SCROLL */
+        /* CHAT BOX */
         #chat-box { 
             flex: 1; overflow-y: auto; 
             padding: 20px 5%; padding-bottom: 120px; 
@@ -140,39 +152,37 @@ HTML_TEMPLATE = """
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
         
-        /* INTRO TEXT - CENTERED & LOCKED */
+        /* INTRO - LOCKED */
         #intro-container { 
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             width: 90%; max-width: 600px; text-align: center; pointer-events: none; z-index: 10; 
             transition: opacity 0.3s ease;
         }
 
-        /* OVERLAYS - FIXED TOP & SCROLLABLE */
+        /* OVERLAYS - TOP LOCKED FOR KEYBOARD SAFETY */
         .overlay { 
-            position: fixed; inset: 0; background: #000; z-index: 2000; 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
-            align-items: center; justify-content: flex-start; /* Important for scroll */
-            padding-top: 10vh; padding-bottom: 80px; /* Space for keyboard/scroll */
+            align-items: center; justify-content: flex-start;
+            padding-top: 10vh; padding-bottom: 80px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
             transition: opacity 0.3s; 
         }
         .overlay.hidden { display: none !important; opacity: 0; pointer-events: none; }
         
-        /* WELCOME STYLE */
-        .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 40px; animation: fadeInUp 0.8s ease-out; }
         .welcome-title { 
             font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
-            background: linear-gradient(to right, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .welcome-desc { color: #888; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
+        .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
         .get-started-btn {
-            padding: 12px 25px; border-radius: 12px; border: none; background: #fff; color: #000; 
+            padding: 12px 25px; border-radius: 12px; border: none; background: var(--text); color: var(--bg); 
             font-weight: 700; font-size: 15px; cursor: pointer; display: inline-block; font-family: 'Outfit', sans-serif;
         }
 
-        /* DATA BOX - LOCKED & SAFE */
+        /* DATA BOX */
         .data-box { 
-            width: 90%; max-width: 350px; background: #0a0a0a; 
+            width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
@@ -181,83 +191,98 @@ HTML_TEMPLATE = """
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        .form-label { font-size: 12px; color: #777; margin-left: 2px; margin-bottom:-8px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
         
         input, select { 
-            width: 100%; padding: 14px; background: #131315; 
-            border: 1px solid #27272a; color: #fff; border-radius: 10px; 
+            width: 100%; padding: 14px; background: var(--input-bg); 
+            border: 1px solid var(--border); color: var(--text); border-radius: 10px; 
             outline: none; font-size: 16px; font-family: 'Inter', sans-serif;
             appearance: none; -webkit-appearance: none; 
         }
-        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
-        input:focus, select:focus { border-color: #fff; background: #18181b; }
+        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
+        input:focus, select:focus { border-color: var(--text); }
         .input-error { border: 1px solid #ef4444 !important; }
-        .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: #fff; color: #000; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; }
+        .submit-btn { width: 100%; padding: 14px; border-radius: 50px; border: none; background: var(--text); color: var(--bg); font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; }
 
         /* CHAT BUBBLES */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
         .user-msg { align-items: flex-end; }
-        .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: #fff; font-size: 16px; line-height: 1.5; }
+        .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
         
         .ai-msg { align-items: flex-start; width: 100%; }
-        .ai-content { width: 100%; color: #e4e4e7; font-size: 16px; line-height: 1.6; }
-        .ai-content strong { color: #fff; font-weight: 600; }
-        .ai-content h1, .ai-content h2 { margin-top: 20px; color: #fff; font-family: 'Outfit', sans-serif; }
+        .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
+        .ai-content strong { color: var(--text); font-weight: 700; }
+        .ai-content h1, .ai-content h2 { margin-top: 20px; color: var(--text); font-family: 'Outfit', sans-serif; }
         .ai-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: #222; padding: 2px 5px; border-radius: 4px; color: #ff79c6; }
         .ai-content pre { background: #111 !important; padding: 15px; border-radius: 10px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
 
         .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
-        .action-icon { cursor: pointer; color: #71717a; font-size: 16px; transition: 0.2s; }
-        .action-icon:hover { color: #fff; transform: scale(1.1); }
+        .action-icon { cursor: pointer; color: var(--dim); font-size: 16px; transition: 0.2s; }
+        .action-icon:hover { color: var(--text); transform: scale(1.1); }
 
-        /* INPUT BAR - LOCKED BOTTOM */
+        /* INPUT BAR */
         .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); width: 100%; position: fixed; bottom: 0; left: 0; z-index: 40; }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
-        textarea { flex: 1; background: transparent; border: none; color: #fff; font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
+        textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer; font-size: 18px; flex-shrink: 0; }
-        .icon-btn { background: transparent; color: #a1a1aa; }
-        .send-btn { background: #fff; color: #000; }
+        .icon-btn { background: transparent; color: var(--dim); }
+        .send-btn { background: var(--text); color: var(--bg); }
 
         /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
             background: var(--bg); z-index: 100; padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); transition: transform 0.3s ease-in-out; 
-            display: flex; flex-direction: column; border-right: 1px solid #222; overflow-y: auto; 
+            display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow-y: auto; 
         }
         #sidebar.open { transform: translateY(0); }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: #18181b; border-radius: 12px; cursor: pointer; color: #a1a1aa; font-size: 14px; }
-        .history-item:active { background: #222; color: #fff; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
+        .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
         .h-actions { display: none; gap: 12px; }
-        .history-item.active-mode .h-actions { display: flex; }
-
-        /* PROFILE UI - LEFT ALIGNED & SCROLLABLE */
-        .profile-header { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 20px; position: relative; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; position: relative; margin-bottom: 15px; }
-        .edit-badge { position: absolute; bottom: 0; right: 0; background: #fff; color: #000; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
-        .profile-val { color: #fff; font-size: 16px; font-weight: 600; padding: 12px; background: #18181b; border-radius: 10px; border: 1px solid #333; margin-bottom: 12px; width: 100%; text-align: left; }
-        .profile-input { width: 100%; padding: 12px; background: #131315; border: 1px solid #3f3f46; color: #fff; border-radius: 10px; font-size: 16px; font-family: 'Inter', sans-serif; }
+        
+        /* SETTINGS UI */
+        .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
+        .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
+        .settings-option:active { background: var(--border); }
+        .divider { height:1px; background: var(--border); width:100%; }
+        
+        /* CUSTOM MODAL */
+        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 3000; display:none; align-items:center; justify-content:center; }
+        .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
+        .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
 
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
         .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; }
         .preview-img { width:100%; height:100%; object-fit:cover; }
     </style>
-</head>
+    </head>
 <body>
-<div id="welcome-overlay" class="overlay">
-        <div class="welcome-container">
+
+    <div id="custom-modal">
+        <div class="modal-box">
+            <h3 id="modal-title" style="margin:0 0 10px 0; color:var(--text);">Alert</h3>
+            <input type="text" id="modal-input" style="display:none; margin-top:10px;" placeholder="Enter text...">
+            <div class="modal-btn-row">
+                <button class="submit-btn" style="background:var(--dim); flex:1;" onclick="closeModal()">Cancel</button>
+                <button class="submit-btn" style="flex:1;" id="modal-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="welcome-overlay" class="overlay">
+        <div class="welcome-container" style="margin-top:10vh;">
             <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
-            <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects with personalized AI guidance.</p>
+            <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects.</p>
             <button class="get-started-btn" onclick="showNameBox()">Get Started</button>
         </div>
     </div>
 
     <div id="name-overlay" class="overlay hidden">
         <div class="data-box">
-            <h2 style="color:#fff; margin:0 0 10px 0; font-size:22px; font-family:'Outfit',sans-serif;">Who are you?</h2>
+            <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
             <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
@@ -265,7 +290,7 @@ HTML_TEMPLATE = """
 
     <div id="details-overlay" class="overlay hidden">
         <div class="data-box">
-            <h2 style="color:#fff; margin:0 0 5px 0; font-size:20px; font-family:'Outfit',sans-serif;">Student Details</h2>
+            <h2 style="color:var(--text); margin:0 0 5px 0; font-family:'Outfit',sans-serif;">Student Details</h2>
             
             <span class="form-label">Education Level</span>
             <select id="edu-level" onchange="updateEduOptions()" onfocus="clearError(this)">
@@ -274,12 +299,12 @@ HTML_TEMPLATE = """
                 <option value="college">College (Arts/Engg)</option>
             </select>
 
-            <span class="form-label">Class / Year</span>
+            <span class="form-label" id="lbl-year-select">Class / Year</span>
             <select id="edu-year" onchange="updateSemesterOptions()" onfocus="clearError(this)">
-                <option value="" disabled selected>Select Year</option>
+                <option value="" disabled selected>Select</option>
             </select>
             
-            <div id="sem-container" style="display:none; flex-direction:column; gap:12px;">
+            <div id="sem-container" style="display:none; flex-direction:column; gap:10px;">
                 <span class="form-label">Semester</span>
                 <select id="edu-sem" onfocus="clearError(this)">
                     <option value="" disabled selected>Select Semester</option>
@@ -293,49 +318,78 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="profile-overlay" class="overlay hidden">
+    <div id="settings-overlay" class="overlay hidden">
         <div style="width:100%; display:flex; justify-content:flex-end; padding:0 20px; max-width:400px; margin-bottom:10px;">
-            <div onclick="closeProfile()" style="font-size:24px; cursor:pointer; color:#fff;">&times;</div>
+            <div onclick="closeSettings()" style="font-size:24px; cursor:pointer; color:var(--text);">&times;</div>
+        </div>
+        
+        <div style="width:90%; max-width:350px;">
+            <input type="text" placeholder="Search settings..." style="margin-bottom:20px; width:100%; background:var(--card); border:none;">
+            
+            <div class="settings-container">
+                <div class="settings-option" onclick="openProfileFromSettings()">
+                    <span>Student Profile</span> <i class="fas fa-chevron-right" style="font-size:12px;"></i>
+                </div>
+                <div class="divider"></div>
+                
+                <div style="padding:15px; color:var(--text);">
+                    <div style="font-size:14px; color:var(--dim); margin-bottom:10px; font-weight:600;">THEME</div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="icon-btn" onclick="setTheme('light')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-sun"></i></button>
+                        <button class="icon-btn" onclick="setTheme('dark')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-moon"></i></button>
+                        <button class="icon-btn" onclick="setTheme('system')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-desktop"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-overlay" class="overlay hidden">
+        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px;">
+            <div onclick="backToSettings()" style="font-size:16px; cursor:pointer; color:var(--text);"><i class="fas fa-arrow-left"></i> Back</div>
         </div>
         
         <div class="data-box profile-box" style="margin-top:0;">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <i class="fas fa-user" id="profile-icon"></i>
-                    <img id="profile-pic-display" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:none;">
-                    <label for="profile-upload" class="edit-badge"><i class="fas fa-camera"></i></label>
+            <div style="display:flex; justify-content:center; margin-bottom:20px; position:relative;">
+                <div style="width:80px; height:80px; border-radius:50%; background:#222; border:2px solid var(--text); overflow:hidden;">
+                    <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <i class="fas fa-user" id="profile-icon" style="font-size:30px; color:#fff; line-height:80px;"></i>
                 </div>
+                <label for="profile-upload" style="position:absolute; bottom:0; right:35%; background:var(--text); width:25px; height:25px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label>
                 <input type="file" id="profile-upload" hidden accept="image/*" onchange="handleProfilePic(this)">
-                <h2 style="color:#fff; margin:0; font-family:'Outfit',sans-serif;">Student Profile</h2>
             </div>
 
-            <div class="form-label">Name</div>
-            <div class="profile-val" id="p-name">--</div>
+            <span class="form-label">Name & Level</span>
+            <div style="background:var(--input-bg); padding:12px; border-radius:10px; color:var(--dim); font-size:14px;">
+                <span id="p-name">--</span> • <span id="p-level">--</span>
+            </div>
 
-            <div class="form-label">Level</div>
-            <div class="profile-val" id="p-level">--</div>
+            <span class="form-label" id="lbl-year-display">Class/Year</span>
+            <div class="profile-val" id="p-year" style="color:var(--dim);">--</div>
+            
+            <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;">
+                 <span class="form-label">Semester</span>
+                 <div class="profile-val" id="p-sem" style="color:var(--dim);">--</div>
+            </div>
 
-            <div class="form-label" id="lbl-year">Class/Year</div>
-            <div class="profile-val" id="p-year">--</div>
+            <span class="form-label">Subject (Tap to Edit)</span>
+            <input type="text" id="p-subj-edit" value="">
 
-            <div class="form-label" id="lbl-subj">Subject (Editable)</div>
-            <input type="text" class="profile-val" style="background:#131315;" id="p-subj-edit" value="">
-
-            <button class="submit-btn" style="background:#fff; color:#000; margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
+            <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
             <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <div style="font-size:18px; font-weight:700; color:#fff;">Hi <span id="display-name">User</span></div>
+            <div style="font-size:18px; font-weight:700; color:var(--text);">Hi <span id="display-name">User</span></div>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
         </div>
         <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
-        <div style="color:#71717a; font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
+        <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
         <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
-        <div style="margin-top:auto; padding-top:20px; border-top:1px solid #222;">
-            <div style="display:flex; align-items:center; gap:15px; color:#ddd; cursor:pointer;" onclick="openProfile()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
+        <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
         </div>
     </div>
 
@@ -361,12 +415,17 @@ HTML_TEMPLATE = """
     </div>
     <script>
         let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
-        let longPressTimer;
-
-        function getIntroHtml(name) { return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px;">Hi ${name},</div><p style="color:#777;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; }
         
+        function getIntroHtml(name) { 
+            return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px;">Hi ${name},</div><p style="color:var(--dim);">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
+        }
+
         // --- AUTH & SETUP ---
         function checkLogin() {
+            // Load Theme
+            const t = localStorage.getItem("student_theme");
+            if(t) setTheme(t);
+            
             const u = localStorage.getItem("student_ai_user");
             const c = localStorage.getItem("student_ai_context");
             if(u) {
@@ -386,7 +445,6 @@ HTML_TEMPLATE = """
         }
         function clearError(input) { input.classList.remove('input-error'); }
         function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
-        
         function handleNameSubmit() {
             const input = document.getElementById("username-input");
             const name = input.value.trim();
@@ -398,19 +456,22 @@ HTML_TEMPLATE = """
             details.classList.remove('hidden'); details.style.display = 'flex';
         }
 
-        // --- DYNAMIC DROPDOWNS ---
+        // --- DYNAMIC LABELS (Standard/Year) ---
         function updateEduOptions() {
             const level = document.getElementById('edu-level').value;
             const yearSelect = document.getElementById('edu-year');
             const semContainer = document.getElementById('sem-container');
+            const label = document.getElementById('lbl-year-select');
             
-            yearSelect.innerHTML = '<option value="" disabled selected>Select Year</option>';
+            yearSelect.innerHTML = '<option value="" disabled selected>Select</option>';
             document.getElementById('edu-sem').innerHTML = '<option value="" disabled selected>Select Semester</option>';
             
             if(level === 'college') {
+                label.innerText = "Year";
                 semContainer.style.display = 'flex';
                 ["1st Year", "2nd Year", "3rd Year", "4th Year"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
             } else {
+                label.innerText = "Standard";
                 semContainer.style.display = 'none';
                 ["6th Std", "7th Std", "8th Std", "9th Std", "10th Std", "11th Std", "12th Std"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
             }
@@ -451,8 +512,7 @@ HTML_TEMPLATE = """
             document.getElementById('details-overlay').style.display = 'none';
             showApp();
         }
-        
-        // --- APP LOGIC & TYPEWRITER ---
+
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
             loadHistory();
@@ -467,101 +527,41 @@ HTML_TEMPLATE = """
             }
         }
 
-        async function send() {
-            const txt = document.getElementById('input').value.trim();
-            if(!txt && !currentAttachment) return;
-            
-            const intro = document.getElementById('intro-container');
-            if(intro) intro.style.display = 'none';
-
-            const box = document.getElementById('chat-box');
-            let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
-            
-            box.insertAdjacentHTML('beforeend', `
-                <div class="msg user-msg">
-                    <div class="user-content">${txt.replace(/</g, "&lt;")}${imgHtml}</div>
-                    <div class="msg-actions">
-                         <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${txt}')"></i>
-                         <i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${txt}'; document.getElementById('input').focus();"></i>
-                    </div>
-                </div>`);
-            
-            document.getElementById('input').value = "";
-            document.getElementById('input').style.height = 'auto';
-            let imgData = currentAttachment;
-            clearAttachment();
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            
-            const msgId = "ai-" + Date.now();
-            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content">...</div></div>`);
-            
-            try {
-                if(!currentChatId) {
-                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
-                }
-                const res = await fetch('/chat', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({message:txt, image:imgData, username:currentUser, chat_id:currentChatId, user_context:userContext})
-                });
-                const data = await res.json();
-                
-                const aiMsgDiv = document.getElementById(msgId);
-                const contentDiv = aiMsgDiv.querySelector('.ai-content');
-                
-                // TYPEWRITER EFFECT (Line-by-line Logic)
-                let words = data.response.split(" ");
-                let currentText = "";
-                contentDiv.innerHTML = "";
-                
-                // Action container
-                aiMsgDiv.insertAdjacentHTML('beforeend', `
-                    <div class="msg-actions" style="opacity:0; transition:opacity 0.5s;">
-                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').querySelector('.ai-content').innerText)"></i>
-                        <i class="fas fa-share-alt action-icon" onclick="if(navigator.share) navigator.share({text:this.closest('.ai-msg').querySelector('.ai-content').innerText})"></i>
-                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
-                    </div>`);
-
-                for (let i = 0; i < words.length; i++) {
-                    currentText += words[i] + " ";
-                    contentDiv.innerHTML = marked.parse(currentText);
-                    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-                    await new Promise(r => setTimeout(r, 20)); // Type speed
-                }
-
-                // Final Render
-                contentDiv.innerHTML = marked.parse(data.response);
-                if(window.hljs) hljs.highlightAll();
-                if(window.MathJax) MathJax.typesetPromise([contentDiv]);
-                aiMsgDiv.querySelector('.msg-actions').style.opacity = '1';
-                
-                if(data.new_title) loadHistory();
-
-            } catch(e) { document.getElementById(msgId).innerHTML = `<div class="ai-content" style="color:#ef4444;">Error: ${e.message}</div>`; }
+        // --- SETTINGS, THEME & PROFILE ---
+        function openSettings() {
+             document.getElementById('settings-overlay').classList.remove('hidden');
+             document.getElementById('settings-overlay').style.display = 'flex';
+             document.getElementById('sidebar').classList.remove('open');
         }
-
-        // --- PROFILE & HISTORY ACTIONS ---
+        function closeSettings() { document.getElementById('settings-overlay').style.display = 'none'; }
+        
+        function openProfileFromSettings() {
+             document.getElementById('settings-overlay').style.display = 'none';
+             openProfile();
+        }
+        function backToSettings() {
+             document.getElementById('profile-overlay').style.display = 'none';
+             openSettings();
+        }
         function openProfile() {
             document.getElementById('p-name').innerText = currentUser;
             const parts = userContext.split(',');
             const level = parts[0];
             document.getElementById('p-level').innerText = level.toUpperCase();
             document.getElementById('p-year').innerText = parts[1];
-            let subjVal = "";
+            document.getElementById('lbl-year-display').innerText = level === 'college' ? "Year" : "Standard";
+            
             if(level === 'college' && parts.length >= 4) {
-                 document.getElementById('lbl-subj').innerText = "Sem / Subject";
-                 subjVal = `${parts[2]} - ${parts[3]}`;
+                 document.getElementById('p-sem-box').style.display = 'flex';
+                 document.getElementById('p-sem').innerText = parts[2];
+                 document.getElementById('p-subj-edit').value = parts[3];
             } else {
-                 document.getElementById('lbl-subj').innerText = "Subject";
-                 subjVal = parts[2];
+                 document.getElementById('p-sem-box').style.display = 'none';
+                 document.getElementById('p-subj-edit').value = parts[2];
             }
-            document.getElementById('p-subj-edit').value = subjVal;
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
-            document.getElementById('sidebar').classList.remove('open');
         }
-        function closeProfile() { document.getElementById('profile-overlay').style.display = 'none'; }
-        function handleLogout() { localStorage.clear(); location.reload(); }
         function saveProfileChanges() {
             const newSubj = document.getElementById('p-subj-edit').value;
             const parts = userContext.split(',');
@@ -569,7 +569,17 @@ HTML_TEMPLATE = """
             else parts[2] = newSubj;
             userContext = parts.join(',');
             localStorage.setItem("student_ai_context", userContext);
-            closeProfile();
+            document.getElementById('profile-overlay').style.display = 'none';
+            alert("Saved!");
+        }
+        function setTheme(t) {
+             localStorage.setItem("student_theme", t);
+             if(t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+             else if(t === 'dark') document.documentElement.removeAttribute('data-theme');
+             else {
+                 if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light');
+                 else document.documentElement.removeAttribute('data-theme');
+             }
         }
         function handleProfilePic(input) {
             if (input.files && input.files[0]) {
@@ -583,41 +593,114 @@ HTML_TEMPLATE = """
                 reader.readAsDataURL(input.files[0]);
             }
         }
+        function handleLogout() { localStorage.clear(); location.reload(); }
 
-        function handleHistoryTouchStart(e, cid) {
-            longPressTimer = setTimeout(() => {
-                const item = document.getElementById('chat-'+cid);
-                item.querySelector('.h-actions').style.display = 'flex';
-            }, 600);
+        // --- CHAT LOGIC ---
+        async function newChat() {
+            currentChatId = null;
+            document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
+            document.getElementById('sidebar').classList.remove('open');
+            const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+            const d = await r.json(); currentChatId = d.chat_id; loadHistory();
         }
-        function handleHistoryTouchEnd(e) { clearTimeout(longPressTimer); }
+
+        async function send() {
+            const txt = document.getElementById('input').value.trim();
+            if(!txt && !currentAttachment) return;
+            document.getElementById('intro-container').style.display = 'none';
+            
+            const box = document.getElementById('chat-box');
+            let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
+            
+            box.insertAdjacentHTML('beforeend', `
+                <div class="msg user-msg">
+                    <div class="user-content">${txt.replace(/</g, "&lt;")}${imgHtml}</div>
+                    <div class="msg-actions">
+                         <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${txt}')"></i>
+                    </div>
+                </div>`);
+            
+            document.getElementById('input').value = ""; document.getElementById('input').style.height = 'auto';
+            let imgData = currentAttachment; clearAttachment();
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            
+            const msgId = "ai-" + Date.now();
+            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content">...</div></div>`);
+            
+            try {
+                if(!currentChatId) {
+                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
+                }
+                const res = await fetch('/chat', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({message:txt, image:imgData, username:currentUser, chat_id:currentChatId, user_context:userContext})
+                });
+                const data = await res.json();
+                
+                const aiMsgDiv = document.getElementById(msgId);
+                const contentDiv = aiMsgDiv.querySelector('.ai-content');
+                let words = data.response.split(" "); let currentText = ""; contentDiv.innerHTML = "";
+                
+                aiMsgDiv.insertAdjacentHTML('beforeend', `
+                    <div class="msg-actions" style="opacity:0; transition:opacity 0.5s;">
+                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').querySelector('.ai-content').innerText)"></i>
+                        <i class="fas fa-share-alt action-icon" onclick="if(navigator.share) navigator.share({text:this.closest('.ai-msg').querySelector('.ai-content').innerText})"></i>
+                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
+                    </div>`);
+
+                for (let i = 0; i < words.length; i++) {
+                    currentText += words[i] + " "; contentDiv.innerHTML = marked.parse(currentText);
+                    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); await new Promise(r => setTimeout(r, 20));
+                }
+                contentDiv.innerHTML = marked.parse(data.response);
+                if(window.hljs) hljs.highlightAll(); if(window.MathJax) MathJax.typesetPromise([contentDiv]);
+                aiMsgDiv.querySelector('.msg-actions').style.opacity = '1';
+                if(data.new_title) loadHistory();
+            } catch(e) { document.getElementById(msgId).innerHTML = "Error."; }
+        }
+
+        // --- CUSTOM MODALS FOR HISTORY ---
+        function showCustomModal(title, isInput, callback) {
+            const m = document.getElementById('custom-modal');
+            document.getElementById('modal-title').innerText = title;
+            const inp = document.getElementById('modal-input');
+            inp.style.display = isInput ? 'block' : 'none';
+            inp.value = "";
+            m.style.display = 'flex';
+            
+            document.getElementById('modal-confirm-btn').onclick = function() {
+                callback(inp.value);
+                m.style.display = 'none';
+            };
+        }
+        function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
+
         async function renameChat(cid) {
-             const newName = prompt("Rename Chat:");
-             if(newName) { await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newName})}); loadHistory(); }
+             showCustomModal("Rename Chat", true, async (val) => {
+                 if(val) { await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); loadHistory(); }
+             });
         }
         async function deleteChat(cid) {
-            if(confirm("Delete this chat?")) {
-                await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
-                if(currentChatId === cid) window.location.reload(); else loadHistory();
-            }
+             showCustomModal("Delete Chat?", false, async () => {
+                 await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
+                 if(currentChatId === cid) newChat(); else loadHistory();
+             });
         }
+
         async function loadHistory() {
-             try {
-                const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                const data = await res.json();
-                const list = document.getElementById('history-list'); list.innerHTML = "";
-                Object.keys(data.chats).reverse().forEach(cid => {
-                    list.innerHTML += `
-                    <div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')" 
-                         ontouchstart="handleHistoryTouchStart(event, '${cid}')" ontouchend="handleHistoryTouchEnd(event)">
-                        <span class="h-title">${data.chats[cid].title || "Chat"}</span>
-                        <div class="h-actions">
-                            <i class="fas fa-pen h-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i>
-                            <i class="fas fa-trash h-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i>
-                        </div>
-                    </div>`;
-                });
-            } catch(e){}
+             const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+             const data = await res.json();
+             const list = document.getElementById('history-list'); list.innerHTML = "";
+             Object.keys(data.chats).reverse().forEach(cid => {
+                 list.innerHTML += `<div class="history-item" onclick="loadChat('${cid}')">
+                     <span class="h-title">${data.chats[cid].title || "Chat"}</span>
+                     <div style="display:flex; gap:10px;">
+                        <i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i>
+                        <i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i>
+                     </div>
+                 </div>`;
+             });
         }
         async function loadChat(cid) {
             currentChatId = cid;
@@ -627,44 +710,27 @@ HTML_TEMPLATE = """
             data.messages.forEach(m => {
                 let cls = m.role === 'user' ? 'user' : 'ai';
                 let content = m.role === 'user' ? m.content : marked.parse(m.content);
-                box.insertAdjacentHTML('beforeend', `<div class="msg ${cls}-msg"><div class="${cls}-content">${content}</div></div>`);
+                let actions = cls === 'ai' ? `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').innerText)"></i><i class="fas fa-share-alt action-icon"></i><i class="fas fa-redo action-icon" onclick="regenerateLast()"></i></div>` : `<div class="msg-actions"><i class="fas fa-copy action-icon"></i></div>`;
+                box.insertAdjacentHTML('beforeend', `<div class="msg ${cls}-msg"><div class="${cls}-content">${content}</div>${actions}</div>`);
             });
             document.getElementById('sidebar').classList.remove('open');
             hljs.highlightAll();
         }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-        function handleFile(input) {
-            if(input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    currentAttachment = e.target.result;
-                    document.getElementById('preview-area').style.display = 'block';
-                    document.getElementById('preview-img').src = currentAttachment;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-        function clearAttachment() {
-            currentAttachment = null;
-            document.getElementById('preview-area').style.display = 'none';
-            document.getElementById('file-input').value = "";
-        }
-        // Keyboard Fade Logic
-        const inp = document.getElementById('input');
-        const intro = document.getElementById('intro-container');
-        if(inp && intro) {
-            inp.addEventListener('focus', () => intro.style.opacity = '0');
-            inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; });
-        }
+        function handleFile(input) { if(input.files[0]) { const r = new FileReader(); r.onload=(e)=>{ currentAttachment=e.target.result; document.getElementById('preview-area').style.display='block'; document.getElementById('preview-img').src=currentAttachment; }; r.readAsDataURL(input.files[0]); } }
+        function clearAttachment() { currentAttachment=null; document.getElementById('preview-area').style.display='none'; document.getElementById('file-input').value=""; }
+        const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
+        if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
+        
         checkLogin();
     </script>
 </body>
 </html>
 """
-
 # --- BACKEND ROUTES ---
 @app.route("/", methods=["GET"])
-def home(): return render_template_string(HTML_TEMPLATE)
+def home(): 
+    return render_template_string(HTML_TEMPLATE)
 
 @app.route("/new_chat", methods=["POST"])
 def new_chat():
@@ -708,15 +774,19 @@ def chat():
     d = request.json
     u, cid, msg, ctx = d.get("username"), d.get("chat_id"), d.get("message"), d.get("user_context", "")
     img = d.get("image")
+    
     if u not in user_db: user_db[u] = {}
     if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
+    
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
     reply = generate_with_retry(msg, img, None, user_db[u][cid]["messages"][:-1], ctx)
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
+    
     new_title = False
     if len(user_db[u][cid]["messages"]) <= 2:
         user_db[u][cid]["title"] = " ".join(msg.split()[:4])
         new_title = True
+        
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
 
