@@ -166,7 +166,7 @@ HTML_TEMPLATE = """
         --btn-bg: #ffffff; --btn-text: #000000;
     }
 
-    /* Light Theme (Moved outside of :root) */
+    /* Light Theme (Moved outside of :root to fix the bug) */
     [data-theme="light"] { 
         --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; 
         --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; 
@@ -194,10 +194,29 @@ HTML_TEMPLATE = """
         height: auto; max-height: 150px; overflow-y: auto; 
     }
 
-    /* --- 5. SIDEBAR --- */
-    #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
+    /* --- 5. SIDEBAR (Fixed Portrait Mode) --- */
+    #sidebar { 
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; 
+        padding: 25px; padding-top: 60px; /* Reduced top padding */
+        transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+        display: flex; flex-direction: column; overflow-y: auto; 
+    }
     #sidebar.open { transform: translateY(0); }
+    
+    /* Profile Section Gap Adjust */
+    #sidebar > div:first-child { margin-bottom: 10px; flex-shrink: 0; }
+
     .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); }
+
+    /* History List - Automatic Height Calculation */
+    #history-list {
+        flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; 
+    }
+
+    /* Settings Area (Bottom) */
+    #sidebar > div:last-child {
+        flex-shrink: 0; padding-top: 10px; border-top: 1px solid var(--border);
+    }
 
     /* --- 6. OVERLAYS & FORMS --- */
     .overlay { 
@@ -207,12 +226,13 @@ HTML_TEMPLATE = """
         justify-content: flex-start; 
         padding-top: 0; 
         overflow-y: auto; 
+        animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
     #welcome-overlay { 
         justify-content: center; 
         padding-top: 0 !important; 
-        display: none; /* Previously mixed with other code, now fixed */
+        display: none; /* Fixed: Prevents glitch on load */
     }
 
     #name-overlay, #details-overlay {
@@ -287,14 +307,26 @@ HTML_TEMPLATE = """
         transform: scale(1.1); font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.2);
     }
 
-    /* --- 9. LANDSCAPE MODE FIX --- */
+    /* --- 9. LANDSCAPE MODE FIX (Bug Fix) --- */
     @media (orientation: landscape) {
-        #sidebar { padding-top: 60px !important; }
-        #sidebar .submit-btn {
-            width: 60% !important; max-width: 300px; margin: 5px auto 15px auto !important; padding: 10px !important; display: block;
+        #sidebar {
+            padding-top: 5px !important; padding-bottom: 5px !important;
         }
-        #history-list { flex: 1; overflow-y: auto; min-height: 0; }
-        #sidebar > div:last-child { padding-top: 10px !important; margin-top: 0 !important; }
+        /* Profile Section - Romba Compact */
+        #sidebar > div:first-child {
+            margin-top: 0 !important; margin-bottom: 5px !important;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        /* New Chat Button - Left side, Small Size */
+        #sidebar .submit-btn {
+            width: auto !important; min-width: 120px; margin: 0 !important; padding: 8px 15px !important; font-size: 14px !important; display: inline-block;
+        }
+        /* History List - Scroll Confirm aaga varum */
+        #history-list {
+            background: rgba(0,0,0,0.2); border-radius: 8px; padding: 5px; border: 1px solid var(--border);
+        }
+        /* Settings Footer */
+        #sidebar > div:last-child { padding-top: 2px !important; margin-top: 0 !important; border-top: 1px solid var(--border); }
     }
 
     /* --- 10. ANIMATED AURORA BACKGROUND --- */
@@ -343,11 +375,6 @@ HTML_TEMPLATE = """
     .animated-bg-overlay p, 
     .animated-bg-overlay span {
         text-shadow: 0 2px 4px rgba(0,0,0,0.6); color: #fff !important;
-    }
-
-    /* Smooth Entry Animation */
-    .overlay {
-        animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     @keyframes smoothPopUp {
@@ -482,7 +509,7 @@ HTML_TEMPLATE = """
         </div>
         <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
         <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
-        <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
+        <div id="history-list"></div>
         <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
         </div>
@@ -766,14 +793,6 @@ HTML_TEMPLATE = """
             document.querySelector('.divider').style.display = term ? 'none' : 'block';
             document.getElementById('search-no-results').style.display = hasResult ? 'none' : 'block';
         }
-
-        function handleLogout() { 
-        document.getElementById('profile-overlay').style.display = 'none';
-            document.getElementById('settings-overlay').style.display = 'none';
-            document.querySelector('.data-box').style.display = 'none
-            localStorage.clear(); 
-            location.reload(); 
-        }
         
         function newChat() {
             currentChatId = null;
@@ -917,6 +936,11 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
+📂 PART 3: Server & Routes
+(Flask Routes, Main execution block)
+
+Python
+
 # --- ROUTES ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
@@ -1003,3 +1027,4 @@ def manifest():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
+  
