@@ -159,8 +159,10 @@ HTML_TEMPLATE = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; --input-bg: #131315; }
-        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; }
+        :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; --input-bg: #131315; --btn-bg: #ffffff;
+        --btn-text: #000000;}
+        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; --btn-bg: #000000;
+        --btn-text: #ffffff;}
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         
@@ -223,7 +225,7 @@ HTML_TEMPLATE = """
         .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-        .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); }
+        .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--btn-bg); color: var(--btn-text); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
         .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
         .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
@@ -266,6 +268,35 @@ HTML_TEMPLATE = """
         font-weight: bold;
         box-shadow: 0 0 10px rgba(255,255,255,0.2);
         }
+        /* --- FIX: LANDSCAPE / ROTATION MODE --- */
+        @media (orientation: landscape) {
+        /* 1. Sidebar Top Space Kuraikuradhu */
+        #sidebar {
+        padding-top: 60px !important; 
+        }
+    
+        /* 2. New Chat Button Size & Margin Kuraikuradhu */
+        #sidebar .submit-btn {
+        width: 60% !important;   /* Romba neelama irukadhu */
+        max-width: 300px;        /* Oru alavuku mela perusa pogadhu */
+        margin: 5px auto 15px auto !important; /* Centre panrom, gap kuraikiron */
+        padding: 10px !important; /* Button ulla idam kuraikiron */
+        display: block;
+        }
+
+        /* 3. History List ku Space Kodukuradhu */
+        #history-list {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0; /* Mukkiyamana fix for scroll */
+        }
+
+        /* 4. Settings Footer gap kuraikuradhu */
+        #sidebar > div:last-child {
+        padding-top: 10px !important;
+        margin-top: 0 !important;
+       }
+       }
     
     </style>
     </head>
