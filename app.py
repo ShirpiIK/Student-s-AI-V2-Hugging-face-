@@ -32,7 +32,7 @@ user_db = load_db()
 app = Flask(__name__)
 current_key_index = 0
 
-# MODEL SETUP
+# MODEL FUNCTIONS
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
@@ -91,7 +91,7 @@ HTML_TEMPLATE = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -118,19 +118,25 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* --- ULTIMATE BODY LOCK --- */
+        /* --- THE OLD APP LAYOUT LOGIC (Perfect Lock) --- */
         body { 
-            margin: 0; background: var(--bg); color: var(--text); 
+            margin: 0; padding: 0; 
+            height: 100dvh; width: 100%; 
+            background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
-            position: fixed; inset: 0; 
-            height: 100dvh; width: 100vw; 
+            overflow: hidden; /* No Body Scroll */
+        }
+
+        #app-container { 
             display: flex; flex-direction: column; 
-            overflow: hidden; 
+            height: 100dvh; width: 100%; 
+            position: relative; 
+            padding-top: 70px; /* Space reserved for Absolute Header */
         }
         
-        /* HEADER - FIXED & BIG FONT */
+        /* HEADER - ABSOLUTE LOCK (Old Method) */
         header { 
-            position: fixed; top: 0; left: 0; right: 0; /* Forced Fixed */
+            position: absolute; top: 0; left: 0; right: 0; 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); 
             display: flex; align-items: center; justify-content: space-between; 
@@ -139,20 +145,20 @@ HTML_TEMPLATE = """
         }
         header.hidden-header { transform: translateY(-100%); } 
         
-        /* BIGGER FONT SIZE */
+        /* FONT SIZE INCREASED */
         .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* CHAT AREA - PADDING FOR FIXED HEADER */
+        /* CHAT AREA */
         #chat-box { 
-            flex-grow: 1; overflow-y: auto; 
+            flex: 1; overflow-y: auto; 
             padding: 20px 5%; 
-            padding-top: 90px; /* Space for Fixed Header */
+            padding-bottom: 20px;
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
 
-        /* INPUT AREA - LOCKED BOTTOM */
+        /* INPUT AREA */
         .input-wrapper { 
             background: var(--bg); padding: 15px; 
             border-top: 1px solid var(--border); width: 100%; 
@@ -162,7 +168,7 @@ HTML_TEMPLATE = """
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* SIDEBAR - FULL COVER & SMOOTH */
+        /* SIDEBAR - SMOOTH ANIMATION */
         #sidebar { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100dvh; 
@@ -170,24 +176,24 @@ HTML_TEMPLATE = """
             z-index: 5000; 
             padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); 
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex; flex-direction: column; 
             overflow-y: auto;
         }
         #sidebar.open { transform: translateY(0); }
         
-        /* HISTORY ICONS GAP FIX */
+        /* HISTORY ICONS GAP FIX (20px) */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
-        .h-actions { display: flex; gap: 20px; /* INCREASED GAP */ }
+        .h-actions { display: flex; gap: 20px; /* FIXED GAP */ }
 
-        /* OVERLAYS - PROFILE & DETAILS */
+        /* OVERLAYS - TOP ALIGNED LOCK */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; 
+            justify-content: flex-start; /* FIX: Top Align */
             padding-top: 20px; 
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -225,11 +231,12 @@ HTML_TEMPLATE = """
             margin-top: 15px; font-family: 'Outfit', sans-serif; 
         }
 
-        /* WELCOME & CHAT UI */
+        /* WELCOME */
         .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 50px; animation: fadeIn 1s ease-out; }
         .welcome-title { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
 
+        /* CHAT BUBBLES */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -243,7 +250,7 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
-        /* WAVE LOADING */
+        /* WAVE ANIMATION */
         .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
         .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
         .typing-dot:nth-child(2) { animation-delay: -1.1s; }
@@ -260,11 +267,11 @@ HTML_TEMPLATE = """
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
         #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
         
-        /* PROFILE - GAP REDUCED */
+        /* PROFILE - GAP REDUCED FIX */
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; /* REDUCED GAP */ position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         
-        /* MODAL - Z-INDEX FIX (HIGHER THAN SIDEBAR) */
+        /* MODAL - Z-INDEX FIX (6000 > 5000) */
         #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; /* BEATS SIDEBAR */ display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
@@ -399,12 +406,6 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <header id="main-header" class="hidden-header">
-        <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
-        <span class="app-title">Student's AI</span>
-        <div style="width:40px;"></div>
-    </header>
-
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <div style="display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; color:var(--text);">
@@ -421,18 +422,26 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="chat-box"></div> 
-    
-    <div class="input-wrapper">
-            <div id="preview-area">
-            <div class="preview-box"><img id="preview-img" class="preview-img"></div>
-            <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button>
-        </div>
-        <div class="input-container">
-            <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
-            <input type="file" id="file-input" hidden onchange="handleFile(this)">
-            <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
-            <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
+    <div id="app-container">
+        <header id="main-header" class="hidden-header">
+            <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+            <span class="app-title">Student's AI</span>
+            <div style="width:40px;"></div>
+        </header>
+
+        <div id="chat-box"></div> 
+        
+        <div class="input-wrapper">
+                <div id="preview-area">
+                <div class="preview-box"><img id="preview-img" class="preview-img"></div>
+                <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button>
+            </div>
+            <div class="input-container">
+                <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
+                <input type="file" id="file-input" hidden onchange="handleFile(this)">
+                <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
+                <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
+            </div>
         </div>
     </div>
     <script>
@@ -835,6 +844,11 @@ def manifest():
             {
                 "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
                 "sizes": "192x192",
+                "type": "image/png"
+            },
+            {
+                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
+                "sizes": "512x512",
                 "type": "image/png"
             }
         ]
