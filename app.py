@@ -184,7 +184,7 @@ HTML_TEMPLATE = """
             display: flex; flex-direction: column; 
             align-items: center; 
             justify-content: flex-start; /* Align Top */
-            padding-top: 140px; /* FIXED PIXEL POSITION - WON'T MOVE WITH KEYBOARD */
+            padding-top: 0; /* FIXED PIXEL POSITION - WON'T MOVE WITH KEYBOARD */
             overflow-y: auto; 
         }
         .overlay.hidden { display: none !important; }
