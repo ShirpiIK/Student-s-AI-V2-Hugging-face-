@@ -1,3 +1,14 @@
+# ==========================================
+# 👇 PHASE 0: SQLITE FIX FOR HUGGING FACE 👇
+# (Must be at the very top for ChromaDB)
+# ==========================================
+import sys
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 import os
 import uuid
 import time
@@ -5,18 +16,34 @@ import json
 import base64
 import io
 import warnings
+import shutil
 from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
-# Warning Fix
+# RAG IMPORTS
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import SentenceTransformerEmbeddings
+import tempfile
+
 warnings.filterwarnings("ignore")
 
-# API KEYS SETUP
+# ==========================================
+# 👇 CONFIGURATION 👇
+# ==========================================
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
+current_key_index = 0
 
-# DATABASE SETUP
+# FOLDERS
+UPLOAD_FOLDER = 'uploads'
+DB_FOLDER = 'db_store'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(DB_FOLDER, exist_ok=True)
+
+# USER DATABASE
 DB_FILE = "chat_db.json"
 def load_db():
     try:
@@ -31,9 +58,38 @@ def save_db(db):
 user_db = load_db()
 
 app = Flask(__name__)
-current_key_index = 0
 
-# MODEL FUNCTIONS
+# ==========================================
+# 👇 RAG LOGIC (THE 4 PHASES) 👇
+# ==========================================
+vectorstore = None
+
+def process_document_rag(file_path):
+    global vectorstore
+    try:
+        loader = PyPDFLoader(file_path)
+        docs = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        splits = text_splitter.split_documents(docs)
+        embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=DB_FOLDER)
+        return True, "PDF Processed Successfully!"
+    except Exception as e:
+        return False, str(e)
+
+def query_rag(question):
+    global vectorstore
+    if not vectorstore: return None
+    try:
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        docs = retriever.get_relevant_documents(question)
+        context_text = "\n\n".join([d.page_content for d in docs])
+        return context_text
+    except: return None
+
+# ==========================================
+# 👇 GENERATION LOGIC 👇
+# ==========================================
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
@@ -45,28 +101,28 @@ def get_working_model(key):
     except: return None
     return None
 
-def process_image(image_data):
+def process_image_data(image_data):
     try:
         if "base64," in image_data: image_data = image_data.split("base64,")[1]
         image_bytes = base64.b64decode(image_data)
         return Image.open(io.BytesIO(image_bytes))
     except: return None
 
-def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], user_context=""):
+def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], user_context="", rag_context=None):
     global current_key_index
     if not API_KEYS: return "🚨 API Keys Missing."
     formatted_history = []
     for m in history_messages[-6:]:
         role = "user" if m["role"] == "user" else "model"
         formatted_history.append({"role": role, "parts": [m["content"]]})
-    
     current_parts = []
-    full_prompt = prompt
-    if user_context: full_prompt = f"[User Context: {user_context}]\nQuestion: {prompt}"
+    full_prompt = f"Question: {prompt}"
+    if user_context: full_prompt = f"[User Profile: {user_context}]\n" + full_prompt
+    if rag_context: full_prompt = f"[PDF Context Found:\n{rag_context}]\n\n" + full_prompt
     if file_text: current_parts.append(f"File content:\n{file_text}\n\n")
     current_parts.append(full_prompt)
     if image_data:
-        img = process_image(image_data)
+        img = process_image_data(image_data)
         if img: current_parts.append(img)
 
     for i in range(len(API_KEYS)):
@@ -78,7 +134,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel(model_name=model_name)
-            if image_data or file_text: response = model.generate_content(current_parts)
+            if image_data or file_text or rag_context: response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
                 response = chat.send_message(full_prompt)
@@ -95,158 +151,89 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
-    
     <title>Student's AI</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>window.MathJax = { tex: { inlineMath: [['$', '$']] }, svg: { fontCache: 'global' } };</script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
     <style>
-        :root { 
-            --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
-            --border: #27272a; --dim: #71717a; --accent: #fff; --input-bg: #131315;
-        }
-        [data-theme="light"] {
-            --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b;
-            --border: #d4d4d8; --dim: #71717a; --accent: #000; --input-bg: #ffffff;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
-        input, textarea { -webkit-user-select: text; user-select: text; }
-
-        body { 
-            margin: 0; background: var(--bg); color: var(--text); 
-            font-family: 'Inter', sans-serif; 
-            height: 100dvh; width: 100vw; 
-            display: flex; flex-direction: column; 
-            overflow: hidden; 
-        }
+        :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; --input-bg: #131315; }
+        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         
-        header { 
-            height: 70px; padding: 0 20px; background: var(--bg); 
-            border-bottom: 1px solid var(--border); 
-            display: flex; align-items: center; justify-content: space-between; 
-            flex-shrink: 0; 
-            z-index: 3000; 
-            position: fixed; top: 0; left: 0; right: 0; 
-            transition: transform 0.3s ease;
-        }
+        header { height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; z-index: 3000; position: fixed; top: 0; left: 0; right: 0; transition: transform 0.3s ease; }
         header.hidden-header { transform: translateY(-100%); } 
-
         .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
+        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
         
-        #chat-box { 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            padding: 20px 5%; 
-            padding-top: 90px; 
-            display: flex; flex-direction: column; gap: 20px; width:100%; 
-            scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
-        }
-
-        .input-wrapper { 
-            background: var(--bg); padding: 15px; 
-            border-top: 1px solid var(--border); width: 100%; 
-            flex-shrink: 0; 
-            z-index: 40; 
-            padding-bottom: max(15px, env(safe-area-inset-bottom)); 
-        }
+        #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        #sidebar { 
-            position: fixed; top: 0; left: 0; 
-            width: 100vw; height: 100dvh; 
-            background: var(--bg); 
-            z-index: 5000; 
-            padding: 25px; padding-top: 80px; 
-            transform: translateY(-100%); 
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex; flex-direction: column; overflow-y: auto;
-        }
+        #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar.open { transform: translateY(0); }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
-        .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
-        .h-actions { display: flex; gap: 20px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); }
+        
+        /* --- FIX 1: LOCK BOX POSITIONS --- */
+        .overlay { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+            display: flex; flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; /* Align Top */
+            padding-top: 140px; /* FIXED PIXEL POSITION - WON'T MOVE WITH KEYBOARD */
+            overflow-y: auto; 
+        }
+        .overlay.hidden { display: none !important; }
 
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 20px; 
             display:flex; flex-direction:column; gap:12px; 
+            margin: 0; /* Remove auto margins */
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-            flex-shrink: 0; 
-            margin-top: 15vh; 
-            margin-bottom: 50px; 
-            animation: fadeInUp 0.6s ease-out;
+            animation: fadeInUp 0.6s ease-out; 
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
+        .welcome-container { 
+            width: 100%; max-width: 400px; text-align: center; 
+            margin: 0 auto; 
+            margin-top: 40px; /* Relative to overlay padding */
+            padding: 0 30px; 
+            animation: fadeIn 1s ease-out; 
+        }
+
         .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
-        
         input, select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none; }
-        .rename-input { font-size: 14px; padding: 5px; background: transparent; border: 1px solid var(--text); color: var(--text); width: 100%; }
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
         
         .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-        /* --- FIX 1: Intro Button Size & Spacing --- */
-        .submit-btn {
-            width: 100%; padding: 14px; border-radius: 12px; border: none; 
-            background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; 
-            font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; 
-            font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); 
-            transition: transform 0.2s;
-        }
-        .get-started-btn { 
-            width: auto; /* Small button */
-            display: inline-block;
-            min-width: 140px;
-            padding: 12px 30px; 
-            border-radius: 50px; /* Pill shape */
-            border: none; 
-            background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; 
-            font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 25px; 
-            font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); 
-            transition: transform 0.2s;
-        }
-        .submit-btn:active, .get-started-btn:active { transform: scale(0.95); }
-
-        .welcome-title { 
-            font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
-            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); }
+        .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
+        .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* --- FIX 1: Intro Container Padding --- */
-        #intro-container { 
-            margin: auto; 
-            width: 100%; 
-            padding: 0 30px; /* Added Padding */
-            text-align: center; pointer-events: none; 
-            animation: fadeIn 0.8s ease-out; 
-        }
+        #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
-        .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
         
         .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
-        .divider { height:1px; background: var(--border); width:100%; }
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
-        .overlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0; overflow-y: auto; }
-        .overlay.hidden { display: none !important; }
+        .divider { height:1px; background: var(--border); width:100%; }
+        
         #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
+        
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
@@ -262,17 +249,6 @@ HTML_TEMPLATE = """
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
-        
-        /* --- FIX 1: Intro Welcome Container Style --- */
-        .welcome-container { 
-            width: 100%; 
-            max-width: 400px; 
-            text-align: center; 
-            margin: 0 auto; 
-            margin-top: 30vh; 
-            padding: 0 30px; /* Fixed spacing */
-            animation: fadeIn 1s ease-out; 
-        }
     </style>
     </head>
 <body>
@@ -430,13 +406,21 @@ HTML_TEMPLATE = """
                     document.getElementById('name-overlay').style.display = 'none';
                     const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
+                    history.pushState({step: 'details'}, null, null);
                 }
             } else {
                 document.getElementById('main-header').classList.add('hidden-header');
+                history.replaceState({step: 'welcome'}, null, null);
             }
         }
         function clearError(input) { input.classList.remove('input-error'); }
-        function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
+        
+        function showNameBox() { 
+            document.getElementById("welcome-overlay").style.display = 'none'; 
+            const nameBox = document.getElementById("name-overlay"); 
+            nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; 
+            history.pushState({step: 'name'}, null, null);
+        }
         
         function handleNameSubmit() {
             const input = document.getElementById("username-input");
@@ -447,6 +431,7 @@ HTML_TEMPLATE = """
             document.getElementById("name-overlay").style.display = 'none';
             const details = document.getElementById("details-overlay");
             details.classList.remove('hidden'); details.style.display = 'flex';
+            history.pushState({step: 'details'}, null, null);
         }
 
         function updateEduOptions() {
@@ -524,6 +509,7 @@ HTML_TEMPLATE = """
              document.getElementById('sidebar').classList.remove('open');
              document.getElementById('main-header').classList.add('hidden-header');
              clearSearch();
+             history.pushState({step: 'settings'}, null, null);
         }
         function closeSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
@@ -532,6 +518,7 @@ HTML_TEMPLATE = """
         function openProfileFromSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
             openProfile(); 
+            history.pushState({step: 'profile'}, null, null);
         }
         function backToSettings() { 
             document.getElementById('profile-overlay').style.display = 'none'; 
@@ -752,7 +739,27 @@ HTML_TEMPLATE = """
         function clearAttachment() { currentAttachment=null; document.getElementById('preview-area').style.display='none'; document.getElementById('file-input').value=""; }
         const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
         if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
-        
+        // --- FIX 2: BACK BUTTON HANDLER ---
+        window.addEventListener('popstate', function(event) {
+            const overlays = ['profile-overlay', 'settings-overlay', 'details-overlay', 'name-overlay'];
+            let closedSomething = false;
+            
+            // Check if sidebar is open
+            if(document.getElementById('sidebar').classList.contains('open')) {
+                document.getElementById('sidebar').classList.remove('open');
+                closedSomething = true;
+            } else {
+                for (let id of overlays) {
+                    let el = document.getElementById(id);
+                    if (el && !el.classList.contains('hidden') && el.style.display !== 'none') {
+                        if (id === 'profile-overlay') { backToSettings(); return; }
+                        if (id === 'settings-overlay') { closeSettings(); return; }
+                        // For login flow, let browser handle back or stay
+                    }
+                }
+            }
+        });
+
         checkLogin();
     </script>
 </body>
