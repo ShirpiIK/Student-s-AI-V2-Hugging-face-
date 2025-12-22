@@ -297,6 +297,76 @@ HTML_TEMPLATE = """
         margin-top: 0 !important;
        }
        }
+        /* --- NEW: Animated Background for Intro Pages --- */
+
+/* அந்த 3 Overlay-க்கும் பொதுவான ஸ்டைல் */
+.animated-bg-overlay {
+    background: #09090b; /* அடிப்படை கருப்பு நிறம் */
+    overflow: hidden; /* வெளியே தெரியும் கலரை மறைக்க */
+    /* உள்ளே இருக்கும் content தெளிவாக தெரிய ஒரு கருப்பு ஷேட் */
+    background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
+}
+
+/* நகரப்போகும் கலர் உருண்டைகள் (Blobs) */
+.bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px); /* இதுதான் அந்த மேஜிக்! கலரை புகையாக்கும் */
+    opacity: 0.5; /* ரொம்ப டார்க்கா இல்லாமல் இருக்க */
+    z-index: -1; /* Content-க்கு பின்னாடி இருக்க */
+    animation: moveBlob infinite alternate ease-in-out;
+}
+
+/* Blob 1: Pink Color */
+.blob-pink {
+    top: -10%;
+    left: -10%;
+    width: 40vmax; /* திரையில் 40% அளவு */
+    height: 40vmax;
+    background: #ff00cc; /* Pink/Magenta */
+    animation-duration: 20s; /* 20 நொடியில் ஒரு முறை நகரும் */
+}
+
+/* Blob 2: Blue/Cyan Color */
+.blob-blue {
+    bottom: -10%;
+    right: -10%;
+    width: 35vmax;
+    height: 35vmax;
+    background: #00dbde; /* Bright Blue/Cyan */
+    animation-duration: 15s;
+    animation-delay: -5s; /* கொஞ்சம் லேட்டா ஆரம்பிக்க */
+}
+
+/* Blob 3: White Accent (சின்னதாக ஒரு வெள்ளை ஒளி) */
+.blob-white {
+    top: 50%;
+    left: 50%;
+    width: 20vmax;
+    height: 20vmax;
+    background: #ffffff;
+    opacity: 0.2; /* ரொம்ப லேசாக இருக்கட்டும் */
+    animation-duration: 25s;
+    transform: translate(-50%, -50%);
+}
+
+/* நகர்வதற்கான அனிமேஷன் */
+@keyframes moveBlob {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); }
+    100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); }
+}
+
+/* Content Box-க்கு பின்னாடி ஒரு கண்ணாடி மாதிரி எஃபெக்ட் (Optional but looks good) */
+.animated-bg-overlay .data-box, 
+.animated-bg-overlay .welcome-container {
+    background: rgba(24, 24, 27, 0.7); /* லேசான கண்ணாடி தன்மை */
+    backdrop-filter: blur(10px); /* பின்னணியை மங்கலாக்க */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* மெல்லிய பார்டர் */
+}
+
+    
+
     
     </style>
     </head>
@@ -312,7 +382,10 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="welcome-overlay" class="overlay">
+    <div id="welcome-overlay" class="overlay animated-bg-overlay">
+        <div class="bg-blob blob-pink"></div>
+        <div class="bg-blob blob-blue"></div>
+        <div class="bg-blob blob-white"></div>
         <div class="welcome-container">
             <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
             <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects.</p>
@@ -320,15 +393,21 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="name-overlay" class="overlay hidden">
-        <div class="data-box">
+    <div id="name-overlay" class="overlay hidden animated-bg-overlay">
+            <div class="bg-blob blob-pink"></div>
+            <div class="bg-blob blob-blue"></div>
+            <div class="bg-blob blob-white"></div>
+            <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
             <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
 
-    <div id="details-overlay" class="overlay hidden">
+    <div id="details-overlay" class="overlay hidden animated-bg-overlay">
+        <div class="bg-blob blob-pink"></div>
+        <div class="bg-blob blob-blue"></div>
+        <div class="bg-blob blob-white"></div>
         <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 5px 0; font-family:'Outfit',sans-serif;">Student Details</h2>
             <span class="form-label">Education Level</span>
