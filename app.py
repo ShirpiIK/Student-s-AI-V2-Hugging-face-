@@ -364,7 +364,54 @@ HTML_TEMPLATE = """
     backdrop-filter: blur(10px); /* பின்னணியை மங்கலாக்க */
     border: 1px solid rgba(255, 255, 255, 0.1); /* மெல்லிய பார்டர் */
 }
+/* --- FINAL DESIGN FIX: TRANSPARENT & SMOOTH --- */
 
+/* 1. Remove Black Box Background (Make it Transparent) */
+.animated-bg-overlay .data-box, 
+.animated-bg-overlay .welcome-container {
+    background: transparent !important; /* பாக்ஸ் கலர் நீக்கம் */
+    box-shadow: none !important; /* நிழல் நீக்கம் */
+    border: none !important; /* பார்டர் நீக்கம் */
+    backdrop-filter: none !important; /* மங்கலான எஃபெக்ட் நீக்கம் */
+}
+
+/* 2. Make Inputs & Buttons Look "Glassy" (Floating Effect) */
+.animated-bg-overlay input,
+.animated-bg-overlay select,
+.animated-bg-overlay .submit-btn,
+.animated-bg-overlay .get-started-btn {
+    background: rgba(255, 255, 255, 0.08) !important; /* லேசான கண்ணாடி எஃபெக்ட் */
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+    color: #fff !important; /* எழுத்து வெள்ளை நிறத்தில் */
+}
+
+/* 3. Text Shadow for Better Visibility */
+.animated-bg-overlay h1, 
+.animated-bg-overlay h2, 
+.animated-bg-overlay p, 
+.animated-bg-overlay span {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6); /* எழுத்து தெளிவாக தெரிய */
+    color: #fff !important;
+}
+
+/* 4. Butter Smooth Page Entry Animation */
+.overlay {
+    /* iOS style smooth spring animation */
+    animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smoothPopUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(40px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
     
 
     
