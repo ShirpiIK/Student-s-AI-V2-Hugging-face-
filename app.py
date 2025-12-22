@@ -91,7 +91,7 @@ HTML_TEMPLATE = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -118,25 +118,19 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* --- THE OLD APP LAYOUT LOGIC (Perfect Lock) --- */
+        /* --- BODY LOCK --- */
         body { 
-            margin: 0; padding: 0; 
-            height: 100dvh; width: 100%; 
-            background: var(--bg); color: var(--text); 
+            margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
-            overflow: hidden; /* No Body Scroll */
-        }
-
-        #app-container { 
+            position: fixed; inset: 0; 
+            height: 100dvh; width: 100vw; 
             display: flex; flex-direction: column; 
-            height: 100dvh; width: 100%; 
-            position: relative; 
-            padding-top: 70px; /* Space reserved for Absolute Header */
+            overflow: hidden; 
         }
         
-        /* HEADER - ABSOLUTE LOCK (Old Method) */
+        /* HEADER - FIXED TOP */
         header { 
-            position: absolute; top: 0; left: 0; right: 0; 
+            position: fixed; top: 0; left: 0; right: 0; 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); 
             display: flex; align-items: center; justify-content: space-between; 
@@ -145,15 +139,14 @@ HTML_TEMPLATE = """
         }
         header.hidden-header { transform: translateY(-100%); } 
         
-        /* FONT SIZE INCREASED */
         .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
         /* CHAT AREA */
         #chat-box { 
-            flex: 1; overflow-y: auto; 
+            flex-grow: 1; overflow-y: auto; 
             padding: 20px 5%; 
-            padding-bottom: 20px;
+            padding-top: 90px; 
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
@@ -168,7 +161,7 @@ HTML_TEMPLATE = """
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* SIDEBAR - SMOOTH ANIMATION */
+        /* SIDEBAR - STABLE MENU */
         #sidebar { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100dvh; 
@@ -176,24 +169,23 @@ HTML_TEMPLATE = """
             z-index: 5000; 
             padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); 
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; 
-            overflow-y: auto;
+            overflow-y: auto; /* Internal Scroll only */
         }
         #sidebar.open { transform: translateY(0); }
         
-        /* HISTORY ICONS GAP FIX (20px) */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
-        .h-actions { display: flex; gap: 20px; /* FIXED GAP */ }
+        .h-actions { display: flex; gap: 20px; }
 
-        /* OVERLAYS - TOP ALIGNED LOCK */
+        /* OVERLAYS */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; /* FIX: Top Align */
+            justify-content: flex-start; 
             padding-top: 20px; 
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -231,12 +223,11 @@ HTML_TEMPLATE = """
             margin-top: 15px; font-family: 'Outfit', sans-serif; 
         }
 
-        /* WELCOME */
+        /* WELCOME & MSG */
         .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 50px; animation: fadeIn 1s ease-out; }
         .welcome-title { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
 
-        /* CHAT BUBBLES */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -250,29 +241,35 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
-        /* WAVE ANIMATION */
+        /* WAVE LOADING */
         .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; }
         .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
         .typing-dot:nth-child(2) { animation-delay: -1.1s; }
         .typing-dot:nth-child(3) { animation-delay: -0.9s; }
         @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 
-        /* SETTINGS */
-        .search-bar-container { position:relative; width:100%; margin-bottom:20px; }
+        /* SEARCH BAR FIX */
+        .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
-        .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; display:none; }
+        .search-clear { 
+            position:absolute; right:10px; color:var(--dim); cursor:pointer; 
+            display:none; /* Hidden by default, JS toggles this */
+            font-size: 14px; background: rgba(255,255,255,0.1); 
+            border-radius: 50%; width: 20px; height: 20px; 
+            align-items: center; justify-content: center;
+        }
+        
         .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
         #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
         
-        /* PROFILE - GAP REDUCED FIX */
-        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; /* REDUCED GAP */ position: relative; }
+        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         
-        /* MODAL - Z-INDEX FIX (6000 > 5000) */
-        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; /* BEATS SIDEBAR */ display:none; align-items:center; justify-content:center; }
+        /* MODAL */
+        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
@@ -346,8 +343,8 @@ HTML_TEMPLATE = """
         
         <div style="width:90%; max-width:350px;">
             <div class="search-bar-container">
-                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="handleSearch(this)">
-                <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()"></i>
+                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="toggleSearchClear(this); handleSearch(this)">
+                <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()" style="display:flex;"></i>
             </div>
             
             <div id="settings-list" class="settings-container">
@@ -406,6 +403,12 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
+    <header id="main-header" class="hidden-header">
+        <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
+        <span class="app-title">Student's AI</span>
+        <div style="width:40px;"></div>
+    </header>
+
     <div id="sidebar">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <div style="display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; color:var(--text);">
@@ -422,26 +425,18 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="app-container">
-        <header id="main-header" class="hidden-header">
-            <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
-            <span class="app-title">Student's AI</span>
-            <div style="width:40px;"></div>
-        </header>
-
-        <div id="chat-box"></div> 
-        
-        <div class="input-wrapper">
-                <div id="preview-area">
-                <div class="preview-box"><img id="preview-img" class="preview-img"></div>
-                <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button>
-            </div>
-            <div class="input-container">
-                <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
-                <input type="file" id="file-input" hidden onchange="handleFile(this)">
-                <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
-                <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
-            </div>
+    <div id="chat-box"></div> 
+    
+    <div class="input-wrapper">
+            <div id="preview-area">
+            <div class="preview-box"><img id="preview-img" class="preview-img"></div>
+            <button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button>
+        </div>
+        <div class="input-container">
+            <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
+            <input type="file" id="file-input" hidden onchange="handleFile(this)">
+            <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
+            <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
         </div>
     </div>
     <script>
@@ -631,7 +626,8 @@ HTML_TEMPLATE = """
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
         }
         
-        function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'block' : 'none'; }
+        // SEARCH LOGIC WITH X
+        function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'flex' : 'none'; }
         function clearSearch() { const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); }
         function handleSearch(el) {
             const term = el.value.toLowerCase();
@@ -722,19 +718,26 @@ HTML_TEMPLATE = """
         }
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
+        // INSTANT RENAME LOGIC
         async function renameChat(cid) { 
             showCustomModal("Rename Chat", true, async (val) => { 
                 if(val) { 
+                    // OPTIMISTIC UI: Update DOM instantly
+                    const titleEl = document.getElementById('chat-'+cid).querySelector('.h-title');
+                    if(titleEl) titleEl.innerText = val;
+                    
+                    // Send to Server
                     await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); 
-                    loadHistory(); 
+                    // loadHistory(); // Optional: remove if you trust the UI update
                 } 
             }); 
         }
         async function deleteChat(cid) { 
             showCustomModal("Delete Chat?", false, async () => { 
+                // OPTIMISTIC UI
                 const item = document.getElementById('chat-'+cid); if(item) item.remove();
                 await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}); 
-                if(currentChatId === cid) newChat(); else loadHistory(); 
+                if(currentChatId === cid) newChat(); 
             }); 
         }
 
