@@ -159,268 +159,203 @@ HTML_TEMPLATE = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; --input-bg: #131315; --btn-bg: #ffffff;
-        --btn-text: #000000;}
-        #welcome-overlay { 
+    /* --- 1. CORE VARIABLES & THEMES --- */
+    :root { 
+        --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
+        --border: #27272a; --dim: #71717a; --input-bg: #131315; 
+        --btn-bg: #ffffff; --btn-text: #000000;
+    }
+
+    /* Light Theme (Moved outside of :root) */
+    [data-theme="light"] { 
+        --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; 
+        --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; 
+        --btn-bg: #000000; --btn-text: #ffffff;
+    }
+
+    /* --- 2. GLOBAL STYLES --- */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* --- 3. HEADER --- */
+    header { height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; z-index: 3000; position: fixed; top: 0; left: 0; right: 0; transition: transform 0.3s ease; }
+    header.hidden-header { transform: translateY(-100%); } 
+    .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
+    .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
+
+    /* --- 4. CHAT AREA --- */
+    #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+    .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
+    .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
+    
+    textarea { 
+        flex: 1; background: transparent; border: none; color: var(--text); 
+        font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif;
+        height: auto; max-height: 150px; overflow-y: auto; 
+    }
+
+    /* --- 5. SIDEBAR --- */
+    #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
+    #sidebar.open { transform: translateY(0); }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); }
+
+    /* --- 6. OVERLAYS & FORMS --- */
+    .overlay { 
+        position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+        display: flex; flex-direction: column; 
+        align-items: center; 
+        justify-content: flex-start; 
+        padding-top: 0; 
+        overflow-y: auto; 
+    }
+    
+    #welcome-overlay { 
         justify-content: center; 
         padding-top: 0 !important; 
-        display: none;
-        
-        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; --btn-bg: #000000;
-        --btn-text: #ffffff;}
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        header { height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; z-index: 3000; position: fixed; top: 0; left: 0; right: 0; transition: transform 0.3s ease; }
-        header.hidden-header { transform: translateY(-100%); } 
-        .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
-        
-        #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
-        .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
-        .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
-        textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif;height: auto;
-        max-height: 150px; /* 150px வரை வளரும், அப்புறம் ஸ்க்ரால் ஆகும் */
-        overflow-y: auto; }
-        
-        #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
-        #sidebar.open { transform: translateY(0); }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); }
-        
-        /* --- FIX 1: LOCK BOX POSITIONS --- */
-        .overlay { 
-            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
-            display: flex; flex-direction: column; 
-            align-items: center; 
-            justify-content: flex-start; /* Align Top */
-            padding-top: 0; /* FIXED PIXEL POSITION - WON'T MOVE WITH KEYBOARD */
-            overflow-y: auto; 
-        }
-        #name-overlay, #details-overlay {
-            padding-top: 140px; 
-        }
-        .overlay.hidden { display: none !important; }
+        display: none; /* Previously mixed with other code, now fixed */
+    }
 
-        .data-box { 
-            width: 90%; max-width: 350px; background: var(--card); 
-            border: 1px solid var(--border); border-radius: 20px; 
-            padding: 20px; 
-            display:flex; flex-direction:column; gap:12px; 
-            margin: 0; /* Remove auto margins */
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-            animation: fadeInUp 0.6s ease-out; 
-        }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        #welcome-overlay {
-            justify-content: center; /* Vertically Center */
-            padding-top: 0 !important; /* Force padding to 0 */
-        }
-        .welcome-container { 
-            width: 100%; max-width: 400px; text-align: center; 
-            margin: 0 auto; 
-            margin-top: 30px; /* Relative to overlay padding */
-            padding: 0 30px; 
-            animation: fadeIn 1s ease-out; 
-        }
+    #name-overlay, #details-overlay {
+        padding-top: 140px; 
+    }
+    .overlay.hidden { display: none !important; }
 
-        .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
-        input, select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none; }
-        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
-        
-        .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .data-box { 
+        width: 90%; max-width: 350px; background: var(--card); 
+        border: 1px solid var(--border); border-radius: 20px; 
+        padding: 20px; 
+        display:flex; flex-direction:column; gap:12px; 
+        margin: 0; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
+        animation: fadeInUp 0.6s ease-out; 
+    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--btn-bg); color: var(--btn-text); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
-        .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
-        .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .welcome-container { 
+        width: 100%; max-width: 400px; text-align: center; 
+        margin: 0 auto; margin-top: 30px; padding: 0 30px; 
+        animation: fadeIn 1s ease-out; 
+    }
 
-        .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
-        .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
-        
-        .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
-        .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
-        .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
-        .divider { height:1px; background: var(--border); width:100%; }
-        
-        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
-        .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
-        .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
-        
-        .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
-        @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
-        .ai-msg { align-items: flex-start; width: 100%; } .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
-        .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
-        .action-icon, .icon-btn, .send-btn { cursor: pointer; } .icon-btn { background: transparent; color: var(--dim); } .send-btn { background: var(--text); color: var(--bg); }
-        .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; }
-        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; } .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
-        .typing-dot:nth-child(2) { animation-delay: -1.1s; } .typing-dot:nth-child(3) { animation-delay: -0.9s; }
-        @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-        #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
-        .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; } .preview-img { width:100%; height:100%; object-fit:cover; }
-        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
-        .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
-        /* --- Theme Active State (New Code) --- */
-        .icon-btn.active {
-        background: var(--text) !important; /* White color */
-        color: var(--bg) !important;       /* Black text */
-        border: 1px solid var(--text) !important;
-        transform: scale(1.1); /* Light Zoom */
-        font-weight: bold;
-        box-shadow: 0 0 10px rgba(255,255,255,0.2);
-        }
-        /* --- FIX: LANDSCAPE / ROTATION MODE --- */
-        @media (orientation: landscape) {
-        /* 1. Sidebar Top Space Kuraikuradhu */
-        #sidebar {
-        padding-top: 60px !important; 
-        }
+    /* --- 7. INPUTS & BUTTONS --- */
+    .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
+    input, select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none; }
+    select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
     
-        /* 2. New Chat Button Size & Margin Kuraikuradhu */
+    .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--btn-bg); color: var(--btn-text); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
+    .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
+    
+    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* --- 8. SETTINGS & CHAT BUBBLES --- */
+    .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
+    .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
+    
+    .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
+    .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
+    .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
+    .divider { height:1px; background: var(--border); width:100%; }
+    
+    #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
+    .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
+    .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
+    
+    .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
+    @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
+    .ai-msg { align-items: flex-start; width: 100%; } .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
+    .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
+    .action-icon, .icon-btn, .send-btn { cursor: pointer; } .icon-btn { background: transparent; color: var(--dim); } .send-btn { background: var(--text); color: var(--bg); }
+    .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; }
+    .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; } .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
+    .typing-dot:nth-child(2) { animation-delay: -1.1s; } .typing-dot:nth-child(3) { animation-delay: -0.9s; }
+    @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+    #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
+    .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; } .preview-img { width:100%; height:100%; object-fit:cover; }
+    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
+    .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
+    
+    /* Active Theme Button */
+    .icon-btn.active {
+        background: var(--text) !important; color: var(--bg) !important; border: 1px solid var(--text) !important;
+        transform: scale(1.1); font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    }
+
+    /* --- 9. LANDSCAPE MODE FIX --- */
+    @media (orientation: landscape) {
+        #sidebar { padding-top: 60px !important; }
         #sidebar .submit-btn {
-        width: 60% !important;   /* Romba neelama irukadhu */
-        max-width: 300px;        /* Oru alavuku mela perusa pogadhu */
-        margin: 5px auto 15px auto !important; /* Centre panrom, gap kuraikiron */
-        padding: 10px !important; /* Button ulla idam kuraikiron */
-        display: block;
+            width: 60% !important; max-width: 300px; margin: 5px auto 15px auto !important; padding: 10px !important; display: block;
         }
-
-        /* 3. History List ku Space Kodukuradhu */
-        #history-list {
-        flex: 1;
-        overflow-y: auto;
-        min-height: 0; /* Mukkiyamana fix for scroll */
-        }
-
-        /* 4. Settings Footer gap kuraikuradhu */
-        #sidebar > div:last-child {
-        padding-top: 10px !important;
-        margin-top: 0 !important;
-       }
-       }
-        /* --- NEW: Animated Background for Intro Pages --- */
-
-/* அந்த 3 Overlay-க்கும் பொதுவான ஸ்டைல் */
-.animated-bg-overlay {
-    background: #09090b; /* அடிப்படை கருப்பு நிறம் */
-    overflow: hidden; /* வெளியே தெரியும் கலரை மறைக்க */
-    /* உள்ளே இருக்கும் content தெளிவாக தெரிய ஒரு கருப்பு ஷேட் */
-    background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
-}
-
-/* நகரப்போகும் கலர் உருண்டைகள் (Blobs) */
-.bg-blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px); /* இதுதான் அந்த மேஜிக்! கலரை புகையாக்கும் */
-    opacity: 0.5; /* ரொம்ப டார்க்கா இல்லாமல் இருக்க */
-    z-index: -1; /* Content-க்கு பின்னாடி இருக்க */
-    animation: moveBlob infinite alternate ease-in-out;
-}
-
-/* Blob 1: Pink Color */
-.blob-pink {
-    top: -10%;
-    left: -10%;
-    width: 40vmax; /* திரையில் 40% அளவு */
-    height: 40vmax;
-    background: #ff00cc; /* Pink/Magenta */
-    animation-duration: 20s; /* 20 நொடியில் ஒரு முறை நகரும் */
-}
-
-/* Blob 2: Blue/Cyan Color */
-.blob-blue {
-    bottom: -10%;
-    right: -10%;
-    width: 35vmax;
-    height: 35vmax;
-    background: #00dbde; /* Bright Blue/Cyan */
-    animation-duration: 15s;
-    animation-delay: -5s; /* கொஞ்சம் லேட்டா ஆரம்பிக்க */
-}
-
-/* Blob 3: White Accent (சின்னதாக ஒரு வெள்ளை ஒளி) */
-.blob-white {
-    top: 50%;
-    left: 50%;
-    width: 20vmax;
-    height: 20vmax;
-    background: #ffffff;
-    opacity: 0.2; /* ரொம்ப லேசாக இருக்கட்டும் */
-    animation-duration: 25s;
-    transform: translate(-50%, -50%);
-}
-
-/* நகர்வதற்கான அனிமேஷன் */
-@keyframes moveBlob {
-    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-    50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); }
-    100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); }
-}
-
-/* Content Box-க்கு பின்னாடி ஒரு கண்ணாடி மாதிரி எஃபெக்ட் (Optional but looks good) */
-.animated-bg-overlay .data-box, 
-.animated-bg-overlay .welcome-container {
-    background: rgba(24, 24, 27, 0.7); /* லேசான கண்ணாடி தன்மை */
-    backdrop-filter: blur(10px); /* பின்னணியை மங்கலாக்க */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* மெல்லிய பார்டர் */
-}
-/* --- FINAL DESIGN FIX: TRANSPARENT & SMOOTH --- */
-
-/* 1. Remove Black Box Background (Make it Transparent) */
-.animated-bg-overlay .data-box, 
-.animated-bg-overlay .welcome-container {
-    background: transparent !important; /* பாக்ஸ் கலர் நீக்கம் */
-    box-shadow: none !important; /* நிழல் நீக்கம் */
-    border: none !important; /* பார்டர் நீக்கம் */
-    backdrop-filter: none !important; /* மங்கலான எஃபெக்ட் நீக்கம் */
-}
-
-/* 2. Make Inputs & Buttons Look "Glassy" (Floating Effect) */
-.animated-bg-overlay input,
-.animated-bg-overlay select,
-.animated-bg-overlay .submit-btn,
-.animated-bg-overlay .get-started-btn {
-    background: rgba(255, 255, 255, 0.08) !important; /* லேசான கண்ணாடி எஃபெக்ட் */
-    backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
-    color: #fff !important; /* எழுத்து வெள்ளை நிறத்தில் */
-}
-
-/* 3. Text Shadow for Better Visibility */
-.animated-bg-overlay h1, 
-.animated-bg-overlay h2, 
-.animated-bg-overlay p, 
-.animated-bg-overlay span {
-    text-shadow: 0 2px 4px rgba(0,0,0,0.6); /* எழுத்து தெளிவாக தெரிய */
-    color: #fff !important;
-}
-
-/* 4. Butter Smooth Page Entry Animation */
-.overlay {
-    /* iOS style smooth spring animation */
-    animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes smoothPopUp {
-    from { 
-        opacity: 0; 
-        transform: translateY(40px) scale(0.95); 
+        #history-list { flex: 1; overflow-y: auto; min-height: 0; }
+        #sidebar > div:last-child { padding-top: 10px !important; margin-top: 0 !important; }
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0) scale(1); 
-    }
-}
-    
 
+    /* --- 10. ANIMATED AURORA BACKGROUND --- */
+    .animated-bg-overlay {
+        background: #09090b; overflow: hidden;
+        background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
+    }
+
+    .bg-blob {
+        position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; z-index: -1;
+        animation: moveBlob infinite alternate ease-in-out;
+    }
+    .blob-pink {
+        top: -10%; left: -10%; width: 40vmax; height: 40vmax; background: #ff00cc; animation-duration: 20s;
+    }
+    .blob-blue {
+        bottom: -10%; right: -10%; width: 35vmax; height: 35vmax; background: #00dbde; animation-duration: 15s; animation-delay: -5s;
+    }
+    .blob-white {
+        top: 50%; left: 50%; width: 20vmax; height: 20vmax; background: #ffffff; opacity: 0.2; animation-duration: 25s; transform: translate(-50%, -50%);
+    }
+
+    @keyframes moveBlob {
+        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); }
+        100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); }
+    }
+
+    /* --- 11. FINAL DESIGN FIX: TRANSPARENT & SMOOTH --- */
+    .animated-bg-overlay .data-box, 
+    .animated-bg-overlay .welcome-container {
+        background: transparent !important; box-shadow: none !important; border: none !important; backdrop-filter: none !important;
+    }
+
+    .animated-bg-overlay input,
+    .animated-bg-overlay select,
+    .animated-bg-overlay .submit-btn,
+    .animated-bg-overlay .get-started-btn {
+        background: rgba(255, 255, 255, 0.08) !important; backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+        color: #fff !important;
+    }
+
+    .animated-bg-overlay h1, 
+    .animated-bg-overlay h2, 
+    .animated-bg-overlay p, 
+    .animated-bg-overlay span {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.6); color: #fff !important;
+    }
+
+    /* Smooth Entry Animation */
+    .overlay {
+        animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes smoothPopUp {
+        from { opacity: 0; transform: translateY(40px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+</style>
     
-    </style>
     </head>
 <body>
     <div id="custom-modal">
