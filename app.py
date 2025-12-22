@@ -202,7 +202,10 @@ HTML_TEMPLATE = """
             animation: fadeInUp 0.6s ease-out; 
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+        #welcome-overlay {
+            justify-content: center; /* Vertically Center */
+            padding-top: 0 !important; /* Force padding to 0 */
+        }
         .welcome-container { 
             width: 100%; max-width: 400px; text-align: center; 
             margin: 0 auto; 
