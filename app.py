@@ -161,7 +161,12 @@ HTML_TEMPLATE = """
     <style>
         :root { --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; --border: #27272a; --dim: #71717a; --input-bg: #131315; --btn-bg: #ffffff;
         --btn-text: #000000;}
-        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #18181b; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; --btn-bg: #000000;
+        #welcome-overlay { 
+        justify-content: center; 
+        padding-top: 0 !important; 
+        display: none;
+        
+        [data-theme="light"] { --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; --btn-bg: #000000;
         --btn-text: #ffffff;}
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
@@ -565,29 +570,55 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:center;">Hi ${name},</div><p style="color:var(--dim); text-align:center;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
         }
 
+        /* --- FIX 1: Login Check Logic (No Glitch) --- */
         function checkLogin() {
-            const t = localStorage.getItem("student_theme"); if(t) setTheme(t);
-            const u = localStorage.getItem("student_ai_user");
-            const c = localStorage.getItem("student_ai_context");
-            if(u) {
-                currentUser = u;
-                document.getElementById('welcome-overlay').style.display = 'none';
-                if(c) {
-                    userContext = c;
-                    document.getElementById('name-overlay').style.display = 'none';
-                    document.getElementById('details-overlay').style.display = 'none';
-                    showApp();
-                } else {
-                    document.getElementById('name-overlay').style.display = 'none';
-                    const sel = document.getElementById('details-overlay');
-                    sel.classList.remove('hidden'); sel.style.display = 'flex';
-                    history.pushState({step: 'details'}, null, null);
-                }
-            } else {
-                document.getElementById('main-header').classList.add('hidden-header');
-                history.replaceState({step: 'welcome'}, null, null);
-            }
+             const t = localStorage.getItem("student_theme"); 
+             if(t) setTheme(t);
+    
+             const u = localStorage.getItem("student_ai_user");
+             const c = localStorage.getItem("student_ai_context");
+    
+        if(u) {
+        // User Login ஆகி இருந்தால்
+             currentUser = u;
+        // Intro-வை காட்டவே வேண்டாம் (Already hidden in CSS)
+        
+       if(c) {
+            userContext = c;
+            // மத்த எல்லா Overlay-ையும் மறைச்சிடலாம்
+            document.getElementById('name-overlay').style.display = 'none';
+            document.getElementById('details-overlay').style.display = 'none';
+            showApp();
+        } else {
+            // பெயர் இருக்கு, ஆனா டீடைல்ஸ் இல்லை
+            document.getElementById('name-overlay').style.display = 'none';
+            const sel = document.getElementById('details-overlay');
+            sel.classList.remove('hidden'); 
+            sel.style.display = 'flex';
         }
+    } else {
+        // User Login ஆகவில்லை என்றால் மட்டும் Intro-வை காட்டு
+        document.getElementById('main-header').classList.add('hidden-header');
+        
+        // 👇 இப்போ தான் Intro-வை ஷோ பண்றோம் (JS வழியா)
+        const welcome = document.getElementById('welcome-overlay');
+        welcome.classList.remove('hidden');
+        welcome.style.display = 'flex'; // Show Intro
+        
+        history.replaceState({step: 'welcome'}, null, null);
+    }
+}
+
+/* --- FIX 2: Smooth Logout (No Loading Box) --- */
+    function handleLogout() { 
+    // ரீலோட் ஆகுறதுக்கு முன்னாடி எல்லா பாக்ஸையும் மறைச்சிடுவோம்
+         document.getElementById('profile-overlay').style.display = 'none';
+         document.getElementById('settings-overlay').style.display = 'none';
+         document.querySelector('.data-box').style.display = 'none';
+    
+    localStorage.clear(); 
+    location.reload(); 
+}
         function clearError(input) { input.classList.remove('input-error'); }
         
         function showNameBox() { 
@@ -802,6 +833,9 @@ HTML_TEMPLATE = """
         }
 
         function handleLogout() { 
+        document.getElementById('profile-overlay').style.display = 'none';
+            document.getElementById('settings-overlay').style.display = 'none';
+            document.querySelector('.data-box').style.display = 'none
             localStorage.clear(); 
             location.reload(); 
         }
