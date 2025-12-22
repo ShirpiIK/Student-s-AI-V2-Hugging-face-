@@ -87,7 +87,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
     return "⚠️ System Busy. Please try again."
-    HTML_TEMPLATE = """
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
