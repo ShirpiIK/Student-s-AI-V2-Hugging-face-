@@ -32,15 +32,7 @@ user_db = load_db()
 app = Flask(__name__)
 current_key_index = 0
 
-# SYSTEM PROMPT
-BASE_INSTRUCTION = """
-ROLE: You are "Student's AI", a professional academic tutor.
-RULES:
-1. **MATH:** Use LaTeX for formulas ($$ ... $$).
-2. **FORMAT:** Markdown. Bold key terms.
-"""
-
-# MODEL FUNCTIONS
+# MODEL SETUP
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
@@ -83,7 +75,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             continue
         try:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel(model_name=model_name, system_instruction=BASE_INSTRUCTION)
+            model = genai.GenerativeModel(model_name=model_name)
             if image_data or file_text: response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
@@ -126,31 +118,36 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* --- ULTIMATE KEYBOARD LOCK (From your old app) --- */
+        /* --- ULTIMATE BODY LOCK --- */
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
-            position: fixed; inset: 0; /* Forces full screen */
+            position: fixed; inset: 0; 
             height: 100dvh; width: 100vw; 
             display: flex; flex-direction: column; 
             overflow: hidden; 
         }
         
-        /* HEADER - LOCKED TOP */
+        /* HEADER - FIXED & BIG FONT */
         header { 
+            position: fixed; top: 0; left: 0; right: 0; /* Forced Fixed */
             height: 70px; padding: 0 20px; background: var(--bg); 
-            border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
-            flex-shrink: 0; z-index: 3000; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 3000; 
             transition: transform 0.3s ease;
         }
-        header.hidden-header { transform: translateY(-100%); position: absolute; width: 100%; } 
+        header.hidden-header { transform: translateY(-100%); } 
         
-        .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
+        /* BIGGER FONT SIZE */
+        .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* CHAT AREA - FLEX GROW */
+        /* CHAT AREA - PADDING FOR FIXED HEADER */
         #chat-box { 
-            flex-grow: 1; overflow-y: auto; padding: 20px 5%; 
+            flex-grow: 1; overflow-y: auto; 
+            padding: 20px 5%; 
+            padding-top: 90px; /* Space for Fixed Header */
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
@@ -165,31 +162,32 @@ HTML_TEMPLATE = """
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* SIDEBAR - FULL COVER & BUTTERY SMOOTH */
+        /* SIDEBAR - FULL COVER & SMOOTH */
         #sidebar { 
             position: fixed; top: 0; left: 0; 
-            width: 100vw; height: 100dvh; /* Covers everything */
+            width: 100vw; height: 100dvh; 
             background: var(--bg); 
-            z-index: 5000; /* Highest Priority */
+            z-index: 5000; 
             padding: 25px; padding-top: 80px; 
             transform: translateY(-100%); 
-            /* Buttery Smooth Cubic Bezier */
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; 
             overflow-y: auto;
         }
         #sidebar.open { transform: translateY(0); }
         
+        /* HISTORY ICONS GAP FIX */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
+        .h-actions { display: flex; gap: 20px; /* INCREASED GAP */ }
 
-        /* OVERLAYS - PROFILE & DETAILS LOCKING (Top Align) */
+        /* OVERLAYS - PROFILE & DETAILS */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; /* KEY: Start from top */
+            justify-content: flex-start; 
             padding-top: 20px; 
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -203,14 +201,14 @@ HTML_TEMPLATE = """
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 20px; /* Locked Top Margin */
+            margin-top: 20px; 
             margin-bottom: 50px; 
             animation: fadeInUp 0.6s ease-out;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; /* Spacing Fix */ font-weight:600; text-transform:uppercase; }
+        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; font-weight:600; text-transform:uppercase; }
         
         input, select { 
             width: 100%; padding: 14px; background: var(--input-bg); 
@@ -227,12 +225,11 @@ HTML_TEMPLATE = """
             margin-top: 15px; font-family: 'Outfit', sans-serif; 
         }
 
-        /* WELCOME */
+        /* WELCOME & CHAT UI */
         .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 50px; animation: fadeIn 1s ease-out; }
         .welcome-title { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
 
-        /* CHAT UI */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
@@ -262,11 +259,13 @@ HTML_TEMPLATE = """
         .divider { height:1px; background: var(--border); width:100%; }
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
         #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
-        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; }
+        
+        /* PROFILE - GAP REDUCED */
+        .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; /* REDUCED GAP */ position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         
-        /* MODAL */
-        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 4000; display:none; align-items:center; justify-content:center; }
+        /* MODAL - Z-INDEX FIX (HIGHER THAN SIDEBAR) */
+        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; /* BEATS SIDEBAR */ display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
@@ -389,7 +388,8 @@ HTML_TEMPLATE = """
             
             <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;">
                  <span class="form-label">Semester</span>
-                 <div class="profile-val" id="p-sem" style="margin-top:5px;">--</div> </div>
+                 <div class="profile-val" id="p-sem" style="margin-top:5px;">--</div>
+            </div>
 
             <span class="form-label">Subject (Tap to Edit)</span>
             <input type="text" id="p-subj-edit" value="">
@@ -734,7 +734,7 @@ HTML_TEMPLATE = """
              const data = await res.json();
              const list = document.getElementById('history-list'); list.innerHTML = "";
              Object.keys(data.chats).reverse().forEach(cid => {
-                 list.innerHTML += `<div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')"><span class="h-title">${data.chats[cid].title || "Chat"}</span><div style="display:flex; gap:10px;"><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
+                 list.innerHTML += `<div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')"><span class="h-title">${data.chats[cid].title || "Chat"}</span><div class="h-actions"><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
              });
         }
         async function loadChat(cid) {
@@ -820,7 +820,7 @@ def chat():
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
 
-# PWA MANIFEST ROUTE (WITH YOUR LOGO)
+# PWA MANIFEST ROUTE
 @app.route('/manifest.json')
 def manifest():
     data = {
@@ -835,11 +835,6 @@ def manifest():
             {
                 "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
                 "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
-                "sizes": "512x512",
                 "type": "image/png"
             }
         ]
