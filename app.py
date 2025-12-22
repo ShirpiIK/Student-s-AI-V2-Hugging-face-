@@ -206,7 +206,7 @@ HTML_TEMPLATE = """
         .welcome-container { 
             width: 100%; max-width: 400px; text-align: center; 
             margin: 0 auto; 
-            margin-top: 40px; /* Relative to overlay padding */
+            margin-top: 30px; /* Relative to overlay padding */
             padding: 0 30px; 
             animation: fadeIn 1s ease-out; 
         }
