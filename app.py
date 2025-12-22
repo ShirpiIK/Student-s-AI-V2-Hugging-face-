@@ -118,17 +118,17 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* --- BODY LOCK --- */
+        /* --- 1. ULTIMATE BODY LOCK (Stability) --- */
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
-            position: fixed; inset: 0; 
+            position: fixed; inset: 0; /* Forces full screen lock */
             height: 100dvh; width: 100vw; 
             display: flex; flex-direction: column; 
             overflow: hidden; 
         }
         
-        /* HEADER - FIXED TOP */
+        /* --- 2. HEADER - FIXED TOP (No Jumping) --- */
         header { 
             position: fixed; top: 0; left: 0; right: 0; 
             height: 70px; padding: 0 20px; background: var(--bg); 
@@ -142,16 +142,16 @@ HTML_TEMPLATE = """
         .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* CHAT AREA */
+        /* --- 3. CHAT AREA (Flex Center for Intro) --- */
         #chat-box { 
             flex-grow: 1; overflow-y: auto; 
             padding: 20px 5%; 
-            padding-top: 90px; 
+            padding-top: 90px; /* Space for Fixed Header */
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
 
-        /* INPUT AREA */
+        /* --- 4. INPUT AREA - LOCKED BOTTOM --- */
         .input-wrapper { 
             background: var(--bg); padding: 15px; 
             border-top: 1px solid var(--border); width: 100%; 
@@ -161,7 +161,7 @@ HTML_TEMPLATE = """
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* SIDEBAR - STABLE MENU */
+        /* --- 5. SIDEBAR --- */
         #sidebar { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100dvh; 
@@ -171,70 +171,78 @@ HTML_TEMPLATE = """
             transform: translateY(-100%); 
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; 
-            overflow-y: auto; /* Internal Scroll only */
+            overflow-y: auto;
         }
         #sidebar.open { transform: translateY(0); }
         
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
         .history-item:active { background: var(--border); color: var(--text); }
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
-        .h-actions { display: flex; gap: 20px; }
+        .h-actions { display: flex; gap: 20px; /* Gap Fix */ }
 
-        /* OVERLAYS */
+        /* --- 6. OVERLAYS (Top Align) --- */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; 
+            justify-content: flex-start; /* FIX: Top Align */
             padding-top: 20px; 
             padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
         .overlay.hidden { display: none !important; }
         
-        /* DATA BOX */
+        /* --- 7. DATA BOX (Compact) --- */
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
-            padding: 25px; display:flex; flex-direction:column; gap:15px; 
+            padding: 20px; /* Reduced Padding */
+            display:flex; flex-direction:column; gap:12px; /* Reduced Gap */
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 20px; 
+            margin-top: 10px; /* Higher Up */
             margin-bottom: 50px; 
             animation: fadeInUp 0.6s ease-out;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; font-weight:600; text-transform:uppercase; }
+        .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
         
         input, select { 
-            width: 100%; padding: 14px; background: var(--input-bg); 
+            width: 100%; padding: 12px; 
+            background: var(--input-bg); 
             border: 1px solid var(--border); color: var(--text); border-radius: 10px; 
             outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none;
         }
+        /* Rename Input Stable Style */
+        .rename-input { font-size: 14px; padding: 5px; background: transparent; border: 1px solid var(--text); color: var(--text); width: 100%; }
+
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
-        input:focus, select:focus { border-color: var(--text); }
-        .input-error { border: 1px solid #ef4444 !important; }
         .submit-btn, .get-started-btn { 
-            width: 100%; padding: 14px; border-radius: 12px; 
+            width: 100%; padding: 12px; border-radius: 12px; 
             border: none; background: var(--text); color: var(--bg); 
             font-weight: 700; font-size: 16px; cursor: pointer; 
-            margin-top: 15px; font-family: 'Outfit', sans-serif; 
+            margin-top: 10px; font-family: 'Outfit', sans-serif; 
         }
 
-        /* WELCOME & MSG */
-        .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 50px; animation: fadeIn 1s ease-out; }
+        /* --- 8. INTRO CENTERING (Flex) --- */
+        #intro-container { 
+            margin: auto; /* Magic: Centers automatically in flex container */
+            width: 100%; padding: 0 25px; 
+            text-align: left; pointer-events: none; 
+            animation: fadeIn 0.8s ease-out;
+        }
         .welcome-title { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* CHAT UI */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; }
         .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
         .ai-msg { align-items: flex-start; width: 100%; }
         .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
-        .ai-content strong { color: var(--text); font-weight: 700; }
         .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
         .action-icon, .icon-btn, .send-btn { cursor: pointer; }
         .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; }
@@ -248,13 +256,12 @@ HTML_TEMPLATE = """
         .typing-dot:nth-child(3) { animation-delay: -0.9s; }
         @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 
-        /* SEARCH BAR FIX */
+        /* --- 9. SEARCH BAR FIX (X Icon) --- */
         .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { 
             position:absolute; right:10px; color:var(--dim); cursor:pointer; 
-            display:none; /* Hidden by default, JS toggles this */
-            font-size: 14px; background: rgba(255,255,255,0.1); 
+            display:none; font-size: 14px; background: rgba(255,255,255,0.1); 
             border-radius: 50%; width: 20px; height: 20px; 
             align-items: center; justify-content: center;
         }
@@ -263,12 +270,11 @@ HTML_TEMPLATE = """
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
         .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
-        #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
         
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         
-        /* MODAL */
+        /* --- 10. MODAL FIX (Z-Index) --- */
         #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
@@ -322,7 +328,7 @@ HTML_TEMPLATE = """
                 <option value="" disabled selected>Select</option>
             </select>
             
-            <div id="sem-container" style="display:none; flex-direction:column; gap:10px;">
+            <div id="sem-container" style="display:none; flex-direction:column; gap:5px;">
                 <span class="form-label">Semester</span>
                 <select id="edu-sem" onfocus="clearError(this)">
                     <option value="" disabled selected>Select Semester</option>
@@ -343,7 +349,9 @@ HTML_TEMPLATE = """
         
         <div style="width:90%; max-width:350px;">
             <div class="search-bar-container">
-                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="toggleSearchClear(this); handleSearch(this)">
+                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." 
+                       oninput="toggleSearchClear(this); handleSearch(this)"
+                       onkeydown="if(event.key==='Enter') this.blur()">
                 <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()" style="display:flex;"></i>
             </div>
             
@@ -392,11 +400,11 @@ HTML_TEMPLATE = """
             
             <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;">
                  <span class="form-label">Semester</span>
-                 <div class="profile-val" id="p-sem" style="margin-top:5px;">--</div>
+                 <div class="profile-val" id="p-sem" style="margin-top:2px;">--</div>
             </div>
 
             <span class="form-label">Subject (Tap to Edit)</span>
-            <input type="text" id="p-subj-edit" value="">
+            <input type="text" id="p-subj-edit" value="" onkeydown="if(event.key==='Enter') saveProfileChanges()">
 
             <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
             <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
@@ -645,7 +653,12 @@ HTML_TEMPLATE = """
             document.getElementById('search-no-results').style.display = hasResult ? 'none' : 'block';
         }
 
-        function handleLogout() { localStorage.clear(); location.reload(); }
+        // LOGOUT WITH REFRESH FIX
+        function handleLogout() { 
+            localStorage.clear(); 
+            location.reload(); // Force Refresh to clear state
+        }
+        
         function newChat() {
             currentChatId = null;
             document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
@@ -728,13 +741,11 @@ HTML_TEMPLATE = """
                     
                     // Send to Server
                     await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); 
-                    // loadHistory(); // Optional: remove if you trust the UI update
                 } 
             }); 
         }
         async function deleteChat(cid) { 
             showCustomModal("Delete Chat?", false, async () => { 
-                // OPTIMISTIC UI
                 const item = document.getElementById('chat-'+cid); if(item) item.remove();
                 await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}); 
                 if(currentChatId === cid) newChat(); 
