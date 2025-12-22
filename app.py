@@ -87,7 +87,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
     return "⚠️ System Busy. Please try again."
-HTML_TEMPLATE = """
+    HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -119,7 +119,6 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* --- LAYOUT LOCK (Keyboard Fix) --- */
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
@@ -128,7 +127,6 @@ HTML_TEMPLATE = """
             overflow: hidden; 
         }
         
-        /* --- HEADER FIXED --- */
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
             border-bottom: 1px solid var(--border); 
@@ -136,11 +134,13 @@ HTML_TEMPLATE = """
             flex-shrink: 0; 
             z-index: 3000; 
             position: fixed; top: 0; left: 0; right: 0; 
+            transition: transform 0.3s ease;
         }
+        header.hidden-header { transform: translateY(-100%); } 
+
         .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
         .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
         
-        /* --- CHAT BOX AUTO ADJUST --- */
         #chat-box { 
             flex-grow: 1; 
             overflow-y: auto; 
@@ -150,7 +150,6 @@ HTML_TEMPLATE = """
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
 
-        /* --- INPUT AREA PWA FIX --- */
         .input-wrapper { 
             background: var(--bg); padding: 15px; 
             border-top: 1px solid var(--border); width: 100%; 
@@ -161,7 +160,6 @@ HTML_TEMPLATE = """
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* SIDEBAR */
         #sidebar { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100dvh; 
@@ -177,7 +175,6 @@ HTML_TEMPLATE = """
         .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
         .h-actions { display: flex; gap: 20px; }
 
-        /* --- COMPACT DATA BOX & POSITION FIX --- */
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
@@ -185,7 +182,7 @@ HTML_TEMPLATE = """
             display:flex; flex-direction:column; gap:12px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 15vh; /* Safe Spot */
+            margin-top: 15vh; 
             margin-bottom: 50px; 
             animation: fadeInUp 0.6s ease-out;
         }
@@ -194,35 +191,53 @@ HTML_TEMPLATE = """
         .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
         
         input, select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none; }
+        .rename-input { font-size: 14px; padding: 5px; background: transparent; border: 1px solid var(--text); color: var(--text); width: 100%; }
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
         
-        /* --- RED ALERT VALIDATION --- */
         .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-        /* --- BEAUTIFUL INTRO --- */
-        .submit-btn, .get-started-btn { 
+        /* --- FIX 1: Intro Button Size & Spacing --- */
+        .submit-btn {
             width: 100%; padding: 14px; border-radius: 12px; border: none; 
             background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; 
             font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; 
-            font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s;
+            font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); 
+            transition: transform 0.2s;
         }
-        .submit-btn:active { transform: scale(0.98); }
+        .get-started-btn { 
+            width: auto; /* Small button */
+            display: inline-block;
+            min-width: 140px;
+            padding: 12px 30px; 
+            border-radius: 50px; /* Pill shape */
+            border: none; 
+            background: linear-gradient(90deg, #fff, #e4e4e7); color: #000; 
+            font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 25px; 
+            font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); 
+            transition: transform 0.2s;
+        }
+        .submit-btn:active, .get-started-btn:active { transform: scale(0.95); }
+
         .welcome-title { 
             font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
             background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         
-        /* --- INTRO AUTO CENTER --- */
-        #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
+        /* --- FIX 1: Intro Container Padding --- */
+        #intro-container { 
+            margin: auto; 
+            width: 100%; 
+            padding: 0 30px; /* Added Padding */
+            text-align: center; pointer-events: none; 
+            animation: fadeIn 0.8s ease-out; 
+        }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* --- SEARCH X ICON --- */
         .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
         
-        /* SETTINGS & MODAL */
         .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
         .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
         .divider { height:1px; background: var(--border); width:100%; }
@@ -232,8 +247,6 @@ HTML_TEMPLATE = """
         #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
-        
-        /* CHAT UI */
         .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
         @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
@@ -249,6 +262,17 @@ HTML_TEMPLATE = """
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
+        
+        /* --- FIX 1: Intro Welcome Container Style --- */
+        .welcome-container { 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            margin: 0 auto; 
+            margin-top: 30vh; 
+            padding: 0 30px; /* Fixed spacing */
+            animation: fadeIn 1s ease-out; 
+        }
     </style>
     </head>
 <body>
@@ -264,7 +288,7 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="welcome-overlay" class="overlay">
-        <div class="welcome-container" style="margin-top: 25vh;">
+        <div class="welcome-container">
             <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
             <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects.</p>
             <button class="get-started-btn" onclick="showNameBox()">Get Started</button>
@@ -414,7 +438,6 @@ HTML_TEMPLATE = """
         function clearError(input) { input.classList.remove('input-error'); }
         function showNameBox() { document.getElementById("welcome-overlay").style.display = 'none'; const nameBox = document.getElementById("name-overlay"); nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; }
         
-        // FIX: Red Alert Validation
         function handleNameSubmit() {
             const input = document.getElementById("username-input");
             const name = input.value.trim();
@@ -480,6 +503,7 @@ HTML_TEMPLATE = """
 
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
+            document.getElementById('main-header').classList.remove('hidden-header');
             loadHistory();
             if(!currentChatId && !document.getElementById('intro-container')) {
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
@@ -498,9 +522,13 @@ HTML_TEMPLATE = """
              document.getElementById('settings-overlay').classList.remove('hidden');
              document.getElementById('settings-overlay').style.display = 'flex';
              document.getElementById('sidebar').classList.remove('open');
+             document.getElementById('main-header').classList.add('hidden-header');
              clearSearch();
         }
-        function closeSettings() { document.getElementById('settings-overlay').style.display = 'none'; }
+        function closeSettings() { 
+            document.getElementById('settings-overlay').style.display = 'none'; 
+            document.getElementById('main-header').classList.remove('hidden-header');
+        }
         function openProfileFromSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
             openProfile(); 
@@ -527,6 +555,7 @@ HTML_TEMPLATE = """
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
+            document.getElementById('main-header').classList.add('hidden-header');
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 document.getElementById('profile-pic-display').src = pic;
@@ -534,8 +563,7 @@ HTML_TEMPLATE = """
                 document.getElementById('profile-icon').style.display = 'none';
             }
         }
-
-        // FIX: No Popup Save & Enter Key
+        
         function handleSubjectKey(event) {
             if(event.key === 'Enter') {
                 event.preventDefault(); 
@@ -552,7 +580,6 @@ HTML_TEMPLATE = """
             userContext = parts.join(',');
             localStorage.setItem("student_ai_context", userContext);
             
-            // VISUAL FEEDBACK
             const btn = document.querySelector('#profile-overlay .submit-btn');
             const originalText = btn.innerText;
             btn.innerText = "Saved! ✓";
@@ -586,7 +613,6 @@ HTML_TEMPLATE = """
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
         }
         
-        // FIX: Search Logic
         function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'flex' : 'none'; }
         function clearSearch() { const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); }
         function handleSearch(el) {
@@ -605,7 +631,6 @@ HTML_TEMPLATE = """
             document.getElementById('search-no-results').style.display = hasResult ? 'none' : 'block';
         }
 
-        // FIX: Logout Refresh
         function handleLogout() { 
             localStorage.clear(); 
             location.reload(); 
@@ -683,12 +708,11 @@ HTML_TEMPLATE = """
         }
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
-        // FIX: Instant Rename (Optimistic UI)
         async function renameChat(cid) { 
             showCustomModal("Rename Chat", true, async (val) => { 
                 if(val) { 
                     const titleEl = document.getElementById('chat-'+cid).querySelector('.h-title');
-                    if(titleEl) titleEl.innerText = val; // Instant Update
+                    if(titleEl) titleEl.innerText = val; 
                     await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); 
                 } 
             }); 
