@@ -187,6 +187,9 @@ HTML_TEMPLATE = """
             padding-top: 0; /* FIXED PIXEL POSITION - WON'T MOVE WITH KEYBOARD */
             overflow-y: auto; 
         }
+        #name-overlay, #details-overlay {
+            padding-top: 140px; 
+        }
         .overlay.hidden { display: none !important; }
 
         .data-box { 
