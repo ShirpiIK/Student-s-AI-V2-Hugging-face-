@@ -172,7 +172,9 @@ HTML_TEMPLATE = """
         #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
         .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
-        textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
+        textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif;height: auto;
+        max-height: 150px; /* 150px வரை வளரும், அப்புறம் ஸ்க்ரால் ஆகும் */
+        overflow-y: auto; }
         
         #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 80px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar.open { transform: translateY(0); }
@@ -255,6 +257,16 @@ HTML_TEMPLATE = """
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
+        /* --- Theme Active State (New Code) --- */
+        .icon-btn.active {
+        background: var(--text) !important; /* White color */
+        color: var(--bg) !important;       /* Black text */
+        border: 1px solid var(--text) !important;
+        transform: scale(1.1); /* Light Zoom */
+        font-weight: bold;
+        box-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+    
     </style>
     </head>
 <body>
@@ -323,9 +335,9 @@ HTML_TEMPLATE = """
                 <div class="settings-option" data-search="theme light dark system" style="padding:15px; display:block; cursor:default;">
                     <div style="font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:600; letter-spacing:1px;">THEME</div>
                     <div style="display:flex; gap:10px;">
-                        <button class="icon-btn" onclick="setTheme('light')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-sun"></i></button>
-                        <button class="icon-btn" onclick="setTheme('dark')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-moon"></i></button>
-                        <button class="icon-btn" onclick="setTheme('system')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-desktop"></i></button>
+                        <button id="theme-light" class="icon-btn" onclick="setTheme('light')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-sun"></i></button>
+                        <button id="theme-dark" class="icon-btn" onclick="setTheme('dark')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-moon"></i></button>
+                        <button id="theme-system" class="icon-btn" onclick="setTheme('system')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-desktop"></i></button>
                     </div>
                 </div>
             </div>
@@ -604,6 +616,14 @@ HTML_TEMPLATE = """
              if(t === 'light') document.documentElement.setAttribute('data-theme', 'light');
              else if(t === 'dark') document.documentElement.removeAttribute('data-theme');
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
+             // 2. Button Highlight Logic (Pudhu Code)
+             // Ellathayum normal aakidu
+             document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
+    
+             // Click panna button-a mattum Highlight pannu
+             const activeBtn = document.getElementById('theme-' + t);
+             if(activeBtn) activeBtn.classList.add('active');
+
         }
         
         function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'flex' : 'none'; }
