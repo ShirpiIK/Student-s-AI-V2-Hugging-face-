@@ -32,14 +32,6 @@ user_db = load_db()
 app = Flask(__name__)
 current_key_index = 0
 
-# PROMPT
-BASE_INSTRUCTION = """
-ROLE: You are "Student's AI", a professional academic tutor.
-RULES:
-1. **MATH:** Use LaTeX for formulas ($$ ... $$).
-2. **FORMAT:** Markdown. Bold key terms.
-"""
-
 # MODEL FUNCTIONS
 def get_working_model(key):
     try:
@@ -83,7 +75,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             continue
         try:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel(model_name=model_name, system_instruction=BASE_INSTRUCTION)
+            model = genai.GenerativeModel(model_name=model_name)
             if image_data or file_text: response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
@@ -99,7 +91,7 @@ HTML_TEMPLATE = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -126,93 +118,110 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
         input, textarea { -webkit-user-select: text; user-select: text; }
 
-        /* PWA & LOCK FIX: FLEXBOX BODY */
+        /* --- THE PROFESSIONAL LOCK LAYOUT --- */
         body { 
             margin: 0; background: var(--bg); color: var(--text); 
             font-family: 'Inter', sans-serif; 
             height: 100dvh; width: 100%; 
-            display: flex; flex-direction: column; 
-            overflow: hidden; 
+            display: flex; flex-direction: column; /* VERTICAL STACK */
+            overflow: hidden; /* NO BODY SCROLL */
         }
         
-        /* HEADER - LOCKED */
+        /* 1. HEADER (Fixed Height, Never Shrinks) */
         header { 
             height: 70px; padding: 0 20px; background: var(--bg); 
-            border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; 
-            flex-shrink: 0; z-index: 3000; 
-            transition: margin-top 0.3s ease;
+            border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; justify-content: space-between; 
+            flex-shrink: 0; z-index: 50; 
+            transition: transform 0.3s ease;
         }
-        header.hidden-header { margin-top: -71px; } 
+        header.hidden { display: none; } /* Helper to hide */
         
         .app-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-align:center; flex:1; }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); z-index:3001; }
+        .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
         
-        /* CHAT AREA - FLEX GROW */
+        /* 2. MAIN CONTENT AREA (Fills space, Scrolls internally) */
+        #content-area { 
+            flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
+        }
+        
         #chat-box { 
-            flex-grow: 1; overflow-y: auto; padding: 20px 5%; 
+            flex: 1; overflow-y: auto; padding: 20px 5%; 
             display: flex; flex-direction: column; gap: 20px; width:100%; 
             scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
         }
 
-        /* INPUT AREA - LOCKED BOTTOM */
+        /* 3. INPUT AREA (Sticks to bottom, Never Shrinks) */
         .input-wrapper { 
             background: var(--bg); padding: 15px; 
             border-top: 1px solid var(--border); width: 100%; 
             flex-shrink: 0; z-index: 40; 
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
         }
         .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
         textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; max-height: 120px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; }
         
-        /* OVERLAYS - TOP LOCKED */
+        /* --- SIDEBAR (FULL SCREEN & BUTTERY SMOOTH) --- */
+        #sidebar { 
+            position: fixed; inset: 0; /* Full Screen */
+            background: var(--bg); z-index: 9999; 
+            padding: 25px; 
+            display: flex; flex-direction: column;
+            transform: translateY(-100%); 
+            /* THE MAGIC ANIMATION FROM YOUR REFERENCE CODE */
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+        #sidebar.open { transform: translateY(0); }
+        
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; margin-top: 10px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 18px; margin-bottom: 8px; background: var(--card); border-radius: 14px; cursor: pointer; color: var(--dim); font-size: 15px; border: 1px solid var(--border); }
+        .history-item:active { background: var(--border); color: var(--text); }
+        .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
+        
+        /* OVERLAYS (FULL SCREEN LOCKED) */
         .overlay { 
             position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
             display: flex; flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; /* Top Align */
-            padding-top: 20px; 
-            padding-bottom: 50px;
+            justify-content: flex-start; /* Top Lock */
+            padding-top: 20px; padding-bottom: 50px;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
         .overlay.hidden { display: none !important; }
         
-        /* DATA BOX */
+        /* DATA BOX (LOCKED) */
         .data-box { 
             width: 90%; max-width: 350px; background: var(--card); 
             border: 1px solid var(--border); border-radius: 20px; 
             padding: 25px; display:flex; flex-direction:column; gap:15px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
             flex-shrink: 0; 
-            margin-top: 20px; /* Locked Top */
-            margin-bottom: 50px; 
+            margin-top: 30px; /* Locked Top Margin */
+            margin-bottom: 100px; 
             animation: fadeInUp 0.6s ease-out;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* UNIFORM SPACING FIX */
-        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 5px; font-weight:600; text-transform:uppercase; }
+        /* UNIFORM SPACING */
+        .form-label { font-size: 12px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 8px; font-weight:600; text-transform:uppercase; letter-spacing: 0.5px; }
         
         input, select { 
             width: 100%; padding: 14px; background: var(--input-bg); 
             border: 1px solid var(--border); color: var(--text); border-radius: 10px; 
             outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none;
         }
-        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
-        input:focus, select:focus { border-color: var(--text); }
-        .input-error { border: 1px solid #ef4444 !important; }
         .submit-btn, .get-started-btn { 
             width: 100%; padding: 14px; border-radius: 12px; 
             border: none; background: var(--text); color: var(--bg); 
             font-weight: 700; font-size: 16px; cursor: pointer; 
-            margin-top: 15px; font-family: 'Outfit', sans-serif; 
+            margin-top: 20px; font-family: 'Outfit', sans-serif; 
         }
 
-        /* WELCOME */
-        .welcome-container { width: 85%; max-width: 400px; text-align: left; margin-bottom: 30px; margin-top: 50px; animation: fadeIn 1s ease-out; }
-        .welcome-title { 
-            font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; 
-            background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        /* INTRO */
+        #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding: 0 30px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
+        .welcome-title { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(to right, var(--text), var(--dim)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .welcome-desc { color: var(--dim); font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
 
         /* CHAT UI */
@@ -224,8 +233,7 @@ HTML_TEMPLATE = """
         .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
         .ai-content strong { color: var(--text); font-weight: 700; }
         .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
-        .action-icon, .icon-btn, .send-btn { cursor: pointer; }
-        .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; }
+        .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; cursor: pointer; }
         .icon-btn { background: transparent; color: var(--dim); }
         .send-btn { background: var(--text); color: var(--bg); }
 
@@ -236,36 +244,17 @@ HTML_TEMPLATE = """
         .typing-dot:nth-child(3) { animation-delay: -0.9s; }
         @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 
-        /* SIDEBAR */
-        #sidebar { 
-            position: fixed; top: 0; left: 0; width: 300px; height: 100%; 
-            background: var(--bg); z-index: 3002; 
-            padding: 25px; padding-top: 80px; 
-            transform: translateY(-100%); transition: transform 0.3s ease-in-out; 
-            display: flex; flex-direction: column; border-right: 1px solid var(--border); 
-            overflow-y: auto;
-        }
-        #sidebar.open { transform: translateY(0); }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; cursor: pointer; color: var(--dim); font-size: 14px; }
-        .history-item:active { background: var(--border); color: var(--text); }
-        .h-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; margin-right: 10px; }
-        
-        /* SETTINGS & SEARCH */
+        /* SETTINGS & PROFILE */
         .search-bar-container { position:relative; width:100%; margin-bottom:20px; }
         .search-input { width:100%; background:var(--card); border:none; padding-right:35px; }
         .search-clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; display:none; }
-        .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
-        .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
-        .divider { height:1px; background: var(--border); width:100%; }
-        .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
-        #intro-container { position: absolute; top: 40%; left: 0; width: 100%; padding-left: 25px; padding-right: 25px; text-align: left; pointer-events: none; z-index: 10; animation: fadeIn 0.8s ease-out; }
-
-        /* PROFILE */
+        .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; margin-bottom: 20px; }
+        
         .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; }
         .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
         
         /* MODAL */
-        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 4000; display:none; align-items:center; justify-content:center; }
+        #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 10000; display:none; align-items:center; justify-content:center; }
         .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
         .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
         #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
@@ -283,6 +272,22 @@ HTML_TEMPLATE = """
                 <button class="submit-btn" style="background:var(--dim); flex:1;" onclick="closeModal()">Cancel</button>
                 <button class="submit-btn" style="flex:1;" id="modal-confirm-btn">Confirm</button>
             </div>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <div style="font-size:24px; font-weight:700; color:var(--text);">Hi <span id="display-name">User</span></div>
+            <div onclick="toggleSidebar()" style="font-size:24px; cursor:pointer; padding:10px;"><i class="fas fa-times"></i></div>
+        </div>
+        
+        <button class="submit-btn" style="margin:0 0 30px 0;" onclick="newChat()">New Chat</button>
+        
+        <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;">Chat History</div>
+        <div id="history-list" style="flex:1; overflow-y:auto;"></div>
+        
+        <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer; font-size:18px;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
         </div>
     </div>
 
@@ -333,11 +338,9 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="settings-overlay" class="overlay hidden">
-        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px;">
-            <div class="nav-back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i> Back</div>
-        </div>
-        
         <div style="width:90%; max-width:350px;">
+            <div class="nav-back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i> Back</div>
+            
             <div class="search-bar-container">
                 <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="handleSearch(this)">
                 <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()"></i>
@@ -363,64 +366,50 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="profile-overlay" class="overlay hidden">
-        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px;">
+        <div style="width:90%; max-width:350px;">
             <div class="nav-back-btn" onclick="backToSettings()"><i class="fas fa-arrow-left"></i> Back</div>
-        </div>
-        
-        <div class="data-box profile-box" style="margin-top:0;">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;">
-                    <i class="fas fa-user" id="profile-icon" style="font-size:30px; color:#fff;"></i>
-                    <label for="profile-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:25px; height:25px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label>
-                </div>
-                <input type="file" id="profile-upload" hidden accept="image/*" onchange="handleProfilePic(this)">
-            </div>
-
-            <span class="form-label">Name</span>
-            <div class="profile-val" id="p-name">--</div>
-
-            <span class="form-label">Level</span>
-            <div class="profile-val" id="p-level">--</div>
-
-            <span class="form-label" id="lbl-year-display">Class/Year</span>
-            <div class="profile-val" id="p-year">--</div>
             
-            <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;">
-                 <span class="form-label">Semester</span>
-                 <div class="profile-val" id="p-sem">--</div> </div>
+            <div class="data-box profile-box" style="margin-top:0;">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;">
+                        <i class="fas fa-user" id="profile-icon" style="font-size:30px; color:#fff;"></i>
+                        <label for="profile-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:25px; height:25px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label>
+                    </div>
+                    <input type="file" id="profile-upload" hidden accept="image/*" onchange="handleProfilePic(this)">
+                </div>
 
-            <span class="form-label">Subject (Tap to Edit)</span>
-            <input type="text" id="p-subj-edit" value="">
+                <span class="form-label">Name</span>
+                <div class="profile-val" id="p-name">--</div>
 
-            <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
-            <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
+                <span class="form-label">Level</span>
+                <div class="profile-val" id="p-level">--</div>
+
+                <span class="form-label" id="lbl-year-display">Class/Year</span>
+                <div class="profile-val" id="p-year">--</div>
+                
+                <div id="p-sem-box" style="display:none; flex-direction:column;">
+                     <span class="form-label">Semester</span>
+                     <div class="profile-val" id="p-sem">--</div> </div>
+
+                <span class="form-label">Subject (Tap to Edit)</span>
+                <input type="text" id="p-subj-edit" value="">
+
+                <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:20px;" onclick="saveProfileChanges()">Save Changes</button>
+                <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
+            </div>
         </div>
     </div>
 
-    <header id="main-header" class="hidden-header">
+    <header id="main-header" class="hidden">
         <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
         <span class="app-title">Student's AI</span>
         <div style="width:40px;"></div>
     </header>
 
-    <div id="sidebar">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <div style="display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; color:var(--text);">
-                <img id="sidebar-pic" src="" style="width:30px; height:30px; border-radius:50%; display:none; object-fit:cover;">
-                <span>Hi <span id="display-name">User</span></span>
-            </div>
-            <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
-        </div>
-        <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
-        <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
-        <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
-        <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border);">
-            <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
-        </div>
+    <div id="content-area">
+        <div id="intro-container"></div> <div id="chat-box"></div>
     </div>
-
-    <div id="chat-box"></div> 
     
     <div class="input-wrapper">
             <div id="preview-area">
@@ -438,7 +427,7 @@ HTML_TEMPLATE = """
         let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
         
         function getIntroHtml(name) { 
-            return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:left;">Hi ${name},</div><p style="color:var(--dim); text-align:left;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
+            return `<div class="welcome-container" style="margin-top: 100px;"><h1 class="welcome-title">Hi ${name},</h1><p class="welcome-desc">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
         }
 
         function checkLogin() {
@@ -459,7 +448,7 @@ HTML_TEMPLATE = """
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
                 }
             } else {
-                document.getElementById('main-header').classList.add('hidden-header');
+                document.getElementById('main-header').classList.add('hidden');
             }
         }
         function clearError(input) { input.classList.remove('input-error'); }
@@ -534,9 +523,10 @@ HTML_TEMPLATE = """
 
         function showApp() {
             document.getElementById('display-name').innerText = currentUser;
-            document.getElementById('main-header').classList.remove('hidden-header');
+            document.getElementById('main-header').classList.remove('hidden');
             loadHistory();
-            if(!currentChatId && !document.getElementById('intro-container')) {
+            if(!currentChatId) {
+                // INJECT INTRO INTO CHAT BOX
                 document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
             }
             updateSidebarPic();
@@ -545,7 +535,7 @@ HTML_TEMPLATE = """
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 const sb = document.getElementById('sidebar-pic');
-                sb.src = pic; sb.style.display = 'block';
+                if(sb) { sb.src = pic; sb.style.display = 'block'; }
             }
         }
 
@@ -553,12 +543,12 @@ HTML_TEMPLATE = """
              document.getElementById('settings-overlay').classList.remove('hidden');
              document.getElementById('settings-overlay').style.display = 'flex';
              document.getElementById('sidebar').classList.remove('open');
-             document.getElementById('main-header').classList.add('hidden-header');
+             document.getElementById('main-header').classList.add('hidden');
              clearSearch();
         }
         function closeSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
-            document.getElementById('main-header').classList.remove('hidden-header');
+            document.getElementById('main-header').classList.remove('hidden');
         }
         function openProfileFromSettings() { 
             document.getElementById('settings-overlay').style.display = 'none'; 
@@ -586,7 +576,7 @@ HTML_TEMPLATE = """
             }
             const prof = document.getElementById('profile-overlay');
             prof.classList.remove('hidden'); prof.style.display = 'flex';
-            document.getElementById('main-header').classList.add('hidden-header');
+            document.getElementById('main-header').classList.add('hidden');
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
                 document.getElementById('profile-pic-display').src = pic;
@@ -602,7 +592,7 @@ HTML_TEMPLATE = """
             userContext = parts.join(',');
             localStorage.setItem("student_ai_context", userContext);
             document.getElementById('profile-overlay').style.display = 'none';
-            document.getElementById('main-header').classList.remove('hidden-header');
+            document.getElementById('main-header').classList.remove('hidden');
             alert("Saved!");
         }
         function handleProfilePic(input) {
@@ -654,7 +644,11 @@ HTML_TEMPLATE = """
         async function send() {
             const txt = document.getElementById('input').value.trim();
             if(!txt && !currentAttachment) return;
-            document.getElementById('intro-container').style.display = 'none';
+            
+            // REMOVE INTRO IF EXISTS
+            const intro = document.querySelector('.welcome-container');
+            if(intro) intro.remove();
+
             const box = document.getElementById('chat-box');
             let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
             
@@ -758,8 +752,10 @@ HTML_TEMPLATE = """
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function handleFile(input) { if(input.files[0]) { const r = new FileReader(); r.onload=(e)=>{ currentAttachment=e.target.result; document.getElementById('preview-area').style.display='block'; document.getElementById('preview-img').src=currentAttachment; }; r.readAsDataURL(input.files[0]); } }
         function clearAttachment() { currentAttachment=null; document.getElementById('preview-area').style.display='none'; document.getElementById('file-input').value=""; }
-        const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
-        if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
+        const inp = document.getElementById('input'); 
+        if(inp) { 
+            // Intro is now part of chat box, no need for fade on focus
+        }
         
         checkLogin();
     </script>
@@ -837,7 +833,7 @@ def manifest():
         "theme_color": "#09090b",
         "icons": [
             {
-                "src": "https://huggingface.co/spaces/Shirpi/student-ai-v2/resolve/main/Picsart_25-12-20_06-52-45-979.png",
+                "src": "https://cdn-icons-png.flaticon.com/512/4712/4712035.png",
                 "sizes": "192x192",
                 "type": "image/png"
             }
