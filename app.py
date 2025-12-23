@@ -1,6 +1,5 @@
 # ==========================================
 # 👇 PHASE 0: SQLITE FIX FOR HUGGING FACE 👇
-# (Must be at the very top for ChromaDB)
 # ==========================================
 import sys
 try:
@@ -148,7 +147,7 @@ HTML_TEMPLATE = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#09090b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="/manifest.json">
@@ -159,7 +158,7 @@ HTML_TEMPLATE = """
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-    /* --- 1. CORE VARIABLES & THEMES --- */
+    /* --- 1. CORE VARIABLES --- */
     :root { 
         --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
         --border: #27272a; --dim: #71717a; --input-bg: #131315; 
@@ -171,17 +170,17 @@ HTML_TEMPLATE = """
         --btn-bg: #000000; --btn-text: #ffffff;
     }
 
-    /* --- 2. GLOBAL STYLES --- */
+    /* --- 2. GLOBAL STYLES & BACKGROUND --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    body { margin: 0; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* --- FIX: GLOBAL ANIMATED BACKGROUND (Stable) --- */
+    /* 👇 STATIC GLOBAL BACKGROUND (Will Not Move) */
     .global-bg {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: -1; pointer-events: none;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: -10; pointer-events: none;
         background: #09090b;
         background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
-        overflow: hidden;
+        background-size: cover;
     }
     .bg-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; animation: moveBlob infinite alternate ease-in-out; }
     .blob-pink { top: -10%; left: -10%; width: 40vmax; height: 40vmax; background: #ff00cc; animation-duration: 20s; }
@@ -195,19 +194,18 @@ HTML_TEMPLATE = """
     .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
     .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
 
-    /* --- 4. CHAT AREA --- */
+    /* --- 4. CHAT AREA & INPUT --- */
     #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
     
-    /* --- FIX: INPUT WRAPPER HIDDEN INITIALLY --- */
     .input-wrapper { 
         background: var(--bg); padding: 15px; border-top: 1px solid var(--border); 
         flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
-        display: none; /* 👇 Hidden by default */
+        /* Note: display:none handled inline in HTML */
     }
     .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
     textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; height: auto; max-height: 150px; overflow-y: auto; }
 
-    /* --- 5. SIDEBAR (Fixed Design) --- */
+    /* --- 5. SIDEBAR (Fixed Spacing) --- */
     #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 50px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
     #sidebar.open { transform: translateY(0); }
     #sidebar > div:first-child { margin-bottom: 15px; flex-shrink: 0; margin-top: 10px; }
@@ -217,12 +215,12 @@ HTML_TEMPLATE = """
     #history-list { flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; }
     #sidebar > div:last-child { flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border); }
 
-    /* --- 6. OVERLAYS (Fixed: Transparent & Smooth) --- */
+    /* --- 6. OVERLAYS (Fixed Transparent) --- */
     .overlay { 
         position: fixed; inset: 0; z-index: 2000; 
         display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
         padding-top: 0; overflow-y: auto; 
-        background: transparent !important; /* Transparent for global BG */
+        background: transparent !important; /* Shows Global BG */
         opacity: 0; visibility: hidden;
         transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
@@ -232,10 +230,9 @@ HTML_TEMPLATE = """
     #welcome-overlay { justify-content: center; padding-top: 0 !important; }
     #name-overlay, #details-overlay { padding-top: 140px; }
 
-    /* --- FIX: GLASSMORPHISM BOXES --- */
     .data-box { 
         width: 90%; max-width: 350px; 
-        background: rgba(255, 255, 255, 0.05); /* Very light glass */
+        background: rgba(255, 255, 255, 0.05); /* Glass Effect */
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1); 
         border-radius: 20px; padding: 20px; 
@@ -245,8 +242,6 @@ HTML_TEMPLATE = """
     
     .welcome-container { width: 100%; max-width: 400px; text-align: center; margin: 0 auto; margin-top: 30px; padding: 0 30px; }
     .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; color: var(--text); }
-    
-    /* Intro Title specifically White */
     #welcome-overlay .welcome-title { color: #ffffff !important; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     #welcome-overlay p { color: #e4e4e7 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
@@ -259,7 +254,6 @@ HTML_TEMPLATE = """
         color: #fff !important; 
         backdrop-filter: blur(5px);
     }
-    
     .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #fff; color: #000; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
     .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
 
@@ -283,7 +277,6 @@ HTML_TEMPLATE = """
         #sidebar > div:last-child { padding-top: 5px !important; margin-top: 0 !important; }
     }
     
-    /* Other utilities */
     .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
     @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
@@ -334,7 +327,7 @@ HTML_TEMPLATE = """
     <div id="name-overlay" class="overlay hidden">
         <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="text" id="username-input" name="student_name_field_v2" autocomplete="off" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
+            <input type="search" id="username-input" name="student_search_name_random" autocomplete="off" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
@@ -357,7 +350,7 @@ HTML_TEMPLATE = """
                 <select id="edu-sem" onfocus="clearError(this)"><option value="" disabled selected>Select Semester</option></select>
             </div>
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" name="student_subject_field_v2" autocomplete="off" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
+            <input type="search" id="edu-subject" name="student_search_subject_random" autocomplete="off" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
@@ -427,14 +420,15 @@ HTML_TEMPLATE = """
         </div>
         <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
         <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
-        <div id="history-list"></div>
+        <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
         <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border);">
             <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
         </div>
     </div>
 
     <div id="chat-box"></div> 
-    <div class="input-wrapper">
+    
+    <div class="input-wrapper" style="display:none;">
         <div id="preview-area"><div class="preview-box"><img id="preview-img" class="preview-img"></div><button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button></div>
         <div class="input-container">
             <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
@@ -450,7 +444,6 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:center;">Hi ${name},</div><p style="color:var(--dim); text-align:center;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
         }
 
-        /* --- FIX: Default System Theme & Logic --- */
         function checkLogin() {
              const t = localStorage.getItem("student_theme") || 'system'; 
              setTheme(t);
@@ -478,8 +471,8 @@ HTML_TEMPLATE = """
              }
         }
 
-        /* --- FIX: Smooth Logout (No Reload) --- */
         function handleLogout() {
+            // Hide everything
             document.getElementById('profile-overlay').style.display = 'none';
             document.getElementById('settings-overlay').style.display = 'none';
             document.getElementById('details-overlay').style.display = 'none';
@@ -487,7 +480,7 @@ HTML_TEMPLATE = """
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('main-header').classList.add('hidden-header');
             
-            // Hide Chat Bar
+            // 👇 FORCE HIDE Chat Bar & Reset Content
             document.querySelector('.input-wrapper').style.display = 'none';
             document.getElementById('chat-box').innerHTML = '';
 
@@ -500,7 +493,7 @@ HTML_TEMPLATE = """
         }
 
         function showApp() {
-            // 👇 Show Chat Bar only when App starts
+            // 👇 REVEAL Chat Bar only here!
             document.querySelector('.input-wrapper').style.display = 'block';
 
             document.getElementById('display-name').innerText = currentUser;
