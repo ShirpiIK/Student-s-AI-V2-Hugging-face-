@@ -374,7 +374,7 @@ HTML_TEMPLATE = """
         background-size: cover;
         background-attachment: fixed; /* இதுதான் மேட்டர்! */
         height: 100vh; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
-        top: 0; left: 0; width: 100%;
+        top: 0; left: 0; width: 100%; z-index: 0; position: fixed;
     }
     #welcome-overlay .welcome-title {
         background: none;
@@ -461,7 +461,7 @@ HTML_TEMPLATE = """
             <div class="bg-blob blob-white"></div>
             <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="text" id="username-input" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
+            <input type="text" id="username-input" placeholder="Enter your Name" autocomplete="off" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
@@ -487,7 +487,7 @@ HTML_TEMPLATE = """
                 <select id="edu-sem" onfocus="clearError(this)"><option value="" disabled selected>Select Semester</option></select>
             </div>
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
+            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." autocomplete="off" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
@@ -976,25 +976,53 @@ HTML_TEMPLATE = """
         const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
         if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
         // --- FIX 2: BACK BUTTON HANDLER ---
-        window.addEventListener('popstate', function(event) {
-            const overlays = ['profile-overlay', 'settings-overlay', 'details-overlay', 'name-overlay'];
-            let closedSomething = false;
-            
-            // Check if sidebar is open
-            if(document.getElementById('sidebar').classList.contains('open')) {
-                document.getElementById('sidebar').classList.remove('open');
-                closedSomething = true;
-            } else {
-                for (let id of overlays) {
-                    let el = document.getElementById(id);
-                    if (el && !el.classList.contains('hidden') && el.style.display !== 'none') {
-                        if (id === 'profile-overlay') { backToSettings(); return; }
-                        if (id === 'settings-overlay') { closeSettings(); return; }
-                        // For login flow, let browser handle back or stay
-                    }
-                }
-            }
-        });
+        /* --- FIX: BACK BUTTON HANDLER (Intro flow & Overlays) --- */
+window.addEventListener('popstate', function(event) {
+    // 1. Sidebar திறந்திருந்தால் மூடு
+    if(document.getElementById('sidebar').classList.contains('open')) {
+        document.getElementById('sidebar').classList.remove('open');
+        return;
+    }
+
+    // 2. Settings / Profile திறந்திருந்தால் மூடு
+    const profile = document.getElementById('profile-overlay');
+    const settings = document.getElementById('settings-overlay');
+    
+    if (profile && profile.style.display !== 'none') {
+        backToSettings(); // Profile -> Settings
+        return;
+    }
+    if (settings && settings.style.display !== 'none') {
+        closeSettings(); // Settings -> Main App
+        return;
+    }
+
+    // 3. Login / Intro Flow Handling (முக்கியமான மாற்றம்)
+    const step = event.state ? event.state.step : 'welcome'; // ஸ்டேட் இல்லனா வெல்கம் பேஜ்
+    
+    // எல்லா பாக்ஸையும் முதல்ல மறைப்போம்
+    document.getElementById('welcome-overlay').style.display = 'none';
+    document.getElementById('name-overlay').style.display = 'none';
+    document.getElementById('details-overlay').style.display = 'none';
+
+    if (step === 'details') {
+        // Details-ல இருந்தா அதை காட்டு
+        const details = document.getElementById('details-overlay');
+        details.classList.remove('hidden');
+        details.style.display = 'flex';
+    } else if (step === 'name') {
+        // Name-ல இருந்தா அதை காட்டு
+        const nameBox = document.getElementById('name-overlay');
+        nameBox.classList.remove('hidden');
+        nameBox.style.display = 'flex';
+    } else if (step === 'welcome') {
+        // Welcome-ல இருந்தா (அல்லது ஆரம்பம்) அதை காட்டு
+        const welcome = document.getElementById('welcome-overlay');
+        welcome.classList.remove('hidden');
+        welcome.style.display = 'flex';
+    }
+    // Note: Main App வந்த பிறகு பேக் அமுக்கினால் ஆப் மூடும் (Browser Default).
+});
 
         checkLogin();
     </script>
