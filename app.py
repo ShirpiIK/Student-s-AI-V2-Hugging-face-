@@ -185,7 +185,7 @@ HTML_TEMPLATE = """
 
     /* --- 4. CHAT AREA --- */
     #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
-    .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
+    .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); display:none;}
     .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
     
     textarea { 
@@ -373,8 +373,12 @@ HTML_TEMPLATE = """
         background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
         background-size: cover;
         background-attachment: fixed; /* இதுதான் மேட்டர்! */
-        height: 100vh; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
-        top: 0; left: 0; width: 100%; z-index: 0; position: fixed;
+        height: 100%; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
+        top: 0; left: 0; width: 100%; z-index: -1; position: fixed;
+        .overlay {
+        background: transparent !important; /* பின்னணி தெரிய வேண்டும் */
+    }
+    
     }
     #welcome-overlay .welcome-title {
         background: none;
@@ -434,6 +438,11 @@ HTML_TEMPLATE = """
     </head>
 <body>
     <div id="custom-modal">
+    <div class="animated-bg-overlay global-bg">
+    <div class="bg-blob blob-pink"></div>
+    <div class="bg-blob blob-blue"></div>
+    <div class="bg-blob blob-white"></div>
+</div>
         <div class="modal-box">
             <h3 id="modal-title" style="margin:0 0 10px 0; color:var(--text);">Alert</h3>
             <input type="text" id="modal-input" style="display:none; margin-top:10px;" placeholder="Enter text...">
@@ -461,7 +470,7 @@ HTML_TEMPLATE = """
             <div class="bg-blob blob-white"></div>
             <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="text" id="username-input" placeholder="Enter your Name" autocomplete="off" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
+            <input type="text" id="username-input" autocomplete="off" placeholder="Enter your Name"  onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
@@ -487,7 +496,7 @@ HTML_TEMPLATE = """
                 <select id="edu-sem" onfocus="clearError(this)"><option value="" disabled selected>Select Semester</option></select>
             </div>
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" placeholder="Ex: Maths, CS..." autocomplete="off" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
+            <input type="text" id="edu-subject" autocomplete="off" placeholder="Ex: Maths, CS..."  onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
