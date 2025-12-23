@@ -320,7 +320,7 @@ HTML_TEMPLATE = """
     @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
     #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
     .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; } .preview-img { width:100%; height:100%; object-fit:cover; }
-    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; position: relative; }
+    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;padding-bottom: 15px;border-bottom: 1px solid var(--border);width: 100%; /* லைன் முழு நீளத்துக்கு வரும் */ position: relative; }
     .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
     .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
     
@@ -345,11 +345,12 @@ HTML_TEMPLATE = """
         /* 👇 New Chat Button - Small & Cute */
         #sidebar .submit-btn {
             width: auto !important; 
-            min-width: 140px; 
-            margin: 0 !important; 
-            padding: 8px 20px !important; 
+            min-width: 120px;
+            max-width: 200px;
+            margin: 0 auto 15px auto !important; 
+            padding: 10px 20px !important; 
             font-size: 14px !important; 
-            display: inline-block;
+            display: block important;
         }
         /* 👇 Gap between Button and "Chat History" Text */
         #sidebar > div:nth-child(3) { 
@@ -373,6 +374,7 @@ HTML_TEMPLATE = """
         background-size: cover;
         background-attachment: fixed; /* இதுதான் மேட்டர்! */
         height: 100vh; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
+        top: 0; left: 0; width: 100%;
     }
     #welcome-overlay .welcome-title {
         background: none;
@@ -618,15 +620,32 @@ HTML_TEMPLATE = """
 }
 
 /* --- FIX 2: Smooth Logout (No Loading Box) --- */
-    function handleLogout() { 
-    // ரீலோட் ஆகுறதுக்கு முன்னாடி எல்லா பாக்ஸையும் மறைச்சிடுவோம்
-         document.getElementById('profile-overlay').style.display = 'none';
-         document.getElementById('settings-overlay').style.display = 'none';
-         document.querySelector('.data-box').style.display = 'none';
+    /* --- FIX: SMOOTH LOGOUT (No Loading Bar, No Chat Flash) --- */
+        function handleLogout() {
+           // 1. எல்லா Overlay-யையும் உடனே மறைக்கிறோம்
+           document.getElementById('profile-overlay').style.display = 'none';
+           document.getElementById('settings-overlay').style.display = 'none';
+           document.getElementById('details-overlay').style.display = 'none';
+           document.getElementById('name-overlay').style.display = 'none';
+           document.getElementById('sidebar').classList.remove('open');
     
-    localStorage.clear(); 
-    location.reload(); 
-}
+           // 2. Chat Header-ஐ மறைக்கிறோம்
+           document.getElementById('main-header').classList.add('hidden-header');
+
+           // 3. User Data-வை அழிக்கிறோம்
+           localStorage.clear();
+           currentUser = null;
+           userContext = "";
+           currentChatId = null;
+
+           // 4. Welcome Page-ஐ ரீஃப்ரெஷ் ஆகாமலேயே காட்டுகிறோம்
+           const welcome = document.getElementById('welcome-overlay');
+           welcome.classList.remove('hidden');
+           welcome.style.display = 'flex';
+    
+           // 5. History State-ஐ ரீசெட் செய்கிறோம்
+           history.replaceState({step: 'welcome'}, null, null);
+        }
         function clearError(input) { input.classList.remove('input-error'); }
         
         function showNameBox() { 
