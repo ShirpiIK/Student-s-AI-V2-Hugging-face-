@@ -936,11 +936,11 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-📂 PART 3: Server & Routes
+"""📂 PART 3: Server & Routes
 (Flask Routes, Main execution block)
 
 Python
-
+"""
 # --- ROUTES ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
