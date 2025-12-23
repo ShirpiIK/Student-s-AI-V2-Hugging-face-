@@ -1,6 +1,3 @@
-# ==========================================
-# 👇 PHASE 0: SQLITE FIX FOR HUGGING FACE 👇
-# ==========================================
 import sys
 try:
     __import__('pysqlite3')
@@ -170,11 +167,11 @@ HTML_TEMPLATE = """
         --btn-bg: #000000; --btn-text: #ffffff;
     }
 
-    /* --- 2. GLOBAL STYLES & BACKGROUND --- */
+    /* --- 2. GLOBAL STYLES --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* 👇 STATIC GLOBAL BACKGROUND (Will Not Move) */
+    /* 👇 GLOBAL COLOR BG (Static) */
     .global-bg {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         z-index: -10; pointer-events: none;
@@ -188,24 +185,30 @@ HTML_TEMPLATE = """
     .blob-white { top: 50%; left: 50%; width: 20vmax; height: 20vmax; background: #ffffff; opacity: 0.2; animation-duration: 25s; transform: translate(-50%, -50%); }
     @keyframes moveBlob { 0% { transform: translate(0, 0) scale(1) rotate(0deg); } 50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); } 100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); } }
 
-    /* --- 3. HEADER --- */
-    header { height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; z-index: 3000; position: fixed; top: 0; left: 0; right: 0; transition: transform 0.3s ease; }
-    header.hidden-header { transform: translateY(-100%); } 
+    /* --- 3. HEADER (Fixed to Relative) --- */
+    /* 👇 இதுதான் முக்கியம்! Header-ஐ Relative ஆக மாற்றினால் கீபோர்டு பிரச்சனை தீரும் */
+    header { 
+        height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); 
+        display: flex; align-items: center; z-index: 3000; 
+        position: relative; flex-shrink: 0; transition: transform 0.3s ease; 
+    }
+    header.hidden-header { display: none; } 
     .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
     .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
 
-    /* --- 4. CHAT AREA & INPUT --- */
-    #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+    /* --- 4. CHAT AREA --- */
+    /* 👇 Header Relative ஆனதால், இங்கே Padding குறைக்கப்பட்டுள்ளது (90px -> 10px) */
+    #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 10px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
     
     .input-wrapper { 
         background: var(--bg); padding: 15px; border-top: 1px solid var(--border); 
         flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
-        /* Note: display:none handled inline in HTML */
+        /* Hidden initially via HTML inline style */
     }
     .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
     textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; height: auto; max-height: 150px; overflow-y: auto; }
 
-    /* --- 5. SIDEBAR (Fixed Spacing) --- */
+    /* --- 5. SIDEBAR --- */
     #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 50px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
     #sidebar.open { transform: translateY(0); }
     #sidebar > div:first-child { margin-bottom: 15px; flex-shrink: 0; margin-top: 10px; }
@@ -215,12 +218,13 @@ HTML_TEMPLATE = """
     #history-list { flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; }
     #sidebar > div:last-child { flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border); }
 
-    /* --- 6. OVERLAYS (Fixed Transparent) --- */
+    /* --- 6. OVERLAYS (Overlap Fix) --- */
     .overlay { 
-        position: fixed; inset: 0; z-index: 6000; 
+        position: fixed; inset: 0; 
+        z-index: 6000; /* 🔥 இதுதான் Fix! Header (3000) ஐ விட அதிகம் */
         display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
         padding-top: 0; overflow-y: auto; 
-        background: transparent !important; /* Shows Global BG */
+        background: transparent !important; 
         opacity: 0; visibility: hidden;
         transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
@@ -232,7 +236,7 @@ HTML_TEMPLATE = """
 
     .data-box { 
         width: 90%; max-width: 350px; 
-        background: rgba(255, 255, 255, 0.05); /* Glass Effect */
+        background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1); 
         border-radius: 20px; padding: 20px; 
@@ -460,26 +464,16 @@ HTML_TEMPLATE = """
                     showApp();
                  } else {
                     document.getElementById('name-overlay').style.display = 'none';
-                    
-                    // 👇 INDHA RENDU LINES MUKKIYAM (Details page-ku)
-                    document.querySelector('.input-wrapper').style.display = 'none'; 
-                    document.getElementById('main-header').classList.add('hidden-header');
-                    
                     const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
                  }
              } else {
                  document.getElementById('main-header').classList.add('hidden-header');
-                 
-                 // 👇 INDHA LINE AH ADD PANNUNGA (Welcome page-ku)
-                 document.querySelector('.input-wrapper').style.display = 'none'; 
-                 
                  const welcome = document.getElementById('welcome-overlay');
                  welcome.classList.remove('hidden'); welcome.style.display = 'flex';
                  history.replaceState({step: 'welcome'}, null, null);
              }
         }
-        
 
         function handleLogout() {
             // Hide everything
@@ -490,9 +484,12 @@ HTML_TEMPLATE = """
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('main-header').classList.add('hidden-header');
             
-            // 👇 FORCE HIDE Chat Bar & Reset Content
+            // 👇 1. FORCE HIDE Chat Bar
             document.querySelector('.input-wrapper').style.display = 'none';
             document.getElementById('chat-box').innerHTML = '';
+            
+            // 👇 2. SHOW Colorful Background Again
+            document.querySelector('.global-bg').style.display = 'block';
 
             localStorage.clear();
             currentUser = null; userContext = ""; currentChatId = null;
@@ -503,8 +500,11 @@ HTML_TEMPLATE = """
         }
 
         function showApp() {
-            // 👇 REVEAL Chat Bar only here!
+            // 👇 1. REVEAL Chat Bar
             document.querySelector('.input-wrapper').style.display = 'block';
+            
+            // 👇 2. HIDE Colorful Background (Make Chat Black)
+            document.querySelector('.global-bg').style.display = 'none';
 
             document.getElementById('display-name').innerText = currentUser;
             document.getElementById('main-header').classList.remove('hidden-header');
