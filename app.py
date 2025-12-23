@@ -197,25 +197,34 @@ HTML_TEMPLATE = """
     /* --- 5. SIDEBAR (Fixed Portrait Mode) --- */
     #sidebar { 
         position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; 
-        padding: 25px; padding-top: 60px; /* Reduced top padding */
+        /* 👇 இடைவெளி குறைக்கப்பட்டுள்ளது (80px -> 50px) */
+        padding: 25px; padding-top: 50px; 
         transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
         display: flex; flex-direction: column; overflow-y: auto; 
     }
     #sidebar.open { transform: translateY(0); }
     
-    /* Profile Section Gap Adjust */
-    #sidebar > div:first-child { margin-bottom: 10px; flex-shrink: 0; }
+    /* Profile Section (Hi User) */
+    #sidebar > div:first-child { 
+        margin-bottom: 15px; flex-shrink: 0; 
+        /* மேலே ஒட்டாமல் இருக்க */
+        margin-top: 10px; 
+    }
+    /* History Items Styles */
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); transition: background 0.2s; }
+    .history-item:active { transform: scale(0.98); }
+    
+    /* 👇 Rename & Delete Icons Spacing (அழகாக இருக்க) */
+    .h-actions { display: flex; gap: 15px; } 
 
-    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); }
-
-    /* History List - Automatic Height Calculation */
+    /* History List - Auto Height */
     #history-list {
         flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; 
     }
 
     /* Settings Area (Bottom) */
     #sidebar > div:last-child {
-        flex-shrink: 0; padding-top: 10px; border-top: 1px solid var(--border);
+        flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border);
     }
 
     /* --- 6. OVERLAYS & FORMS --- */
@@ -324,23 +333,37 @@ HTML_TEMPLATE = """
     /* --- 9. LANDSCAPE MODE FIX (Bug Fix) --- */
     @media (orientation: landscape) {
         #sidebar {
-            padding-top: 5px !important; padding-bottom: 5px !important;
+            padding-top: 10px !important; padding-bottom: 10px !important;
         }
-        /* Profile Section - Romba Compact */
+        
+        /* Profile Section - Row Layout */
         #sidebar > div:first-child {
-            margin-top: 0 !important; margin-bottom: 5px !important;
+            margin-top: 0 !important; margin-bottom: 10px !important;
             display: flex; align-items: center; justify-content: space-between;
         }
-        /* New Chat Button - Left side, Small Size */
+
+        /* 👇 New Chat Button - Small & Cute */
         #sidebar .submit-btn {
-            width: auto !important; min-width: 120px; margin: 0 !important; padding: 8px 15px !important; font-size: 14px !important; display: inline-block;
+            width: auto !important; 
+            min-width: 140px; 
+            margin: 0 !important; 
+            padding: 8px 20px !important; 
+            font-size: 14px !important; 
+            display: inline-block;
         }
-        /* History List - Scroll Confirm aaga varum */
+        /* 👇 Gap between Button and "Chat History" Text */
+        #sidebar > div:nth-child(3) { 
+            margin-top: 15px !important; /* நல்ல இடைவெளி */
+            margin-bottom: 10px !important;
+        }
+
+        /* History List Box */
         #history-list {
-            background: rgba(0,0,0,0.2); border-radius: 8px; padding: 5px; border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--border);
         }
+        
         /* Settings Footer */
-        #sidebar > div:last-child { padding-top: 2px !important; margin-top: 0 !important; border-top: 1px solid var(--border); }
+        #sidebar > div:last-child { padding-top: 5px !important; margin-top: 0 !important; border-top: 1px solid var(--border); }
     }
 
     /* --- 10. ANIMATED AURORA BACKGROUND --- */
