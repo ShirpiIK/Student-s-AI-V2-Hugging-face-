@@ -217,7 +217,7 @@ HTML_TEMPLATE = """
 
     /* --- 6. OVERLAYS (Fixed Transparent) --- */
     .overlay { 
-        position: fixed; inset: 0; z-index: 2000; 
+        position: fixed; inset: 0; z-index: 9999; 
         display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
         padding-top: 0; overflow-y: auto; 
         background: transparent !important; /* Shows Global BG */
@@ -460,16 +460,26 @@ HTML_TEMPLATE = """
                     showApp();
                  } else {
                     document.getElementById('name-overlay').style.display = 'none';
+                    
+                    // 👇 INDHA RENDU LINES MUKKIYAM (Details page-ku)
+                    document.querySelector('.input-wrapper').style.display = 'none'; 
+                    document.getElementById('main-header').classList.add('hidden-header');
+                    
                     const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
                  }
              } else {
                  document.getElementById('main-header').classList.add('hidden-header');
+                 
+                 // 👇 INDHA LINE AH ADD PANNUNGA (Welcome page-ku)
+                 document.querySelector('.input-wrapper').style.display = 'none'; 
+                 
                  const welcome = document.getElementById('welcome-overlay');
                  welcome.classList.remove('hidden'); welcome.style.display = 'flex';
                  history.replaceState({step: 'welcome'}, null, null);
              }
         }
+        
 
         function handleLogout() {
             // Hide everything
