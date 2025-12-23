@@ -165,8 +165,6 @@ HTML_TEMPLATE = """
         --border: #27272a; --dim: #71717a; --input-bg: #131315; 
         --btn-bg: #ffffff; --btn-text: #000000;
     }
-
-    /* Light Theme (Moved outside of :root to fix the bug) */
     [data-theme="light"] { 
         --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; 
         --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; 
@@ -177,6 +175,20 @@ HTML_TEMPLATE = """
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
+    /* --- FIX: GLOBAL ANIMATED BACKGROUND (Stable) --- */
+    .global-bg {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: -1; pointer-events: none;
+        background: #09090b;
+        background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
+        overflow: hidden;
+    }
+    .bg-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; animation: moveBlob infinite alternate ease-in-out; }
+    .blob-pink { top: -10%; left: -10%; width: 40vmax; height: 40vmax; background: #ff00cc; animation-duration: 20s; }
+    .blob-blue { bottom: -10%; right: -10%; width: 35vmax; height: 35vmax; background: #00dbde; animation-duration: 15s; animation-delay: -5s; }
+    .blob-white { top: 50%; left: 50%; width: 20vmax; height: 20vmax; background: #ffffff; opacity: 0.2; animation-duration: 25s; transform: translate(-50%, -50%); }
+    @keyframes moveBlob { 0% { transform: translate(0, 0) scale(1) rotate(0deg); } 50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); } 100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); } }
+
     /* --- 3. HEADER --- */
     header { height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; z-index: 3000; position: fixed; top: 0; left: 0; right: 0; transition: transform 0.3s ease; }
     header.hidden-header { transform: translateY(-100%); } 
@@ -185,129 +197,98 @@ HTML_TEMPLATE = """
 
     /* --- 4. CHAT AREA --- */
     #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 90px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
-    .input-wrapper { background: var(--bg); padding: 15px; border-top: 1px solid var(--border); flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); display:none;}
+    
+    /* --- FIX: INPUT WRAPPER HIDDEN INITIALLY --- */
+    .input-wrapper { 
+        background: var(--bg); padding: 15px; border-top: 1px solid var(--border); 
+        flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
+        display: none; /* 👇 Hidden by default */
+    }
     .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
-    
-    textarea { 
-        flex: 1; background: transparent; border: none; color: var(--text); 
-        font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif;
-        height: auto; max-height: 150px; overflow-y: auto; 
-    }
+    textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; height: auto; max-height: 150px; overflow-y: auto; }
 
-    /* --- 5. SIDEBAR (Fixed Portrait Mode) --- */
-    #sidebar { 
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; 
-        /* 👇 இடைவெளி குறைக்கப்பட்டுள்ளது (80px -> 50px) */
-        padding: 25px; padding-top: 50px; 
-        transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
-        display: flex; flex-direction: column; overflow-y: auto; 
-    }
+    /* --- 5. SIDEBAR (Fixed Design) --- */
+    #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 50px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
     #sidebar.open { transform: translateY(0); }
-    
-    /* Profile Section (Hi User) */
-    #sidebar > div:first-child { 
-        margin-bottom: 15px; flex-shrink: 0; 
-        /* மேலே ஒட்டாமல் இருக்க */
-        margin-top: 10px; 
-    }
-    /* History Items Styles */
+    #sidebar > div:first-child { margin-bottom: 15px; flex-shrink: 0; margin-top: 10px; }
     .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); transition: background 0.2s; }
     .history-item:active { transform: scale(0.98); }
-    
-    /* 👇 Rename & Delete Icons Spacing (அழகாக இருக்க) */
-    .h-actions { display: flex; gap: 15px; } 
+    .h-actions { display: flex; gap: 15px; }
+    #history-list { flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; }
+    #sidebar > div:last-child { flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border); }
 
-    /* History List - Auto Height */
-    #history-list {
-        flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; 
-    }
-
-    /* Settings Area (Bottom) */
-    #sidebar > div:last-child {
-        flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border);
-    }
-
-    /* --- 6. OVERLAYS & FORMS --- */
+    /* --- 6. OVERLAYS (Fixed: Transparent & Smooth) --- */
     .overlay { 
-        position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
-        display: flex; flex-direction: column; 
-        align-items: center; 
-        justify-content: flex-start; 
-        padding-top: 0; 
-        overflow-y: auto; 
-        animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        opacity: 0; /* ஆரம்பத்துல மறைஞ்சிருக்கும் */
-        visibility: hidden;
+        position: fixed; inset: 0; z-index: 2000; 
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
+        padding-top: 0; overflow-y: auto; 
+        background: transparent !important; /* Transparent for global BG */
+        opacity: 0; visibility: hidden;
         transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .overlay:not(.hidden) {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-    }
-    #welcome-overlay { 
-        justify-content: center; 
-        padding-top: 0 !important; 
-        display: none; /* Fixed: Prevents glitch on load */
-    }
+    .overlay:not(.hidden) { opacity: 1; visibility: visible; transform: translateY(0); }
+    .overlay.hidden { opacity: 0; visibility: hidden; transform: translateY(15px); pointer-events: none; display: flex !important; }
 
-    #name-overlay, #details-overlay {
-        padding-top: 140px; 
-    }
-    .overlay.hidden { 
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(15px); /* லேசா கீழ போகும் */
-        pointer-events: none;
-        display: flex !important; /* Display none பண்ணாம opacity வச்சு விளையாடுறோம் */
-     }
+    #welcome-overlay { justify-content: center; padding-top: 0 !important; }
+    #name-overlay, #details-overlay { padding-top: 140px; }
 
+    /* --- FIX: GLASSMORPHISM BOXES --- */
     .data-box { 
-        width: 90%; max-width: 350px; background: var(--card); 
-        border: 1px solid var(--border); border-radius: 20px; 
-        padding: 20px; 
-        display:flex; flex-direction:column; gap:12px; 
-        margin: 0; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-        animation: fadeInUp 0.6s ease-out; 
+        width: 90%; max-width: 350px; 
+        background: rgba(255, 255, 255, 0.05); /* Very light glass */
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 20px; padding: 20px; 
+        display:flex; flex-direction:column; gap:12px; margin: 0; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
     }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-    .welcome-container { 
-        width: 100%; max-width: 400px; text-align: center; 
-        margin: 0 auto; margin-top: 30px; padding: 0 30px; 
-        animation: fadeIn 1s ease-out; 
-    }
+    
+    .welcome-container { width: 100%; max-width: 400px; text-align: center; margin: 0 auto; margin-top: 30px; padding: 0 30px; }
+    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; color: var(--text); }
+    
+    /* Intro Title specifically White */
+    #welcome-overlay .welcome-title { color: #ffffff !important; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    #welcome-overlay p { color: #e4e4e7 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
     /* --- 7. INPUTS & BUTTONS --- */
     .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
-    input, select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none; }
-    select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 15px; }
-    
-    .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-
-    .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--btn-bg); color: var(--btn-text); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
-    .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
-    
-    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: none;-webkit-text-fill-color: initial;color: var(--text); /* தீம் படி மாறும் (Light->Black, Dark->White) */
+    input, select { 
+        width: 100%; padding: 12px; border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none;
+        background: rgba(255, 255, 255, 0.08) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #fff !important; 
+        backdrop-filter: blur(5px);
     }
-    #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #fff; color: #000; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
+    .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
 
-    /* --- 8. SETTINGS & CHAT BUBBLES --- */
+    /* --- 8. SETTINGS & PROFILE --- */
+    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border); width: 100%; position: relative; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
     .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
     .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
-    
     .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
     .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
     .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
     .divider { height:1px; background: var(--border); width:100%; }
+
+    /* --- 9. LANDSCAPE FIXES --- */
+    @media (orientation: landscape) {
+        #sidebar { padding-top: 10px !important; padding-bottom: 10px !important; }
+        #sidebar > div:first-child { margin-top: 0 !important; margin-bottom: 10px !important; display: flex; align-items: center; justify-content: space-between; }
+        #sidebar .submit-btn { width: auto !important; min-width: 120px; max-width: 200px; display: block !important; margin: 0 auto 15px auto !important; padding: 10px 20px !important; font-size: 14px !important; }
+        #sidebar > div:nth-child(3) { margin-top: 15px !important; margin-bottom: 10px !important; }
+        #history-list { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--border); }
+        #sidebar > div:last-child { padding-top: 5px !important; margin-top: 0 !important; }
+    }
     
+    /* Other utilities */
+    .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
     .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
     .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
-    
     .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
     @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
@@ -320,129 +301,18 @@ HTML_TEMPLATE = """
     @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
     #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
     .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; } .preview-img { width:100%; height:100%; object-fit:cover; }
-    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;padding-bottom: 15px;border-bottom: 1px solid var(--border);width: 100%; /* லைன் முழு நீளத்துக்கு வரும் */ position: relative; }
-    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; }
     .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
-    
-    /* Active Theme Button */
-    .icon-btn.active {
-        background: var(--text) !important; color: var(--bg) !important; border: 1px solid var(--text) !important;
-        transform: scale(1.1); font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-
-    /* --- 9. LANDSCAPE MODE FIX (Bug Fix) --- */
-    @media (orientation: landscape) {
-        #sidebar {
-            padding-top: 10px !important; padding-bottom: 10px !important;
-        }
-        
-        /* Profile Section - Row Layout */
-        #sidebar > div:first-child {
-            margin-top: 0 !important; margin-bottom: 10px !important;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-
-        /* 👇 New Chat Button - Small & Cute */
-        #sidebar .submit-btn {
-            width: auto !important; 
-            min-width: 120px;
-            max-width: 200px;
-            margin: 0 auto 15px auto !important; 
-            padding: 10px 20px !important; 
-            font-size: 14px !important; 
-            display: block important;
-        }
-        /* 👇 Gap between Button and "Chat History" Text */
-        #sidebar > div:nth-child(3) { 
-            margin-top: 15px !important; /* நல்ல இடைவெளி */
-            margin-bottom: 10px !important;
-        }
-
-        /* History List Box */
-        #history-list {
-            background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--border);
-        }
-        
-        /* Settings Footer */
-        #sidebar > div:last-child { padding-top: 5px !important; margin-top: 0 !important; border-top: 1px solid var(--border); }
-    }
-
-    /* --- 10. ANIMATED AURORA BACKGROUND --- */
-    .animated-bg-overlay {
-        background: #09090b; overflow: hidden;
-        background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
-        background-size: cover;
-        background-attachment: fixed; /* இதுதான் மேட்டர்! */
-        height: 100%; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
-        top: 0; left: 0; width: 100%; z-index: -1; position: fixed;
-        .overlay {
-        background: transparent !important; /* பின்னணி தெரிய வேண்டும் */
-    }
-    
-    }
-    #welcome-overlay .welcome-title {
-        background: none;
-        -webkit-text-fill-color: initial;
-        color: #ffffff !important; /* வெள்ளையா ஜொலிக்கும் */
-        text-shadow: 0 4px 10px rgba(0,0,0,0.5); /* இன்னும் பிரகாசமா தெரிய */
-    }
-
-    .bg-blob {
-        position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; z-index: -1;
-        animation: moveBlob infinite alternate ease-in-out;
-    }
-    .blob-pink {
-        top: -10%; left: -10%; width: 40vmax; height: 40vmax; background: #ff00cc; animation-duration: 20s;
-    }
-    .blob-blue {
-        bottom: -10%; right: -10%; width: 35vmax; height: 35vmax; background: #00dbde; animation-duration: 15s; animation-delay: -5s;
-    }
-    .blob-white {
-        top: 50%; left: 50%; width: 20vmax; height: 20vmax; background: #ffffff; opacity: 0.2; animation-duration: 25s; transform: translate(-50%, -50%);
-    }
-
-    @keyframes moveBlob {
-        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-        50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); }
-        100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); }
-    }
-
-    /* --- 11. FINAL DESIGN FIX: TRANSPARENT & SMOOTH --- */
-    .animated-bg-overlay .data-box, 
-    .animated-bg-overlay .welcome-container {
-        background: transparent !important; box-shadow: none !important; border: none !important; backdrop-filter: none !important;
-    }
-
-    .animated-bg-overlay input,
-    .animated-bg-overlay select,
-    .animated-bg-overlay .submit-btn,
-    .animated-bg-overlay .get-started-btn {
-        background: rgba(255, 255, 255, 0.08) !important; backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
-        color: #fff !important;
-    }
-
-    .animated-bg-overlay h1, 
-    .animated-bg-overlay h2, 
-    .animated-bg-overlay p, 
-    .animated-bg-overlay span {
-        text-shadow: 0 2px 4px rgba(0,0,0,0.6); color: #fff !important;
-    }
-
-    @keyframes smoothPopUp {
-        from { opacity: 0; transform: translateY(40px) scale(0.95); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-</style>
-    
-    </head>
+    .icon-btn.active { background: var(--text) !important; color: var(--bg) !important; border: 1px solid var(--text) !important; transform: scale(1.1); font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+    </style>
+</head>
 <body>
+    <div class="global-bg">
+        <div class="bg-blob blob-pink"></div>
+        <div class="bg-blob blob-blue"></div>
+        <div class="bg-blob blob-white"></div>
+    </div>
+
     <div id="custom-modal">
-    <div class="animated-bg-overlay global-bg">
-    <div class="bg-blob blob-pink"></div>
-    <div class="bg-blob blob-blue"></div>
-    <div class="bg-blob blob-white"></div>
-</div>
         <div class="modal-box">
             <h3 id="modal-title" style="margin:0 0 10px 0; color:var(--text);">Alert</h3>
             <input type="text" id="modal-input" style="display:none; margin-top:10px;" placeholder="Enter text...">
@@ -453,10 +323,7 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="welcome-overlay" class="overlay animated-bg-overlay">
-        <div class="bg-blob blob-pink"></div>
-        <div class="bg-blob blob-blue"></div>
-        <div class="bg-blob blob-white"></div>
+    <div id="welcome-overlay" class="overlay">
         <div class="welcome-container">
             <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
             <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects.</p>
@@ -464,21 +331,15 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="name-overlay" class="overlay hidden animated-bg-overlay">
-            <div class="bg-blob blob-pink"></div>
-            <div class="bg-blob blob-blue"></div>
-            <div class="bg-blob blob-white"></div>
-            <div class="data-box">
+    <div id="name-overlay" class="overlay hidden">
+        <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="text" id="username-input" autocomplete="off" placeholder="Enter your Name"  onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
+            <input type="text" id="username-input" name="student_name_field_v2" autocomplete="off" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
             <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
         </div>
     </div>
 
-    <div id="details-overlay" class="overlay hidden animated-bg-overlay">
-        <div class="bg-blob blob-pink"></div>
-        <div class="bg-blob blob-blue"></div>
-        <div class="bg-blob blob-white"></div>
+    <div id="details-overlay" class="overlay hidden">
         <div class="data-box">
             <h2 style="color:var(--text); margin:0 0 5px 0; font-family:'Outfit',sans-serif;">Student Details</h2>
             <span class="form-label">Education Level</span>
@@ -496,12 +357,12 @@ HTML_TEMPLATE = """
                 <select id="edu-sem" onfocus="clearError(this)"><option value="" disabled selected>Select Semester</option></select>
             </div>
             <span class="form-label">Main Subject</span>
-            <input type="text" id="edu-subject" autocomplete="off" placeholder="Ex: Maths, CS..."  onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
+            <input type="text" id="edu-subject" name="student_subject_field_v2" autocomplete="off" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
             <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
         </div>
     </div>
 
-    <div id="settings-overlay" class="overlay hidden">
+    <div id="settings-overlay" class="overlay hidden" style="background:var(--bg) !important;">
         <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px; margin-top:20px;">
             <div class="nav-back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i> Back</div>
         </div>
@@ -526,11 +387,11 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="profile-overlay" class="overlay hidden">
+    <div id="profile-overlay" class="overlay hidden" style="background:var(--bg) !important;">
         <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px; margin-top:20px;">
             <div class="nav-back-btn" onclick="backToSettings()"><i class="fas fa-arrow-left"></i> Back</div>
         </div>
-        <div class="data-box profile-box" style="margin-top:5px;">
+        <div class="data-box profile-box" style="margin-top:5px; background:var(--card) !important; backdrop-filter:none;">
             <div class="profile-header">
                 <div class="profile-avatar">
                     <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;">
@@ -544,7 +405,7 @@ HTML_TEMPLATE = """
             <span class="form-label" id="lbl-year-display">Class/Year</span> <div class="profile-val" id="p-year">--</div>
             <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;"><span class="form-label">Semester</span><div class="profile-val" id="p-sem" style="margin-top:2px;">--</div></div>
             <span class="form-label">Subject (Tap to Edit)</span>
-            <input type="text" id="p-subj-edit" value="" onkeydown="handleSubjectKey(event)">
+            <input type="text" id="p-subj-edit" value="" style="background:var(--input-bg) !important; color:var(--text) !important;" onkeydown="handleSubjectKey(event)">
             <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
             <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
         </div>
@@ -589,7 +450,7 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:center;">Hi ${name},</div><p style="color:var(--dim); text-align:center;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
         }
 
-        /* --- FIX 1: Login Check Logic (No Glitch) --- */
+        /* --- FIX: Default System Theme & Logic --- */
         function checkLogin() {
              const t = localStorage.getItem("student_theme") || 'system'; 
              setTheme(t);
@@ -597,64 +458,60 @@ HTML_TEMPLATE = """
              const u = localStorage.getItem("student_ai_user");
              const c = localStorage.getItem("student_ai_context");
     
-        if(u) {
-        // User Login ஆகி இருந்தால்
-             currentUser = u;
-        // Intro-வை காட்டவே வேண்டாம் (Already hidden in CSS)
-        
-       if(c) {
-            userContext = c;
-            // மத்த எல்லா Overlay-ையும் மறைச்சிடலாம்
-            document.getElementById('name-overlay').style.display = 'none';
-            document.getElementById('details-overlay').style.display = 'none';
-            showApp();
-        } else {
-            // பெயர் இருக்கு, ஆனா டீடைல்ஸ் இல்லை
-            document.getElementById('name-overlay').style.display = 'none';
-            const sel = document.getElementById('details-overlay');
-            sel.classList.remove('hidden'); 
-            sel.style.display = 'flex';
+             if(u) {
+                 currentUser = u;
+                 if(c) {
+                    userContext = c;
+                    document.getElementById('name-overlay').style.display = 'none';
+                    document.getElementById('details-overlay').style.display = 'none';
+                    showApp();
+                 } else {
+                    document.getElementById('name-overlay').style.display = 'none';
+                    const sel = document.getElementById('details-overlay');
+                    sel.classList.remove('hidden'); sel.style.display = 'flex';
+                 }
+             } else {
+                 document.getElementById('main-header').classList.add('hidden-header');
+                 const welcome = document.getElementById('welcome-overlay');
+                 welcome.classList.remove('hidden'); welcome.style.display = 'flex';
+                 history.replaceState({step: 'welcome'}, null, null);
+             }
         }
-    } else {
-        // User Login ஆகவில்லை என்றால் மட்டும் Intro-வை காட்டு
-        document.getElementById('main-header').classList.add('hidden-header');
-        
-        // 👇 இப்போ தான் Intro-வை ஷோ பண்றோம் (JS வழியா)
-        const welcome = document.getElementById('welcome-overlay');
-        welcome.classList.remove('hidden');
-        welcome.style.display = 'flex'; // Show Intro
-        
-        history.replaceState({step: 'welcome'}, null, null);
-    }
-}
 
-/* --- FIX 2: Smooth Logout (No Loading Box) --- */
-    /* --- FIX: SMOOTH LOGOUT (No Loading Bar, No Chat Flash) --- */
+        /* --- FIX: Smooth Logout (No Reload) --- */
         function handleLogout() {
-           // 1. எல்லா Overlay-யையும் உடனே மறைக்கிறோம்
-           document.getElementById('profile-overlay').style.display = 'none';
-           document.getElementById('settings-overlay').style.display = 'none';
-           document.getElementById('details-overlay').style.display = 'none';
-           document.getElementById('name-overlay').style.display = 'none';
-           document.getElementById('sidebar').classList.remove('open');
-    
-           // 2. Chat Header-ஐ மறைக்கிறோம்
-           document.getElementById('main-header').classList.add('hidden-header');
+            document.getElementById('profile-overlay').style.display = 'none';
+            document.getElementById('settings-overlay').style.display = 'none';
+            document.getElementById('details-overlay').style.display = 'none';
+            document.getElementById('name-overlay').style.display = 'none';
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('main-header').classList.add('hidden-header');
+            
+            // Hide Chat Bar
+            document.querySelector('.input-wrapper').style.display = 'none';
+            document.getElementById('chat-box').innerHTML = '';
 
-           // 3. User Data-வை அழிக்கிறோம்
-           localStorage.clear();
-           currentUser = null;
-           userContext = "";
-           currentChatId = null;
+            localStorage.clear();
+            currentUser = null; userContext = ""; currentChatId = null;
 
-           // 4. Welcome Page-ஐ ரீஃப்ரெஷ் ஆகாமலேயே காட்டுகிறோம்
-           const welcome = document.getElementById('welcome-overlay');
-           welcome.classList.remove('hidden');
-           welcome.style.display = 'flex';
-    
-           // 5. History State-ஐ ரீசெட் செய்கிறோம்
-           history.replaceState({step: 'welcome'}, null, null);
+            const welcome = document.getElementById('welcome-overlay');
+            welcome.classList.remove('hidden'); welcome.style.display = 'flex';
+            history.replaceState({step: 'welcome'}, null, null);
         }
+
+        function showApp() {
+            // 👇 Show Chat Bar only when App starts
+            document.querySelector('.input-wrapper').style.display = 'block';
+
+            document.getElementById('display-name').innerText = currentUser;
+            document.getElementById('main-header').classList.remove('hidden-header');
+            loadHistory();
+            if(!currentChatId && !document.getElementById('intro-container')) {
+                document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
+            }
+            updateSidebarPic();
+        }
+
         function clearError(input) { input.classList.remove('input-error'); }
         
         function showNameBox() { 
@@ -728,15 +585,6 @@ HTML_TEMPLATE = """
             showApp();
         }
 
-        function showApp() {
-            document.getElementById('display-name').innerText = currentUser;
-            document.getElementById('main-header').classList.remove('hidden-header');
-            loadHistory();
-            if(!currentChatId && !document.getElementById('intro-container')) {
-                document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
-            }
-            updateSidebarPic();
-        }
         function updateSidebarPic() {
             const pic = localStorage.getItem("student_profile_pic");
             if(pic) {
@@ -840,14 +688,9 @@ HTML_TEMPLATE = """
              if(t === 'light') document.documentElement.setAttribute('data-theme', 'light');
              else if(t === 'dark') document.documentElement.removeAttribute('data-theme');
              else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
-             // 2. Button Highlight Logic (Pudhu Code)
-             // Ellathayum normal aakidu
              document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
-    
-             // Click panna button-a mattum Highlight pannu
              const activeBtn = document.getElementById('theme-' + t);
              if(activeBtn) activeBtn.classList.add('active');
-
         }
         
         function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'flex' : 'none'; }
@@ -984,64 +827,41 @@ HTML_TEMPLATE = """
         function clearAttachment() { currentAttachment=null; document.getElementById('preview-area').style.display='none'; document.getElementById('file-input').value=""; }
         const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
         if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
-        // --- FIX 2: BACK BUTTON HANDLER ---
-        /* --- FIX: BACK BUTTON HANDLER (Intro flow & Overlays) --- */
-window.addEventListener('popstate', function(event) {
-    // 1. Sidebar திறந்திருந்தால் மூடு
-    if(document.getElementById('sidebar').classList.contains('open')) {
-        document.getElementById('sidebar').classList.remove('open');
-        return;
-    }
+        
+        window.addEventListener('popstate', function(event) {
+            if(document.getElementById('sidebar').classList.contains('open')) {
+                document.getElementById('sidebar').classList.remove('open'); return;
+            }
+            const overlays = ['profile-overlay', 'settings-overlay'];
+            for (let id of overlays) {
+                let el = document.getElementById(id);
+                if (el && el.style.display !== 'none') {
+                    if (id === 'profile-overlay') backToSettings(); 
+                    else closeSettings(); 
+                    return;
+                }
+            }
+            const step = event.state ? event.state.step : 'welcome';
+            document.getElementById('welcome-overlay').style.display = 'none';
+            document.getElementById('name-overlay').style.display = 'none';
+            document.getElementById('details-overlay').style.display = 'none';
 
-    // 2. Settings / Profile திறந்திருந்தால் மூடு
-    const profile = document.getElementById('profile-overlay');
-    const settings = document.getElementById('settings-overlay');
-    
-    if (profile && profile.style.display !== 'none') {
-        backToSettings(); // Profile -> Settings
-        return;
-    }
-    if (settings && settings.style.display !== 'none') {
-        closeSettings(); // Settings -> Main App
-        return;
-    }
-
-    // 3. Login / Intro Flow Handling (முக்கியமான மாற்றம்)
-    const step = event.state ? event.state.step : 'welcome'; // ஸ்டேட் இல்லனா வெல்கம் பேஜ்
-    
-    // எல்லா பாக்ஸையும் முதல்ல மறைப்போம்
-    document.getElementById('welcome-overlay').style.display = 'none';
-    document.getElementById('name-overlay').style.display = 'none';
-    document.getElementById('details-overlay').style.display = 'none';
-
-    if (step === 'details') {
-        // Details-ல இருந்தா அதை காட்டு
-        const details = document.getElementById('details-overlay');
-        details.classList.remove('hidden');
-        details.style.display = 'flex';
-    } else if (step === 'name') {
-        // Name-ல இருந்தா அதை காட்டு
-        const nameBox = document.getElementById('name-overlay');
-        nameBox.classList.remove('hidden');
-        nameBox.style.display = 'flex';
-    } else if (step === 'welcome') {
-        // Welcome-ல இருந்தா (அல்லது ஆரம்பம்) அதை காட்டு
-        const welcome = document.getElementById('welcome-overlay');
-        welcome.classList.remove('hidden');
-        welcome.style.display = 'flex';
-    }
-    // Note: Main App வந்த பிறகு பேக் அமுக்கினால் ஆப் மூடும் (Browser Default).
-});
+            if (step === 'details') {
+                const details = document.getElementById('details-overlay');
+                details.classList.remove('hidden'); details.style.display = 'flex';
+            } else if (step === 'name') {
+                const nameBox = document.getElementById('name-overlay');
+                nameBox.classList.remove('hidden'); nameBox.style.display = 'flex';
+            } else {
+                const welcome = document.getElementById('welcome-overlay');
+                welcome.classList.remove('hidden'); welcome.style.display = 'flex';
+            }
+        });
 
         checkLogin();
     </script>
 </body>
 </html>
-"""
-"""📂 PART 3: Server & Routes
-(Flask Routes, Main execution block)
-
-Python
 """
 # --- ROUTES ---
 @app.route("/", methods=["GET"])
@@ -1129,4 +949,3 @@ def manifest():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
-  
