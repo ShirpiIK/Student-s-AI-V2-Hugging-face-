@@ -227,8 +227,15 @@ HTML_TEMPLATE = """
         padding-top: 0; 
         overflow-y: auto; 
         animation: smoothPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0; /* ஆரம்பத்துல மறைஞ்சிருக்கும் */
+        visibility: hidden;
+        transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    
+    .overlay:not(.hidden) {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
     #welcome-overlay { 
         justify-content: center; 
         padding-top: 0 !important; 
@@ -238,7 +245,13 @@ HTML_TEMPLATE = """
     #name-overlay, #details-overlay {
         padding-top: 140px; 
     }
-    .overlay.hidden { display: none !important; }
+    .overlay.hidden { 
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(15px); /* லேசா கீழ போகும் */
+        pointer-events: none;
+        display: flex !important; /* Display none பண்ணாம opacity வச்சு விளையாடுறோம் */
+     }
 
     .data-box { 
         width: 90%; max-width: 350px; background: var(--card); 
@@ -268,7 +281,8 @@ HTML_TEMPLATE = """
     .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--btn-bg); color: var(--btn-text); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
     .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
     
-    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; background: none;-webkit-text-fill-color: initial;color: var(--text); /* தீம் படி மாறும் (Light->Black, Dark->White) */
+    }
     #intro-container { margin: auto; width: 100%; padding: 0 25px; text-align: center; pointer-events: none; animation: fadeIn 0.8s ease-out; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -333,6 +347,15 @@ HTML_TEMPLATE = """
     .animated-bg-overlay {
         background: #09090b; overflow: hidden;
         background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
+        background-size: cover;
+        background-attachment: fixed; /* இதுதான் மேட்டர்! */
+        height: 100vh; /* dvh வேணாம், vh யூஸ் பண்ணா சுருங்காது */
+    }
+    #welcome-overlay .welcome-title {
+        background: none;
+        -webkit-text-fill-color: initial;
+        color: #ffffff !important; /* வெள்ளையா ஜொலிக்கும் */
+        text-shadow: 0 4px 10px rgba(0,0,0,0.5); /* இன்னும் பிரகாசமா தெரிய */
     }
 
     .bg-blob {
@@ -534,8 +557,8 @@ HTML_TEMPLATE = """
 
         /* --- FIX 1: Login Check Logic (No Glitch) --- */
         function checkLogin() {
-             const t = localStorage.getItem("student_theme"); 
-             if(t) setTheme(t);
+             const t = localStorage.getItem("student_theme") || 'system'; 
+             setTheme(t);
     
              const u = localStorage.getItem("student_ai_user");
              const c = localStorage.getItem("student_ai_context");
