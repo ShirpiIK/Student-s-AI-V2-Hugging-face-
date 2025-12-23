@@ -217,7 +217,7 @@ HTML_TEMPLATE = """
 
     /* --- 6. OVERLAYS (Fixed Transparent) --- */
     .overlay { 
-        position: fixed; inset: 0; z-index: 9999; 
+        position: fixed; inset: 0; z-index: 6000; 
         display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
         padding-top: 0; overflow-y: auto; 
         background: transparent !important; /* Shows Global BG */
