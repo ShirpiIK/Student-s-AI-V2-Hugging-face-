@@ -211,20 +211,27 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
-        /* --- REPLACE THIS #onboarding-overlay BLOCK --- */
+        /* --- PREMIUM PURPLE & TEAL GRADIENT (Matches Screenshot) --- */
         #onboarding-overlay { 
             position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
             
-            /* ✨ DARK & RICH COLOURS (Updated) ✨ */
-            background-color: #05050a; /* Darker Base */
+            /* ✨ BACKGROUND COLORS ✨ */
+            background-color: #09090b; /* Base Dark */
             background-image: 
-                /* Blue Splash (Top Left) - Stronger (0.6 opacity) */
-                radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.6), transparent 60%), 
-                /* Purple Splash (Bottom Right) - Stronger (0.6 opacity) */
-                radial-gradient(circle at 100% 100%, rgba(126, 34, 206, 0.6), transparent 60%);
+                /* Top Purple Glow */
+                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.5), transparent 70%), 
+                /* Bottom Teal Glow */
+                radial-gradient(circle at 50% 100%, rgba(8, 145, 178, 0.5), transparent 70%);
             background-attachment: fixed;
+        }
+        
+        /* Blur Effect for Smoothness */
+        #onboarding-overlay::before {
+            content: ""; position: absolute; inset: 0;
+            backdrop-filter: blur(30px);
+            z-index: -1;
         }
         
         .wizard-container {
