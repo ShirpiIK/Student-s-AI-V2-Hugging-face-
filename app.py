@@ -217,9 +217,29 @@ HTML_TEMPLATE = """
         }
         #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
         
+        /* --- REPLACE THIS .wizard-container BLOCK --- */
         .wizard-container {
             width: 90%; max-width: 450px; text-align: center;
-            /* Center vertically and horizontally */
+            /* Fix for Issue 1: Absolute Center & Keyboard Stability */
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            z-index: 2001; /* Ensure it stays on top */
+        }
+
+        /* --- ADD THESE NEW STYLES FOR ERROR & SHAKE (Issue 4) --- */
+        .input-error {
+            border: 2px solid #ef4444 !important; /* Red Border */
+            background: #2a0b0b !important;
+            color: #ffcccc !important;
+            transition: 0.2s;
+        }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
         
         /* WIZARD STEPS */
@@ -325,6 +345,17 @@ HTML_TEMPLATE = """
                         <option value="3rd Year">3rd Year</option>
                         <option value="4th Year">4th Year</option>
                     </select>
+                    <select id="college-sem" class="dropdown-select">
+                        <option value="" disabled selected>Select Semester</option>
+                        <option value="Sem 1">Semester 1</option>
+                        <option value="Sem 2">Semester 2</option>
+                        <option value="Sem 3">Semester 3</option>
+                        <option value="Sem 4">Semester 4</option>
+                        <option value="Sem 5">Semester 5</option>
+                        <option value="Sem 6">Semester 6</option>
+                        <option value="Sem 7">Semester 7</option>
+                        <option value="Sem 8">Semester 8</option>
+                    </select>
                 </div>
 
                 <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;">
@@ -380,16 +411,55 @@ HTML_TEMPLATE = """
         let currentAttachment = { type: null, data: null };
 
         // --- WIZARD LOGIC ---
-        function nextStep(step) {
-            // Validation
-            if(step === 3) {
-                const name = document.getElementById('name-input').value.trim();
-                if(!name) { alert("Please enter your name"); return; }
-                currentUser = name;
+        // --- UPDATED NEXT STEP (Fixes Back Button & Validation) ---
+        function nextStep(targetStep) {
+            // Validation Logic (Professional Red Error)
+            let valid = true;
+            let errorElement = null;
+
+            if (targetStep === 3) { // Going from Name -> Details
+                const nameInput = document.getElementById('name-input');
+                const name = nameInput.value.trim();
+                if (!name) {
+                    valid = false;
+                    errorElement = nameInput;
+                } else {
+                    currentUser = name;
+                }
             }
+
+            if (!valid && errorElement) {
+                // Trigger Error Effect (Red + Shake)
+                errorElement.classList.add('input-error', 'shake');
+                setTimeout(() => errorElement.classList.remove('shake'), 500);
+                errorElement.addEventListener('input', function() {
+                    this.classList.remove('input-error'); // Type panna error pogum
+                }, {once: true});
+                return; // Stop navigation
+            }
+
+            // Back Button Logic (Push History)
+            if (targetStep > 1) {
+                history.pushState({ step: targetStep }, null, "");
+            }
+
+            // Show Next Step
             document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + step).classList.add('active');
+            document.getElementById('step-' + targetStep).classList.add('active');
         }
+
+        // --- NEW: HANDLE BROWSER BACK BUTTON ---
+        window.onpopstate = function(event) {
+            if (event.state && event.state.step) {
+                // Go to specific step if in history
+                document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                document.getElementById('step-' + event.state.step).classList.add('active');
+            } else {
+                // If no state (Start), go to Step 1
+                document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                document.getElementById('step-1').classList.add('active');
+            }
+        };
 
         function toggleType(type) {
             userDetails.type = type;
@@ -405,25 +475,53 @@ HTML_TEMPLATE = """
             }
         }
 
+        // --- UPDATED FINISH SETUP (Includes Semester & Validation) ---
         function finishSetup() {
-            // Collect Data
+            // Reset previous errors
+            document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+
+            let valid = true;
             userDetails.name = currentUser;
-            userDetails.subject = document.getElementById('subject-input').value;
-            
+            const subInput = document.getElementById('subject-input');
+            userDetails.subject = subInput.value.trim();
+
+            // Validate Subject (Optional - remove if not needed, but good for UX)
+            // if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
+
             if(userDetails.type === 'school') {
-                userDetails.standard = document.getElementById('school-std').value;
-                if(!userDetails.standard) { alert("Please select a standard"); return; }
+                const stdInput = document.getElementById('school-std');
+                userDetails.standard = stdInput.value;
+                if(!userDetails.standard) { 
+                    stdInput.classList.add('input-error', 'shake'); valid = false; 
+                }
             } else {
-                userDetails.dept = document.getElementById('college-dept').value;
-                userDetails.year = document.getElementById('college-year').value;
-                if(!userDetails.dept || !userDetails.year) { alert("Please select Department and Year"); return; }
+                const deptInput = document.getElementById('college-dept');
+                const yearInput = document.getElementById('college-year');
+                const semInput = document.getElementById('college-sem'); // New Semester
+
+                userDetails.dept = deptInput.value;
+                userDetails.year = yearInput.value;
+                userDetails.sem = semInput.value;
+
+                if(!userDetails.dept) { deptInput.classList.add('input-error', 'shake'); valid = false; }
+                if(!userDetails.year) { yearInput.classList.add('input-error', 'shake'); valid = false; }
+                if(!userDetails.sem) { semInput.classList.add('input-error', 'shake'); valid = false; }
             }
 
-            // Save to Storage
+            if (!valid) {
+                // Remove shake after animation
+                setTimeout(() => document.querySelectorAll('.shake').forEach(el => el.classList.remove('shake')), 500);
+                // Remove red border on change
+                document.querySelectorAll('.input-error').forEach(el => {
+                    el.addEventListener('change', function() { this.classList.remove('input-error'); }, {once:true});
+                });
+                return;
+            }
+
+            // Save & Close
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
 
-            // Close Overlay
             const overlay = document.getElementById("onboarding-overlay");
             overlay.classList.add('hidden');
             setTimeout(() => overlay.style.display = 'none', 600);
