@@ -413,11 +413,21 @@ HTML_TEMPLATE = """
                     </select>
                 </div>
 
-                <input type="search" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" 
-                       style="padding: 15px; margin-bottom: 15px;" 
-                       autocomplete="off" readonly autocorrect="off" onfocus="this.removeAttribute('readonly');" spellcheck="false" inputmode="text" 
-                       onkeydown="if(event.key==='Enter') finishSetup()">
-                
+                <input 
+    type="search" 
+    id="subject-input" 
+    name="unique_subject_field_no_autofill" 
+    class="input-field" 
+    placeholder="Enter Subject (e.g. Math, Python)" 
+    style="padding: 15px; margin-bottom: 15px;" 
+    autocomplete="off" 
+    autocorrect="off" 
+    autocapitalize="off" 
+    spellcheck="false" 
+    readonly 
+    onfocus="this.removeAttribute('readonly');" 
+    onkeydown="if(event.key==='Enter') finishSetup()"
+>
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
 
