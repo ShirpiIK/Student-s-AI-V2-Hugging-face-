@@ -569,6 +569,30 @@ HTML_TEMPLATE = """
         <div id="chat-box"></div>
 
         <div class="input-wrapper">
+            <div id="preview-box" style="display:none; padding:10px 15px; background:var(--bg); border-top:1px solid var(--border);">
+            <div style="position:relative; display:inline-block;">
+                <img id="preview-img" style="width:60px; height:60px; border-radius:8px; object-fit:cover; border:1px solid #444;">
+                <div onclick="clearFile()" style="position:absolute; top:-8px; right:-8px; background:red; color:fff; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;">×</div>
+            </div>
+        </div>
+
+        <div id="attach-menu" style="display:none; position:absolute; bottom:75px; left:15px; background:#1a1a1a; border:1px solid #333; border-radius:16px; padding:8px; flex-direction:column; width:160px; z-index:100; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            
+            <label style="padding:12px; display:flex; align-items:center; gap:12px; color:#fff; cursor:pointer; font-size:14px;">
+                <i class="fas fa-camera" style="color:#00d2ff;"></i> Camera 
+                <input type="file" hidden accept="image/*" capture="environment" onchange="handleFile(this)">
+            </label>
+            
+            <label style="padding:12px; display:flex; align-items:center; gap:12px; color:#fff; cursor:pointer; font-size:14px;">
+                <i class="fas fa-image" style="color:#bf5af2;"></i> Gallery 
+                <input type="file" hidden accept="image/*" onchange="handleFile(this)">
+            </label>
+            
+            <label style="padding:12px; display:flex; align-items:center; gap:12px; color:#fff; cursor:pointer; font-size:14px;">
+                <i class="fas fa-file-pdf" style="color:#ff3b30;"></i> File 
+                <input type="file" hidden accept="application/pdf" onchange="handleFile(this)">
+            </label>
+        </div>
             <div class="input-container">
             <div class="plus-btn" onclick="toggleAttachMenu()">
                 <i class="fas fa-plus"></i> 
