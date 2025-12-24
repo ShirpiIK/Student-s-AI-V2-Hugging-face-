@@ -343,8 +343,12 @@ HTML_TEMPLATE = """
                         <option value="1st Year">1st Year</option>
                         <option value="2nd Year">2nd Year</option>
                         <option value="3rd Year">3rd Year</option>
+                        
                         <option value="4th Year">4th Year</option>
+                        </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
+                
                     </select>
+                
 
                     
                     <select id="college-sem" class="dropdown-select">
@@ -360,8 +364,8 @@ HTML_TEMPLATE = """
                     </select>
                 </div>
 
-                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
-                    
+                
+                <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;">    
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
 
