@@ -445,6 +445,23 @@ HTML_TEMPLATE = """
         .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 30%, 70% { transform: translate3d(-4px, 0, 0); } 50% { transform: translate3d(4px, 0, 0); } }
 
+        /* --- NEW FONT SIZE UPDATE --- */
+    .msg-bubble { 
+        padding: 14px 20px !important; /* பெட்டி அளவு */
+        border-radius: 18px; 
+        font-size: 18px !important; /* 👇 எழுத்து அளவு 18px ஆக மாற்றப்பட்டது */
+        line-height: 1.8 !important; /* வரிகளுக்கு இடையே இடைவெளி */
+        max-width: 90%; 
+        word-wrap: break-word; 
+        position: relative; 
+        width: fit-content;
+    }
+    
+    /* AI Thinking Text Size */
+    .ai-content {
+        font-size: 18px !important;
+        line-height: 1.8 !important;
+    }
     </style>
 </head>
 <body>
