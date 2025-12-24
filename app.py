@@ -230,7 +230,7 @@ HTML_TEMPLATE = """
             backdrop-filter: blur(40px);
             z-index: -1;
         }
-        #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
+        /*#onboarding-overlay.hidden { opacity: 0; pointer-events: none; }*/
         
         /* --- REPLACE THIS .wizard-container BLOCK --- */
         .wizard-container {
