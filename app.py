@@ -738,6 +738,58 @@ HTML_TEMPLATE = """
             }
         }
 
+        /* --- BUTTON & PREVIEW LOGIC --- */
+        
+        // 1. மெனுவை காட்டு/மறை (Toggle Menu)
+        function toggleAttachMenu() {
+            const menu = document.getElementById('attach-menu');
+            if (menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'flex';
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        // 2. பைல் செலக்ட் செய்ததும் பிரிவியூ காட்டு (Handle File)
+        function handleFile(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // குளோபல் வேரியபிளில் சேமிக்கிறோம் (Global variable logic needed in send func)
+                    // குறிப்பு: உங்க send() ஃபங்ஷனில் 'currentFile' என்ற வேரியபிளை பயன்படுத்தவும்.
+                    window.currentFile = e.target.result; 
+                    
+                    // Preview காட்டு
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('preview-box').style.display = 'block';
+                    
+                    // மெனுவை மறை
+                    document.getElementById('attach-menu').style.display = 'none';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 3. பிரிவியூவை க்ளியர் செய் (Clear File)
+        function clearFile() {
+            window.currentFile = null;
+            document.getElementById('preview-box').style.display = 'none';
+            // எல்லா இன்புட்டையும் ரீசெட் செய்
+            document.querySelectorAll('input[type="file"]').forEach(el => el.value = "");
+        }
+
+        // 4. வெளியே கிளிக் செய்தால் மெனுவை மூடு (Close on click outside)
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('attach-menu');
+            const btn = document.querySelector('.attach-btn'); // அல்லது .plus-btn
+            if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+        
         function editSubject(el) {
             const currentSub = el.innerText;
             const input = document.createElement('input');
