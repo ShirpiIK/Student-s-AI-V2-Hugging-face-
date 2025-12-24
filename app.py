@@ -241,23 +241,34 @@ HTML_TEMPLATE = """
         @keyframes fadeIn { to { opacity: 1; } }
         
         .user-msg { align-items: flex-end; }
-        .user-content { 
-        max-width: 85%; 
+        /* --- FIXED: USER BUBBLE PROFESSIONAL STYLE --- */
+    .user-content {
+        /* Professional Shape */
+        border-radius: 20px 20px 4px 20px; 
         background: var(--user-msg); 
         color: var(--text);
         padding: 12px 18px; 
-        border-radius: 20px 20px 4px 20px; 
-        font-size: 17px; /* 👇 16px லிருந்து 17px ஆக மாற்றப்பட்டது */
-        line-height: 1.7; /* இடைவெளி கூட்டப்பட்டது */
-        position: relative;
-    }
         
-        .ai-msg { align-items: flex-start; }
-        .ai-content { 
-        width: 100%; 
-        color: var(--text); 
-        font-size: 17px; /* 👇 16px லிருந்து 17px ஆக மாற்றப்பட்டது */
-        line-height: 1.8; /* ChatGPT போல நல்ல இடைவெளி */
+        /* Font Settings */
+        font-size: 17px; 
+        line-height: 1.6;
+        
+        /* 👇 Positioning & Sizing Fixes */
+        position: relative;
+        width: fit-content;      /* தேவையான அளவு மட்டும் விரியும் */
+        max-width: 85%;          /* அதிகபட்சம் 85% வரை மட்டுமே போகும் */
+        min-width: 40px;         /* சிறிய வார்த்தைக்கும் வடிவம் மாறாது */
+        word-wrap: break-word;   /* நீண்ட வார்த்தைகளை உடைக்கும் */
+        margin-left: auto;       /* வலது பக்கம் ஒட்டி நிற்கும் */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* சிறிய நிழல் */
+    }
+
+    /* AI Message Formatting */
+    .ai-content {
+        width: 100%;
+        max-width: 100%;
+        font-size: 17px;
+        line-height: 1.8;
     }
     .ai-content strong { color: var(--text); font-weight: 700; }
         /* Chat Actions (Icons below message) */
@@ -1087,6 +1098,93 @@ HTML_TEMPLATE = """
         
         function regenerateLast() {
             alert("Regenerating last response...");
+        }
+        /* --- 1. SMART COPY (No Popups, Icon Change) --- */
+        function copyText(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Change Icon to Checkmark temporarily
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check" style="color:#4ade80;"></i> Copied';
+                setTimeout(() => {
+                    btn.innerHTML = originalIcon;
+                }, 2000);
+            });
+        }
+
+        /* --- 2. WORKING REGENERATE (Resends Last Message) --- */
+        async function regenerateLast() {
+            // Find last user message text
+            const userMsgs = document.querySelectorAll('.user-content');
+            if (userMsgs.length === 0) return;
+            const lastMsgText = userMsgs[userMsgs.length - 1].innerText;
+
+            // Remove last AI response if exists
+            const aiMsgs = document.querySelectorAll('.ai-msg');
+            if (aiMsgs.length > 0) {
+                aiMsgs[aiMsgs.length - 1].remove();
+            }
+
+            // Resend the message directly
+            // (Simulating sending without putting text in input box)
+            addMsg('user', lastMsgText, null); // Re-add user msg visually (optional, or just reuse existing)
+            // Actually, better logic: Just send to backend. 
+            // Let's reuse the logic by putting text in input and clicking send automatically for simplicity,
+            // OR call internal send logic. 
+            
+            // Efficient Way:
+            document.getElementById('msg-input').value = lastMsgText;
+            send(); // Re-trigger send
+        }
+
+        /* --- 3. IN-CHAT EDIT (Populates Input Box) --- */
+        function editMessage(text) {
+            const inputEl = document.getElementById('msg-input');
+            inputEl.value = text;
+            inputEl.focus();
+            // Adjust height
+            inputEl.style.height = 'auto';
+            inputEl.style.height = inputEl.scrollHeight + 'px';
+        }
+
+        /* --- 4. UPDATED ADDMSG (Connects New Buttons) --- */
+        function addMsg(role, text, img) {
+            const box = document.getElementById('chat-box');
+            let contentHtml = "";
+            
+            if (img) contentHtml += `<img src="${img}" class="chat-img" onclick="viewImage('${img}')">`;
+            
+            if (role === 'ai') {
+                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
+            } else {
+                contentHtml += `<div class="user-content">${text}</div>`;
+            }
+
+            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+
+            let actionsHtml = "";
+            if (role === 'user') {
+                // 👇 Edit Button calls editMessage()
+                actionsHtml = `
+                <div class="msg-actions" style="justify-content: flex-end;">
+                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
+                </div>`;
+            } else {
+                // 👇 Regenerate calls regenerateLast()
+                actionsHtml = `
+                <div class="msg-actions">
+                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                </div>`;
+            }
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
+            
+            box.appendChild(msgDiv);
+            box.scrollTo(0, box.scrollHeight);
         }
         
         // Init App
