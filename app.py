@@ -868,7 +868,7 @@ HTML_TEMPLATE = """
 </html>
 """
 """Part 3: Backend Routes & Main Execution
-(இதை Part 2 முடிஞ்ச இடத்துல இருந்து அப்படியே தொடர்ந்து பேஸ்ட் பண்ணுங்க. முக்கியம்: """ இதை மிஸ் பண்ணிடாதீங்க)"""
+(இதை Part 2 முடிஞ்ச இடத்துல இருந்து அப்படியே தொடர்ந்து பேஸ்ட் பண்ணுங்க. முக்கியம்: இதை மிஸ் பண்ணிடாதீங்க)"""
 # --- BACKEND ROUTES (UNCHANGED) ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
