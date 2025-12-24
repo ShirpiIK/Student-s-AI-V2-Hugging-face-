@@ -242,26 +242,7 @@ HTML_TEMPLATE = """
         
         .user-msg { align-items: flex-end; }
         /* --- FIXED: USER BUBBLE PROFESSIONAL STYLE --- */
-    .user-content {
-        /* Professional Shape */
-        border-radius: 20px 20px 4px 20px; 
-        background: var(--user-msg); 
-        color: var(--text);
-        padding: 12px 18px; 
-        
-        /* Font Settings */
-        font-size: 17px; 
-        line-height: 1.6;
-        
-        /* 👇 Positioning & Sizing Fixes */
-        position: relative;
-        width: fit-content;      /* தேவையான அளவு மட்டும் விரியும் */
-        max-width: 85%;          /* அதிகபட்சம் 85% வரை மட்டுமே போகும் */
-        min-width: 40px;         /* சிறிய வார்த்தைக்கும் வடிவம் மாறாது */
-        word-wrap: break-word;   /* நீண்ட வார்த்தைகளை உடைக்கும் */
-        margin-left: auto;       /* வலது பக்கம் ஒட்டி நிற்கும் */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* சிறிய நிழல் */
-    }
+    
 
     /* AI Message Formatting */
     .ai-content {
@@ -292,45 +273,11 @@ HTML_TEMPLATE = """
             background: var(--bg); padding: 10px 15px; border-top: 1px solid var(--border); 
             flex-shrink: 0; z-index: 60; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
         }
-        .input-container { 
-        background: #1a1a1a; /* Darker background */
-        border: 1px solid #333; 
-        border-radius: 35px; /* Pill Shape */
-        padding: 6px 8px; 
-        display: flex; align-items: flex-end; gap: 12px;
-        transition: border 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .input-container:focus-within { border-color: #555; }
         textarea { 
             flex: 1; background: transparent; border: none; color: var(--text); 
             font-size: 16px; max-height: 120px; padding: 12px 0; resize: none; outline: none; 
             font-family: 'Outfit', sans-serif; 
         }
-        .plus-btn {
-        width: 42px; height: 42px; border-radius: 50%;
-        background: rgba(255,255,255,0.08); /* Subtle Glass Effect */
-        color: #a1a1aa; /* Muted Text */
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; flex-shrink: 0; font-size: 20px;
-        transition: all 0.2s ease;
-        margin-bottom: 2px;
-        border: 1px solid transparent;
-    }
-        .plus-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
-        .plus-btn:active { transform: scale(0.92); }
-        .send-btn { 
-        width: 42px; height: 42px; border-radius: 50%;
-        background: #fff; /* Pure White */
-        color: #000; /* Black Icon */
-        display: flex; align-items: center; justify-content: center; 
-        cursor: pointer; flex-shrink: 0; font-size: 18px;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy Animation */
-        margin-bottom: 2px;
-        box-shadow: 0 0 10px rgba(255,255,255,0.2); /* Glow */
-    }
-    .send-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
-    .send-btn:active { transform: scale(0.9); }
         /* --- SETTINGS PAGE (OVERLAY) --- */
         #settings-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -476,6 +423,63 @@ HTML_TEMPLATE = """
         font-size: 18px !important; 
         line-height: 1.8 !important;
     }
+    /* --- PROFESSIONAL CHAT STYLES --- */
+
+    /* 1. Automatic Curve User Bubble */
+    .user-content {
+        border-radius: 24px 24px 4px 24px; /* தனித்துவமான வளைவு */
+        background: linear-gradient(135deg, #27272a 0%, #1f1f22 100%); 
+        color: #fff;
+        padding: 14px 20px; 
+        font-size: 17px; 
+        line-height: 1.6;
+        
+        /* Positioning & Sizing */
+        position: relative;
+        width: fit-content;      
+        max-width: 85%;          
+        min-width: 50px;         
+        word-wrap: break-word;   
+        margin-left: auto;       /* வலது பக்கம் ஒட்டி நிற்கும் */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* 2. Stylish Input Bar (Glassmorphism) */
+    .input-container { 
+        background: rgba(20, 20, 20, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid #333; 
+        border-radius: 40px; 
+        padding: 8px 10px; 
+        display: flex; align-items: flex-end; gap: 12px;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .input-container:focus-within { border-color: #666; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+
+    /* 3. Stylish + Button (Rotating) */
+    .plus-btn {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #27272a; color: #aaa; 
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; flex-shrink: 0; font-size: 20px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #333;
+    }
+    .plus-btn:hover { background: #fff; color: #000; transform: rotate(90deg); }
+
+    /* 4. Stylish Send Button (Bouncing) */
+    .send-btn { 
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #fff; color: #000; 
+        display: flex; align-items: center; justify-content: center; 
+        cursor: pointer; flex-shrink: 0; font-size: 18px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        margin-bottom: 0px;
+    }
+    .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
+    .send-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -902,124 +906,10 @@ HTML_TEMPLATE = """
         }
         /* --- 1. SEND FUNCTION (FIXED) --- */
         
-         async function send() {
-            if (typeof isGenerating !== 'undefined' && isGenerating) return;
-
-            const inputEl = document.getElementById('msg-input');
-            const txt = inputEl.value.trim();
-            const fileData = window.currentFile;
-
-            if (!txt && !fileData) return;
-
-            // UI Reset
-            inputEl.value = "";
-            inputEl.style.height = 'auto';
-            document.getElementById('preview-box').style.display = 'none';
-            window.currentFile = null;
-
-            // Show User Message
-            addMsg('user', txt, fileData);
-
-            // Show AI Thinking Placeholder
-            const msgId = "ai-" + Date.now();
-            const chatBox = document.getElementById('chat-box');
-            chatBox.insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg">
-                    <div class="msg-bubble" style="color:var(--dim);">Thinking...</div>
-                </div>`
-            );
-            chatBox.scrollTo(0, chatBox.scrollHeight);
-            isGenerating = true;
-
-            try {
-                // Ensure Chat ID
-                if (!currentChatId) {
-                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
-                }
-
-                // Send to Backend
-                const res = await fetch('/chat', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
-                });
-                const data = await res.json();
-                
-                // --- FIX START: TYPEWRITER LOGIC ---
-                // 1. Get the placeholder div
-                const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = ""; // Clear "Thinking..."
-                
-                // 2. Create a new bubble for the text
-                const bubble = document.createElement('div');
-                bubble.className = "msg-bubble";
-                aiDiv.appendChild(bubble);
-                
-                // 3. Call Typewriter (This makes it line-by-line)
-                typeWriter(bubble, data.response, () => {
-                    // This runs AFTER typing finishes (Show Icons)
-                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-                    const actionsHtml = `
-                        <div class="msg-actions">
-                            <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                            <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                        </div>`;
-                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-                    document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
-                });
-                // --- FIX END ---
-
-            } catch (e) {
-                document.getElementById(msgId).innerHTML = "Error sending message.";
-            } finally {
-                isGenerating = false;
-            }
-        }   
+         
+            
         /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
-        function addMsg(role, text, img) {
-            const box = document.getElementById('chat-box');
-            let contentHtml = "";
-            
-            // Image
-            if (img) contentHtml += `<img src="${img}" class="chat-img" onclick="viewImage('${img}')">`;
-            
-            // Text (Markdown for AI, Plain for User)
-            if (role === 'ai') {
-                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
-            } else {
-                contentHtml += `<div class="user-content">${text}</div>`;
-            }
-
-            // 👇 FIX: ESCAPE SPECIAL CHARACTERS FOR ONCLICK
-            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\$/g, '\\$');
-
-            // 👇 FIX: CORRECT ICONS FOR USER AND AI
-            let actionsHtml = "";
-            if (role === 'user') {
-                // Question: Copy & Edit
-                actionsHtml = `
-                <div class="msg-actions" style="justify-content: flex-end;">
-                    <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="document.getElementById('msg-input').value=\`${safeText}\`"><i class="fas fa-pen"></i> Edit</div>
-                </div>`;
-            } else {
-                // Response: Copy, Regen, Share
-                actionsHtml = `
-                <div class="msg-actions">
-                    <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                </div>`;
-            }
-
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-            msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
-            
-            box.appendChild(msgDiv);
-            box.scrollTo(0, box.scrollHeight);
-        }
+        
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
@@ -1075,78 +965,55 @@ HTML_TEMPLATE = """
             toggleSidebar();
         }
 
-        function copyText(text) {
-            if (!text) return;
-            navigator.clipboard.writeText(text)
-                .then(() => alert("Copied to clipboard!"))
-                .catch(err => console.error("Copy failed:", err));
-        } // <--- இந்த Bracket மிஸ்ஸிங் இருந்தது
-
-        function shareText(text) {
-            if (navigator.share) {
-                navigator.share({ title: 'Student AI Response', text: text })
-                .catch(console.error);
-            } else {
-                copyText(text);
-                alert("Sharing not supported. Text copied.");
-            }
-        }
         
         function editLastMessage(text) {
             document.getElementById('msg-input').value = text;
         }
-        
-        function regenerateLast() {
-            alert("Regenerating last response...");
-        }
-        /* --- 1. SMART COPY (No Popups, Icon Change) --- */
+        /* --- PROFESSIONAL BUTTONS & LOGIC (NO POPUPS) --- */
+
+        // 1. SMART COPY (Icon changes to Checkmark)
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
-                // Change Icon to Checkmark temporarily
                 const originalIcon = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check" style="color:#4ade80;"></i> Copied';
-                setTimeout(() => {
-                    btn.innerHTML = originalIcon;
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = originalIcon; }, 2000);
             });
         }
 
-        /* --- 2. WORKING REGENERATE (Resends Last Message) --- */
+        // 2. REGENERATE (Resends last message)
         async function regenerateLast() {
-            // Find last user message text
             const userMsgs = document.querySelectorAll('.user-content');
             if (userMsgs.length === 0) return;
             const lastMsgText = userMsgs[userMsgs.length - 1].innerText;
 
-            // Remove last AI response if exists
+            // Remove last AI response
             const aiMsgs = document.querySelectorAll('.ai-msg');
-            if (aiMsgs.length > 0) {
-                aiMsgs[aiMsgs.length - 1].remove();
-            }
+            if (aiMsgs.length > 0) aiMsgs[aiMsgs.length - 1].remove();
 
-            // Resend the message directly
-            // (Simulating sending without putting text in input box)
-            addMsg('user', lastMsgText, null); // Re-add user msg visually (optional, or just reuse existing)
-            // Actually, better logic: Just send to backend. 
-            // Let's reuse the logic by putting text in input and clicking send automatically for simplicity,
-            // OR call internal send logic. 
-            
-            // Efficient Way:
+            // Re-send
             document.getElementById('msg-input').value = lastMsgText;
-            send(); // Re-trigger send
+            send(); 
         }
 
-        /* --- 3. IN-CHAT EDIT (Populates Input Box) --- */
+        // 3. EDIT (Loads text into input)
         function editMessage(text) {
             const inputEl = document.getElementById('msg-input');
             inputEl.value = text;
             inputEl.focus();
-            // Adjust height
             inputEl.style.height = 'auto';
             inputEl.style.height = inputEl.scrollHeight + 'px';
         }
 
-        /* --- 4. UPDATED ADDMSG (Connects New Buttons) --- */
+        // 4. SHARE (Native Share or Copy fallback)
+        function shareContent(text) {
+            if (navigator.share) {
+                navigator.share({ title: 'Student AI', text: text }).catch(console.error);
+            } else {
+                copyText(event.currentTarget, text);
+            }
+        }
+
+        // 5. UPDATED ADDMSG (With Smart Buttons)
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1160,22 +1027,20 @@ HTML_TEMPLATE = """
             }
 
             const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-
             let actionsHtml = "";
+
             if (role === 'user') {
-                // 👇 Edit Button calls editMessage()
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                // 👇 Regenerate calls regenerateLast()
                 actionsHtml = `
                 <div class="msg-actions">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
             }
 
@@ -1186,7 +1051,68 @@ HTML_TEMPLATE = """
             box.appendChild(msgDiv);
             box.scrollTo(0, box.scrollHeight);
         }
+
+        // 6. UPDATED SEND FUNCTION (To use new addMsg)
+        async function send() {
+            if (typeof isGenerating !== 'undefined' && isGenerating) return;
+
+            const inputEl = document.getElementById('msg-input');
+            const txt = inputEl.value.trim();
+            const fileData = window.currentFile;
+
+            if (!txt && !fileData) return;
+
+            inputEl.value = "";
+            inputEl.style.height = 'auto';
+            document.getElementById('preview-box').style.display = 'none';
+            window.currentFile = null;
+
+            addMsg('user', txt, fileData); // Shows new bubble style immediately
+
+            const msgId = "ai-" + Date.now();
+            document.getElementById('chat-box').insertAdjacentHTML('beforeend', 
+                `<div id="${msgId}" class="msg ai-msg"><div class="ai-content" style="color:#aaa;">Thinking...</div></div>`
+            );
+            document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
+            isGenerating = true;
+
+            try {
+                if (!currentChatId) {
+                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
+                }
+
+                const res = await fetch('/chat', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
+                });
+                const data = await res.json();
+                
+                const aiDiv = document.getElementById(msgId);
+                aiDiv.innerHTML = ""; 
+                const bubble = document.createElement('div');
+                bubble.className = "msg-bubble";
+                aiDiv.appendChild(bubble);
+                
+                typeWriter(bubble, data.response, () => {
+                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+                    const actions = `
+                    <div class="msg-actions">
+                        <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                        <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                    </div>`;
+                    aiDiv.insertAdjacentHTML('beforeend', actions);
+                });
+
+            } catch(e) {
+                document.getElementById(msgId).innerHTML = "Error.";
+            } finally {
+                isGenerating = false;
+            }
+        }
         
+            
         // Init App
         checkLogin();
     </script>
