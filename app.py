@@ -216,7 +216,7 @@ HTML_TEMPLATE = """
     position: fixed; 
     top: 0;
     left: 0;
-    width: 100vm;
+    width: 100%;
     height: 100vmax;
     z-index: 2000; 
     display: flex; 
