@@ -273,21 +273,44 @@ HTML_TEMPLATE = """
             flex-shrink: 0; z-index: 60; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
         }
         .input-container { 
-            max-width: 800px; margin: 0 auto; background: var(--card); 
-            border: 1px solid var(--border); border-radius: 24px; 
-            padding: 8px 14px; display: flex; align-items: flex-end; gap: 10px; 
-            transition: border 0.3s;
-        }
-        .input-container:focus-within { border-color: var(--text-muted); }
-        
+        background: #1a1a1a; /* Darker background */
+        border: 1px solid #333; 
+        border-radius: 35px; /* Pill Shape */
+        padding: 6px 8px; 
+        display: flex; align-items: flex-end; gap: 12px;
+        transition: border 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .input-container:focus-within { border-color: #555; }
         textarea { 
             flex: 1; background: transparent; border: none; color: var(--text); 
             font-size: 16px; max-height: 120px; padding: 12px 0; resize: none; outline: none; 
             font-family: 'Outfit', sans-serif; 
         }
-        .icon-btn { color: var(--text-muted); background: transparent; }
-        .send-btn { background: var(--text); color: var(--bg); width: 36px; height: 36px; border-radius: 50%; }
-
+        .plus-btn {
+        width: 42px; height: 42px; border-radius: 50%;
+        background: rgba(255,255,255,0.08); /* Subtle Glass Effect */
+        color: #a1a1aa; /* Muted Text */
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; flex-shrink: 0; font-size: 20px;
+        transition: all 0.2s ease;
+        margin-bottom: 2px;
+        border: 1px solid transparent;
+    }
+        .plus-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .plus-btn:active { transform: scale(0.92); }
+        .send-btn { 
+        width: 42px; height: 42px; border-radius: 50%;
+        background: #fff; /* Pure White */
+        color: #000; /* Black Icon */
+        display: flex; align-items: center; justify-content: center; 
+        cursor: pointer; flex-shrink: 0; font-size: 18px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy Animation */
+        margin-bottom: 2px;
+        box-shadow: 0 0 10px rgba(255,255,255,0.2); /* Glow */
+    }
+    .send-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
+    .send-btn:active { transform: scale(0.9); }
         /* --- SETTINGS PAGE (OVERLAY) --- */
         #settings-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -547,12 +570,15 @@ HTML_TEMPLATE = """
 
         <div class="input-wrapper">
             <div class="input-container">
-                <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
-                <input type="file" id="file-input" hidden onchange="handleFileSelect(this)">
-                <textarea id="input" placeholder="Ask your doubt..." rows="1" 
-                    oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-                    onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
-                <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
+            <div class="plus-btn" onclick="toggleAttachMenu()">
+                <i class="fas fa-plus"></i> 
+            </div>
+            
+            <textarea id="msg-input" placeholder="Message..." rows="1" 
+                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+            
+            <div class="send-btn" onclick="send()">
+                <i class="fas fa-arrow-up"></i>
             </div>
         </div>
     </div>
