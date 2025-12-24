@@ -242,17 +242,24 @@ HTML_TEMPLATE = """
         
         .user-msg { align-items: flex-end; }
         .user-content { 
-            max-width: 85%; background: var(--user-msg); color: var(--text);
-            padding: 12px 18px; border-radius: 20px 20px 4px 20px; 
-            font-size: 16px; line-height: 1.6; position: relative;
-        }
+        max-width: 85%; 
+        background: var(--user-msg); 
+        color: var(--text);
+        padding: 12px 18px; 
+        border-radius: 20px 20px 4px 20px; 
+        font-size: 17px; /* 👇 16px லிருந்து 17px ஆக மாற்றப்பட்டது */
+        line-height: 1.7; /* இடைவெளி கூட்டப்பட்டது */
+        position: relative;
+    }
         
         .ai-msg { align-items: flex-start; }
         .ai-content { 
-            width: 100%; color: var(--text); font-size: 16px; line-height: 1.7; 
-        }
-        .ai-content strong { color: var(--text); font-weight: 700; }
-
+        width: 100%; 
+        color: var(--text); 
+        font-size: 17px; /* 👇 16px லிருந்து 17px ஆக மாற்றப்பட்டது */
+        line-height: 1.8; /* ChatGPT போல நல்ல இடைவெளி */
+    }
+    .ai-content strong { color: var(--text); font-weight: 700; }
         /* Chat Actions (Icons below message) */
         .msg-actions { 
         display: flex; gap: 15px; margin-top: 8px; 
