@@ -211,31 +211,29 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
-        /* --- EXACT MATCH FOR YOUR SCREENSHOT --- */
+        /* --- FIXED: TIGHTER GRADIENT (No Spread in Middle) --- */
         #onboarding-overlay { 
             position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
             
-            /* Base Dark Color */
-            background-color: #09090b; 
+            /* Deep Black Base */
+            background-color: #050505; 
             
             background-image: 
-                /* 🟣 TOP PURPLE SPOTLIGHT (Top Center) */
-                /* 'at 50% 0%' - Center Top. 'transparent 50%' - Stops spreading halfway */
-                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.6) 0%, transparent 50%), 
+                /* 🟣 TOP PURPLE: Ends at 40% (Leaves middle empty) */
+                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.5) 0%, transparent 40%), 
                 
-                /* 🔵 BOTTOM TEAL SPOTLIGHT (Bottom Center) */
-                /* 'at 50% 100%' - Center Bottom. 'transparent 50%' - Stops spreading halfway */
-                radial-gradient(circle at 50% 100%, rgba(13, 148, 136, 0.6) 0%, transparent 50%);
+                /* 🔵 BOTTOM TEAL: Ends at 40% (Leaves middle empty) */
+                radial-gradient(circle at 50% 100%, rgba(20, 184, 166, 0.5) 0%, transparent 40%);
             
             background-attachment: fixed;
         }
 
-        /* Smooth Blur Effect */
+        /* Subtle Blur to mix the edges smoothly */
         #onboarding-overlay::before {
             content: ""; position: absolute; inset: 0;
-            backdrop-filter: blur(40px);
+            backdrop-filter: blur(50px);
             z-index: -1;
         }
         
