@@ -448,7 +448,9 @@ HTML_TEMPLATE = """
             return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:center;">Hi ${name},</div><p style="color:var(--dim); text-align:center;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
         }
 
+       /* --- FIX: HEADER & INPUT HIDE ON LOAD --- */
         function checkLogin() {
+             // 1. தீம் செட் பண்றோம்
              const t = localStorage.getItem("student_theme") || 'system'; 
              setTheme(t);
     
@@ -456,21 +458,37 @@ HTML_TEMPLATE = """
              const c = localStorage.getItem("student_ai_context");
     
              if(u) {
+                 // யூசர் லாகின் செய்திருந்தால்...
                  currentUser = u;
                  if(c) {
                     userContext = c;
+                    // எல்லா பாக்ஸையும் மறைச்சுட்டு ஆப் காட்டு
                     document.getElementById('name-overlay').style.display = 'none';
                     document.getElementById('details-overlay').style.display = 'none';
                     showApp();
                  } else {
+                    // டீடைல்ஸ் இல்லன்னா அதை காட்டு
                     document.getElementById('name-overlay').style.display = 'none';
                     const sel = document.getElementById('details-overlay');
                     sel.classList.remove('hidden'); sel.style.display = 'flex';
+                    
+                    // 👇 முக்கியம்: பாக்கி உள்ளதை மறைக்கணும்
+                    document.getElementById('main-header').classList.add('hidden-header');
+                    document.querySelector('.input-wrapper').style.display = 'none';
                  }
              } else {
+                 // யூசர் லாகின் செய்யவில்லை என்றால் (Fresh Start)...
+                 
+                 // 👇 1. ஹெட்டரை மறை (Hide Header)
                  document.getElementById('main-header').classList.add('hidden-header');
+                 
+                 // 👇 2. சேட் பாரை மறை (Hide Input Bar - இதுதான் மிஸ்ஸிங்!)
+                 document.querySelector('.input-wrapper').style.display = 'none';
+
+                 // 3. Welcome Page-ஐ காட்டு
                  const welcome = document.getElementById('welcome-overlay');
                  welcome.classList.remove('hidden'); welcome.style.display = 'flex';
+                 
                  history.replaceState({step: 'welcome'}, null, null);
              }
         }
