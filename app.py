@@ -175,7 +175,7 @@ def generate_with_retry(prompt, image_data=None, history_messages=[], user_conte
 /* ==========================================
    👇 PART 2: CSS STYLING 👇
    ========================================== */
-   HTML_TEMPLATE = """
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
