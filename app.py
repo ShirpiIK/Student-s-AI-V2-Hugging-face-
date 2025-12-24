@@ -930,7 +930,7 @@ HTML_TEMPLATE = """
                     document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
                 });
                 
-                Remove Thinking & Show Response
+                //Remove Thinking & Show Response
                 document.getElementById(msgId).remove();
                 addMsg('ai', data.response);
                } catch (e) {
