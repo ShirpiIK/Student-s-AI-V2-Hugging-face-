@@ -214,7 +214,10 @@ HTML_TEMPLATE = """
         /* --- FIXED: ANIMATED ONBOARDING OVERLAY --- */
 #onboarding-overlay { 
     position: fixed; 
-    inset: 0; 
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vmax;
     z-index: 2000; 
     display: flex; 
     align-items: center; 
