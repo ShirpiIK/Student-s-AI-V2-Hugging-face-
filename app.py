@@ -172,9 +172,9 @@ def generate_with_retry(prompt, image_data=None, history_messages=[], user_conte
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
     return "⚠️ Server Busy. Please try again later."
-/* ==========================================
+""" /*==========================================
    👇 PART 2: CSS STYLING 👇
-   ========================================== */
+   ========================================== */"""
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
