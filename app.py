@@ -211,7 +211,7 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
-        /* --- FIXED: FOCUSED GRADIENT (Like Screenshot) --- */
+        /* --- EXACT MATCH FOR YOUR SCREENSHOT --- */
         #onboarding-overlay { 
             position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
@@ -221,18 +221,18 @@ HTML_TEMPLATE = """
             background-color: #09090b; 
             
             background-image: 
-                /* 🟣 TOP PURPLE SPOTLIGHT */
-                /* 'at 50% 0%' means Center Top. 'transparent 45%' stops it from spreading too down */
-                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.5) 0%, transparent 45%), 
+                /* 🟣 TOP PURPLE SPOTLIGHT (Top Center) */
+                /* 'at 50% 0%' - Center Top. 'transparent 50%' - Stops spreading halfway */
+                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.6) 0%, transparent 50%), 
                 
-                /* 🔵 BOTTOM TEAL SPOTLIGHT */
-                /* 'at 50% 100%' means Center Bottom. 'transparent 45%' stops it from spreading too up */
-                radial-gradient(circle at 50% 100%, rgba(8, 145, 178, 0.5) 0%, transparent 45%);
+                /* 🔵 BOTTOM TEAL SPOTLIGHT (Bottom Center) */
+                /* 'at 50% 100%' - Center Bottom. 'transparent 50%' - Stops spreading halfway */
+                radial-gradient(circle at 50% 100%, rgba(13, 148, 136, 0.6) 0%, transparent 50%);
             
             background-attachment: fixed;
         }
 
-        /* Adds a slight noise/blur to make it look premium (Optional but recommended) */
+        /* Smooth Blur Effect */
         #onboarding-overlay::before {
             content: ""; position: absolute; inset: 0;
             backdrop-filter: blur(40px);
