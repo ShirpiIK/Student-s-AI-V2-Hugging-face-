@@ -930,15 +930,15 @@ HTML_TEMPLATE = """
                     document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
                 });
                 
-                // Remove Thinking & Show Response
-                //document.getElementById(msgId).remove();
-                //addMsg('ai', data.response);
-               // } catch (e) {
-                //console.error(e);
-               // document.getElementById(msgId).innerHTML = "Error sending message.";
-            //} finally {
-                //isGenerating = false;
-            //}
+                Remove Thinking & Show Response
+                document.getElementById(msgId).remove();
+                addMsg('ai', data.response);
+               } catch (e) {
+                console.error(e);
+               document.getElementById(msgId).innerHTML = "Error sending message.";
+            } finally {
+                isGenerating = false;
+            }
         }
         /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
         function addMsg(role, text, img) {
