@@ -462,6 +462,34 @@ HTML_TEMPLATE = """
         font-size: 18px !important;
         line-height: 1.8 !important;
     }
+    /* --- CHAT BUBBLE FIX --- */
+        
+        .user-content { 
+            max-width: 85%; 
+            background: var(--user-msg); 
+            color: var(--text);
+            padding: 12px 18px; 
+            border-radius: 20px 20px 4px 20px; 
+            font-size: 17px; 
+            line-height: 1.6; 
+            position: relative;
+            
+            /* 👇 இதுதான் முக்கியம்! "Hi" உடையாமல் தடுக்கும் */
+            width: fit-content; 
+            min-width: 40px; /* மிகச்சிறிய மெசேஜுக்கும் குறைந்தபட்ச அகலம் */
+            word-wrap: break-word;
+        }
+        
+        .ai-content { 
+            width: 100%; 
+            color: var(--text); 
+            font-size: 17px; 
+            line-height: 1.7; 
+            
+            /* 👇 AI பதிலும் தெளிவாக தெரிய */
+            width: fit-content;
+            max-width: 100%;
+        }
     </style>
 </head>
 <body>
