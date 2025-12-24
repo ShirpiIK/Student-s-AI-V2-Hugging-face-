@@ -831,6 +831,38 @@ HTML_TEMPLATE = """
         // --- CHAT FUNCTIONS ---
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
+
+        /* --- TYPEWRITER EFFECT FUNCTION --- */
+        function typeWriter(element, text, callback) {
+            let i = 0;
+            element.innerHTML = ""; // பழைய டெக்ஸ்ட் இருந்தால் அழித்துவிடும்
+            
+            // வேகம் (Speed): குறைத்தால் வேகம் கூடும் (10-30ms is good)
+            let speed = 20; 
+
+            function type() {
+                if (i < text.length) {
+                    // ஒவ்வொரு எழுத்தாக சேர்க்கிறோம்
+                    // குறிப்பு: டைப் ஆகும்போது Markdown (*) குறியீடுகள் தெரியும், 
+                    // முடிஞ்சதும் அது மறையும். இதுதான் ChatGPT ஸ்டைல்.
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    
+                    // Auto Scroll to bottom
+                    const chatBox = document.getElementById('chat-box');
+                    chatBox.scrollTo(0, chatBox.scrollHeight);
+                    
+                    setTimeout(type, speed);
+                } else {
+                    // டைப்பிங் முடிந்ததும் Markdown ஆக மாற்று (Bold, Italic வேலை செய்யும்)
+                    element.innerHTML = marked.parse(text);
+                    
+                    // முடிஞ்சதும் Action Icons (Copy/Share) காட்ட Callback கூப்பிடுறோம்
+                    if (callback) callback();
+                }
+            }
+            type();
+        }
         /* --- 1. SEND FUNCTION (FIXED) --- */
         async function send() {
             if (typeof isGenerating !== 'undefined' && isGenerating) return;
@@ -872,6 +904,31 @@ HTML_TEMPLATE = """
                     body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
                 });
                 const data = await res.json();
+                
+                // 1. AI Thinking-ஐ நீக்கு
+                const aiDiv = document.getElementById(msgId);
+                aiDiv.innerHTML = ""; 
+                
+                // 2. Bubble Create பண்றோம்
+                const bubble = document.createElement('div');
+                bubble.className = "msg-bubble";
+                aiDiv.appendChild(bubble);
+                
+                // 3. TYPEWRITER EFFECT START! 🔥
+                typeWriter(bubble, data.response, () => {
+                    // 4. டைப்பிங் முடிஞ்சதும் Icons (Actions) சேர்க்கிறோம்
+                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+                    
+                    const actionsHtml = `
+                        <div class="msg-actions">
+                            <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                            <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                        </div>`;
+                    
+                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
+                });
                 
                 // Remove Thinking & Show Response
                 document.getElementById(msgId).remove();
