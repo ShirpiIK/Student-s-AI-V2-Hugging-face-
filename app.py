@@ -217,7 +217,9 @@ HTML_TEMPLATE = """
     top: 0;
     left: 0;
     width: 100%;
-    height: 100vmax;
+    /*height: 100vmax;*/
+    height: 100vh;
+    height: 100lvh;
     z-index: 2000; 
     display: flex; 
     align-items: center; 
