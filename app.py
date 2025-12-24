@@ -230,10 +230,12 @@ HTML_TEMPLATE = """
 
         /* --- CHAT AREA --- */
         #chat-box { 
-            flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 100px; 
-            display: flex; flex-direction: column; gap: 30px; 
-            scroll-behavior: smooth;
-        }
+        flex: 1; overflow-y: auto; 
+        padding: 20px 15px; 
+        padding-bottom: 40px; /* Reduced from 100px to 40px */
+        display: flex; flex-direction: column; gap: 20px; 
+        scroll-behavior: smooth;
+    }
         
         .msg { width: 100%; display: flex; flex-direction: column; opacity: 0; animation: fadeIn 0.4s forwards; }
         @keyframes fadeIn { to { opacity: 1; } }
@@ -253,16 +255,16 @@ HTML_TEMPLATE = """
 
         /* Chat Actions (Icons below message) */
         .msg-actions { 
-            display: flex; gap: 15px; margin-top: 8px; 
-            opacity: 0; transition: opacity 0.3s; padding: 0 5px;
-        }
+        display: flex; gap: 15px; margin-top: 8px; 
+        opacity: 1; /* 👇 FIX: Always visible (removed hover) */
+        font-size: 13px; padding: 0 5px; color: var(--text-muted);
+        transition: color 0.2s;
+    }
         .msg:hover .msg-actions { opacity: 1; }
         .action-icon { 
-            color: var(--text-muted); font-size: 14px; cursor: pointer; 
-            transition: color 0.2s; display: flex; align-items: center; gap: 4px;
-        }
-        .action-icon:hover { color: var(--text); }
-        
+        cursor: pointer; display: flex; align-items: center; gap: 5px; 
+    }
+    .action-icon:hover { color: var(--text); }
         /* Code Blocks */
         pre { background: #1e1e1e !important; border-radius: 12px; padding: 15px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
         code { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
@@ -833,103 +835,96 @@ HTML_TEMPLATE = """
         async function send() {
             if (typeof isGenerating !== 'undefined' && isGenerating) return;
 
-            // ID 'msg-input' பயன்படுத்தப்படுகிறது
             const inputEl = document.getElementById('msg-input');
-            if (!inputEl) return console.error("Input element not found!");
-            
             const txt = inputEl.value.trim();
-            const fileData = window.currentFile; // Global file from preview
+            const fileData = window.currentFile;
 
             if (!txt && !fileData) return;
 
-            // UI சுத்தம் செய்தல்
+            // Clear Input
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
-            // 👇 இங்கே addMsg-ஐ கூப்பிடுகிறோம் (கீழே அதற்கான கோட் உள்ளது)
+            // Show User Message
             addMsg('user', txt, fileData);
 
-            // AI Thinking...
+            // Show AI Thinking
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg">
-                    <div class="ai-content" style="color:#aaa;">Thinking...</div>
-                </div>`
+                `<div id="${msgId}" class="msg ai-msg"><div class="ai-content" style="color:var(--dim);">Thinking...</div></div>`
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
-            
-            if (typeof isGenerating !== 'undefined') isGenerating = true;
+            isGenerating = true;
 
-            // Backend Call
             try {
+                // Ensure Chat ID
                 if (!currentChatId) {
-                    const r = await fetch('/new_chat', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'}, 
-                        body: JSON.stringify({username: currentUser})
-                    });
-                    const d = await r.json(); currentChatId = d.chat_id; 
-                    if(typeof loadHistory === 'function') loadHistory();
+                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
 
+                // Send to Backend
                 const res = await fetch('/chat', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        message: txt, image: fileData, 
-                        username: currentUser, chat_id: currentChatId 
-                    })
+                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
                 });
-                
                 const data = await res.json();
                 
-                // AI Response Update
-                const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = `<div class="ai-content"></div>`;
-                
-                // Markdown Render
-                aiDiv.querySelector('.ai-content').innerHTML = marked.parse(data.response);
-                
-                // Add Actions
-                const actionsHtml = `
-                    <div class="msg-actions">
-                        <div class="action-icon" onclick="navigator.clipboard.writeText(\`${data.response.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon"><i class="fas fa-share-alt"></i> Share</div>
-                    </div>`;
-                aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-
-            } catch (e) {
-                document.getElementById(msgId).innerHTML = `<div class="ai-content" style="color:red;">Error sending message.</div>`;
+                // Remove Thinking & Show Response
+                document.getElementById(msgId).remove();
+                addMsg('ai', data.response);
+                } catch (e) {
+                console.error(e);
+                document.getElementById(msgId).innerHTML = "Error sending message.";
             } finally {
-                if (typeof isGenerating !== 'undefined') isGenerating = false;
-                chatBox.scrollTo(0, chatBox.scrollHeight);
+                isGenerating = false;
             }
         }
-
         /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
-            let content = "";
+            let contentHtml = "";
             
-            // இமேஜ் இருந்தால் காட்டு
-            if(img) content += `<img src="${img}" style="max-width:200px; border-radius:12px; margin-bottom:8px; border:1px solid #333;">`;
-            // டெக்ஸ்ட் இருந்தால் காட்டு
-            if(text) content += `<div>${text}</div>`;
+            // Image
+            if (img) contentHtml += `<img src="${img}" class="chat-img" onclick="viewImage('${img}')">`;
+            
+            // Text (Markdown for AI, Plain for User)
+            if (role === 'ai') {
+                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
+            } else {
+                contentHtml += `<div class="user-content">${text}</div>`;
+            }
 
-            // HTML Structure
-            const msgHtml = `
-                <div class="msg ${role === 'user' ? 'user-msg' : 'ai-msg'}">
-                    <div class="${role === 'user' ? 'user-content' : 'ai-content'}">
-                        ${content}
-                    </div>
-                    ${role === 'user' ? `
-                    <div class="msg-actions" style="justify-content: flex-end;">
-                        <div class="action-icon" onclick="navigator.clipboard.writeText(\`${text}\`)"><i class="fas fa-copy"></i></div>
-                    </div>` : ''}
+            // 👇 FIX: ESCAPE SPECIAL CHARACTERS FOR ONCLICK
+            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\$/g, '\\$');
+
+            // 👇 FIX: CORRECT ICONS FOR USER AND AI
+            let actionsHtml = "";
+            if (role === 'user') {
+                // Question: Copy & Edit
+                actionsHtml = `
+                <div class="msg-actions" style="justify-content: flex-end;">
+                    <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="document.getElementById('msg-input').value=\`${safeText}\`"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
+            } else {
+                // Response: Copy, Regen, Share
+                actionsHtml = `
+                <div class="msg-actions">
+                    <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                </div>`;
+            }
 
-            box.insertAdjacentHTML('beforeend', msgHtml);
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
+            
+            box.appendChild(msgDiv);
             box.scrollTo(0, box.scrollHeight);
         }
         async function loadHistory() {
@@ -951,26 +946,18 @@ HTML_TEMPLATE = """
         }
         
         async function loadChat(cid) {
-            currentChatId = cid;
-            const res = await fetch('/get_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
-            const d = await res.json();
-            const box = document.getElementById('chat-box'); box.innerHTML = "";
-            d.messages.forEach(m => {
-                const cls = m.role === 'user' ? 'user-msg' : 'ai-msg';
-                let content = m.role === 'user' ? `<div class="user-content">${m.content}</div>` : `<div class="ai-content">${marked.parse(m.content)}</div>`;
-                
-                // Add Actions
-                if(m.role === 'user') {
-                    content += `<div class="msg-actions" style="justify-content: flex-end;">
-                        <div class="action-icon" onclick="copyText(\`${m.content}\`)"><i class="fas fa-copy"></i></div>
-                    </div>`;
-                } else {
-                    content += `<div class="msg-actions"><div class="action-icon" onclick="copyText(\`${m.content.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i></div></div>`;
-                }
-                
-                box.insertAdjacentHTML('beforeend', `<div class="msg ${cls}">${content}</div>`);
+            currentChatId = cid; 
+            toggleSidebar(false); // Close menu
+            
+            const res = await fetch('/get_chat', {
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({username:currentUser, chat_id:cid})
             });
-            toggleSidebar();
+            const d = await res.json();
+            
+            document.getElementById('chat-box').innerHTML = "";
+            d.messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content));
         }
 
         async function renameChat(cid) {
@@ -996,17 +983,31 @@ HTML_TEMPLATE = """
         }
 
         function copyText(text) {
-            navigator.clipboard.writeText(text);
+            if (!text) return;
+            navigator.clipboard.writeText(text)
+                .then(() => alert("Copied to clipboard!"))
+                .catch(err => console.error("Copy failed:", err));
+        function shareText(text) {
+            if (navigator.share) {
+                navigator.share({ title: 'Student AI Response', text: text })
+                .catch(console.error);
+            } else {
+                // Fallback for PC
+                copyText(text);
+                alert("Sharing not supported on this device. Text copied instead.");
+            }
+        }
+        
+        
         }
         function editLastMessage(text) {
             document.getElementById('input').value = text;
         }
         function regenerateLast() {
-            // Simple regen logic: remove last AI response and re-send last user message
-            // Ideally requires backend support for "regen", here we just simulate via UI if we tracked state
-            alert("Regenerating...");
+            // Logic to resend last user message
+            // For UI demo:
+            alert("Regenerating last response...");
         }
-
         checkLogin();
     </script>
 </body>
