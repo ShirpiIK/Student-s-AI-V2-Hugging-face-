@@ -493,8 +493,9 @@ HTML_TEMPLATE = """
              }
         }
 
+        /* --- FIX: LOGOUT & CLEAR DATA (Inputs Reset) --- */
         function handleLogout() {
-            // Hide everything
+            // 1. எல்லா Overlay-யையும் மறைக்கிறோம்
             document.getElementById('profile-overlay').style.display = 'none';
             document.getElementById('settings-overlay').style.display = 'none';
             document.getElementById('details-overlay').style.display = 'none';
@@ -502,18 +503,35 @@ HTML_TEMPLATE = """
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('main-header').classList.add('hidden-header');
             
-            // 👇 1. FORCE HIDE Chat Bar
+            // 2. Chat Bar-ஐ மறைக்கிறோம் & Chat-ஐ அழிக்கிறோம்
             document.querySelector('.input-wrapper').style.display = 'none';
             document.getElementById('chat-box').innerHTML = '';
             
-            // 👇 2. SHOW Colorful Background Again
+            // 3. கலர் பேக்ரவுண்டை மீண்டும் கொண்டு வரோம்
             document.querySelector('.global-bg').style.display = 'block';
 
+            // 4. Memory-ஐ அழிக்கிறோம் (LocalStorage)
             localStorage.clear();
-            currentUser = null; userContext = ""; currentChatId = null;
+            currentUser = null; 
+            userContext = ""; 
+            currentChatId = null;
 
+            // 👇 5. INPUT FIELDS CLEANUP (இதுதான் முக்கியம்!) 👇
+            // பெயர் பாக்ஸை காலி பண்ணு
+            document.getElementById('username-input').value = ""; 
+            // சப்ஜெக்ட் பாக்ஸை காலி பண்ணு
+            document.getElementById('edu-subject').value = ""; 
+            // Dropdowns-ஐ ரீசெட் பண்ணு (Select Level/Year)
+            document.getElementById('edu-level').selectedIndex = 0;
+            document.getElementById('edu-year').innerHTML = '<option value="" disabled selected>Select</option>';
+            document.getElementById('edu-sem').innerHTML = '<option value="" disabled selected>Select Semester</option>';
+            document.getElementById('sem-container').style.display = 'none';
+
+            // 6. Welcome Page-ஐ காட்டு
             const welcome = document.getElementById('welcome-overlay');
-            welcome.classList.remove('hidden'); welcome.style.display = 'flex';
+            welcome.classList.remove('hidden'); 
+            welcome.style.display = 'flex';
+            
             history.replaceState({step: 'welcome'}, null, null);
         }
 
