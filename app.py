@@ -338,13 +338,15 @@ HTML_TEMPLATE = """
                         <option value="EEE">EEE</option>
                         <option value="MECH">MECH</option>
                     </select>
-                    <select id="college-year" class="dropdown-select">
+                    <select id="college-year" class="dropdown-select" onchange="updateSemesters()">
                         <option value="" disabled selected>Select Year</option>
                         <option value="1st Year">1st Year</option>
                         <option value="2nd Year">2nd Year</option>
                         <option value="3rd Year">3rd Year</option>
                         <option value="4th Year">4th Year</option>
                     </select>
+
+                    
                     <select id="college-sem" class="dropdown-select">
                         <option value="" disabled selected>Select Semester</option>
                         <option value="Sem 1">Semester 1</option>
@@ -358,8 +360,8 @@ HTML_TEMPLATE = """
                     </select>
                 </div>
 
-                <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;">
-                
+                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
+                    
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
 
@@ -474,19 +476,43 @@ HTML_TEMPLATE = """
                 document.getElementById('college-opts').style.display = 'block';
             }
         }
+        // --- NEW: UPDATE SEMESTERS BASED ON YEAR ---
+        function updateSemesters() {
+            const year = document.getElementById('college-year').value;
+            const semSelect = document.getElementById('college-sem');
+            
+            // Clear current options
+            semSelect.innerHTML = '<option value="" disabled selected>Select Semester</option>';
+            
+            let options = [];
+            if(year === '1st Year') options = ['Sem 1', 'Sem 2'];
+            else if(year === '2nd Year') options = ['Sem 3', 'Sem 4'];
+            else if(year === '3rd Year') options = ['Sem 5', 'Sem 6'];
+            else if(year === '4th Year') options = ['Sem 7', 'Sem 8'];
 
-        // --- UPDATED FINISH SETUP (Includes Semester & Validation) ---
+            // Add new options
+            options.forEach(sem => {
+                const opt = document.createElement('option');
+                opt.value = sem;
+                opt.innerText = sem.replace('Sem', 'Semester'); // Display as "Semester 1"
+                semSelect.appendChild(opt);
+            });
+        }
+
         function finishSetup() {
             // Reset previous errors
             document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
 
             let valid = true;
             userDetails.name = currentUser;
+            
+            // 1. VALIDATE SUBJECT (Ippo kandippa check pannum)
             const subInput = document.getElementById('subject-input');
             userDetails.subject = subInput.value.trim();
-
-            // Validate Subject (Optional - remove if not needed, but good for UX)
-            // if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
+            if(!userDetails.subject) { 
+                subInput.classList.add('input-error', 'shake'); 
+                valid = false; 
+            }
 
             if(userDetails.type === 'school') {
                 const stdInput = document.getElementById('school-std');
@@ -497,7 +523,7 @@ HTML_TEMPLATE = """
             } else {
                 const deptInput = document.getElementById('college-dept');
                 const yearInput = document.getElementById('college-year');
-                const semInput = document.getElementById('college-sem'); // New Semester
+                const semInput = document.getElementById('college-sem');
 
                 userDetails.dept = deptInput.value;
                 userDetails.year = yearInput.value;
@@ -508,17 +534,18 @@ HTML_TEMPLATE = """
                 if(!userDetails.sem) { semInput.classList.add('input-error', 'shake'); valid = false; }
             }
 
+            // Stop if invalid
             if (!valid) {
-                // Remove shake after animation
                 setTimeout(() => document.querySelectorAll('.shake').forEach(el => el.classList.remove('shake')), 500);
-                // Remove red border on change
                 document.querySelectorAll('.input-error').forEach(el => {
+                    el.addEventListener('input', function() { this.classList.remove('input-error'); }, {once:true});
+                    // For dropdowns (change event)
                     el.addEventListener('change', function() { this.classList.remove('input-error'); }, {once:true});
                 });
                 return;
             }
 
-            // Save & Close
+            // Save & Start
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
 
@@ -528,7 +555,7 @@ HTML_TEMPLATE = """
             
             showApp();
         }
-
+            
         // --- AUTH & LOAD ---
         function checkLogin() {
             const stored = localStorage.getItem("student_ai_user");
