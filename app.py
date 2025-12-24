@@ -109,6 +109,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
     return "⚠️ System Busy. Please try again."
 
 # --- UI TEMPLATE (UPDATED: 3-Page Onboarding) ---
+
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -209,73 +210,44 @@ HTML_TEMPLATE = """
         .icon-btn { background: transparent; color: #a1a1aa; }
         .send-btn { background: #fff; color: #000; }
 
-        /* --- 🚀 ONBOARDING OVERLAY (NEW) --- */
-        /* --- REPLACE THIS WHOLE #onboarding-overlay BLOCK --- */
+        /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
         #onboarding-overlay { 
             position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
             
-            /* ✨ NEW PREMIUM BACKGROUND (Deep Blue + Purple Glow) ✨ */
-            background-color: #09090b; /* Base Dark Color */
+            /* ✨ PREMIUM GRADIENT BACKGROUND ✨ */
+            background-color: #09090b;
             background-image: 
                 radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%), 
                 radial-gradient(circle at 85% 30%, rgba(147, 51, 234, 0.15), transparent 25%);
             background-attachment: fixed;
         }
         
-        /* Optional: Add a subtle blur to make it smooth */
-        #onboarding-overlay::before {
-            content: ""; position: absolute; inset: 0;
-            backdrop-filter: blur(40px);
-            z-index: -1;
-        }
-        /*#onboarding-overlay.hidden { opacity: 0; pointer-events: none; }*/
-        
-        /* --- REPLACE THIS .wizard-container BLOCK --- */
         .wizard-container {
             width: 90%; max-width: 450px; text-align: center;
-            /* Fix for Issue 1: Absolute Center & Keyboard Stability */
+            /* CENTER FIX: Absolute Positioning */
             position: absolute; 
             top: 50%; left: 50%; 
             transform: translate(-50%, -50%);
-            z-index: 2001; /* Ensure it stays on top */
-        }
-
-        /* --- ADD THESE NEW STYLES FOR ERROR & SHAKE (Issue 4) --- */
-        .input-error {
-            border: 2px solid #ef4444 !important; /* Red Border */
-            background: #2a0b0b !important;
-            color: #ffcccc !important;
-            transition: 0.2s;
-        }
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
+            z-index: 2001;
         }
         
-        /* WIZARD STEPS */
         .step-content { display: none; animation: fadeIn 0.4s ease; }
         .step-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* STEP 1: INTRO */
         .intro-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 10px; }
         .intro-desc { color: #a1a1aa; font-size: 16px; margin-bottom: 40px; line-height: 1.5; }
         
-        /* BUTTON STYLES (Professional Rectangular Curve) */
         .btn-primary {
             background: #fff; color: #000; border: none;
-            padding: 16px 40px; border-radius: 12px; /* Rectangular curve */
+            padding: 16px 40px; border-radius: 12px;
             font-size: 16px; font-weight: 700; cursor: pointer;
             width: 100%; transition: transform 0.2s;
         }
         .btn-primary:active { transform: scale(0.98); }
 
-        /* STEP 2: NAME */
         .input-field {
             width: 100%; padding: 18px; border-radius: 12px; 
             border: 1px solid #333; background: #111; color: #fff;
@@ -284,7 +256,6 @@ HTML_TEMPLATE = """
         }
         .input-field:focus { border-color: #666; }
 
-        /* STEP 3: DETAILS */
         .toggle-group { display: flex; gap: 10px; margin-bottom: 20px; }
         .toggle-btn {
             flex: 1; padding: 12px; border: 1px solid #333; border-radius: 10px;
@@ -301,6 +272,20 @@ HTML_TEMPLATE = """
         }
 
         .hidden-opt { display: none; }
+
+        /* ERROR & SHAKE STYLES */
+        .input-error {
+            border: 2px solid #ef4444 !important;
+            background: #2a0b0b !important;
+            color: #ffcccc !important;
+        }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
 </head>
 <body>
@@ -318,7 +303,9 @@ HTML_TEMPLATE = """
             <div id="step-2" class="step-content">
                 <h2 class="intro-title" style="font-size: 26px;">What's your name?</h2>
                 <p class="intro-desc">So I can address you properly.</p>
-                <input type="text" id="name-input" class="input-field" placeholder="Enter your Name" autocomplete="off" autocorrect="off" onkeydown="if(event.key==='Enter') nextStep(3)">
+                <input type="text" id="name-input" class="input-field" placeholder="Enter your Name" 
+                       autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" 
+                       onkeydown="if(event.key==='Enter') nextStep(3)">
                 <button class="btn-primary" onclick="nextStep(3)">Next</button>
             </div>
 
@@ -358,25 +345,17 @@ HTML_TEMPLATE = """
                         <option value="1st Year">1st Year</option>
                         <option value="2nd Year">2nd Year</option>
                         <option value="3rd Year">3rd Year</option>
-                        
                         <option value="4th Year">4th Year</option>
-                        
                     </select>
-                
-
-                    
                     <select id="college-sem" class="dropdown-select">
                         <option value="" disabled selected>Select Semester</option>
-                        <option value="Sem 1">Semester 1</option>
-                        <option value="Sem 2">Semester 2</option>
-                        <option value="Sem 3">Semester 3</option>
-                        <option value="Sem 4">Semester 4</option>
-                        <option value="Sem 5">Semester 5</option>
-                        <option value="Sem 6">Semester 6</option>
-                        <option value="Sem 7">Semester 7</option>
-                        <option value="Sem 8">Semester 8</option>
                     </select>
-                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" autocomplete="off" autocorrect="off" onkeydown="if(event.key==='Enter') finishSetup()">
+                </div>
+
+                <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" 
+                       style="padding: 15px; margin-bottom: 15px;" 
+                       autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" 
+                       onkeydown="if(event.key==='Enter') finishSetup()">
                 
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
@@ -424,56 +403,42 @@ HTML_TEMPLATE = """
 
     <script>
         let currentUser = null;
-        let userDetails = { type: 'school' }; // Default
+        let userDetails = { type: 'school' };
         let currentChatId = null;
         let currentAttachment = { type: null, data: null };
 
-        // --- WIZARD LOGIC ---
-        // --- UPDATED NEXT STEP (Fixes Back Button & Validation) ---
+        // --- UPDATED WIZARD LOGIC ---
         function nextStep(targetStep) {
-            // Validation Logic (Professional Red Error)
             let valid = true;
             let errorElement = null;
 
-            if (targetStep === 3) { // Going from Name -> Details
+            if (targetStep === 3) { 
                 const nameInput = document.getElementById('name-input');
                 const name = nameInput.value.trim();
-                if (!name) {
-                    valid = false;
-                    errorElement = nameInput;
-                } else {
-                    currentUser = name;
-                }
+                if (!name) { valid = false; errorElement = nameInput; } 
+                else { currentUser = name; }
             }
 
             if (!valid && errorElement) {
-                // Trigger Error Effect (Red + Shake)
                 errorElement.classList.add('input-error', 'shake');
                 setTimeout(() => errorElement.classList.remove('shake'), 500);
-                errorElement.addEventListener('input', function() {
-                    this.classList.remove('input-error'); // Type panna error pogum
-                }, {once: true});
-                return; // Stop navigation
+                errorElement.addEventListener('input', function() { this.classList.remove('input-error'); }, {once: true});
+                return; 
             }
 
-            // Back Button Logic (Push History)
-            if (targetStep > 1) {
-                history.pushState({ step: targetStep }, null, "");
-            }
+            // Push History for Back Button
+            if (targetStep > 1) { history.pushState({ step: targetStep }, null, ""); }
 
-            // Show Next Step
             document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
             document.getElementById('step-' + targetStep).classList.add('active');
         }
 
-        // --- NEW: HANDLE BROWSER BACK BUTTON ---
+        // --- BROWSER BACK BUTTON SUPPORT ---
         window.onpopstate = function(event) {
             if (event.state && event.state.step) {
-                // Go to specific step if in history
                 document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
                 document.getElementById('step-' + event.state.step).classList.add('active');
             } else {
-                // If no state (Start), go to Step 1
                 document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
                 document.getElementById('step-1').classList.add('active');
             }
@@ -492,12 +457,11 @@ HTML_TEMPLATE = """
                 document.getElementById('college-opts').style.display = 'block';
             }
         }
-        // --- NEW: UPDATE SEMESTERS BASED ON YEAR ---
+
+        // --- NEW: DYNAMIC SEMESTERS ---
         function updateSemesters() {
             const year = document.getElementById('college-year').value;
             const semSelect = document.getElementById('college-sem');
-            
-            // Clear current options
             semSelect.innerHTML = '<option value="" disabled selected>Select Semester</option>';
             
             let options = [];
@@ -506,36 +470,28 @@ HTML_TEMPLATE = """
             else if(year === '3rd Year') options = ['Sem 5', 'Sem 6'];
             else if(year === '4th Year') options = ['Sem 7', 'Sem 8'];
 
-            // Add new options
             options.forEach(sem => {
                 const opt = document.createElement('option');
                 opt.value = sem;
-                opt.innerText = sem.replace('Sem', 'Semester'); // Display as "Semester 1"
+                opt.innerText = sem.replace('Sem', 'Semester');
                 semSelect.appendChild(opt);
             });
         }
 
         function finishSetup() {
-            // Reset previous errors
             document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-
             let valid = true;
             userDetails.name = currentUser;
             
-            // 1. VALIDATE SUBJECT (Ippo kandippa check pannum)
+            // Validate Subject (Fixed)
             const subInput = document.getElementById('subject-input');
             userDetails.subject = subInput.value.trim();
-            if(!userDetails.subject) { 
-                subInput.classList.add('input-error', 'shake'); 
-                valid = false; 
-            }
+            if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
 
             if(userDetails.type === 'school') {
                 const stdInput = document.getElementById('school-std');
                 userDetails.standard = stdInput.value;
-                if(!userDetails.standard) { 
-                    stdInput.classList.add('input-error', 'shake'); valid = false; 
-                }
+                if(!userDetails.standard) { stdInput.classList.add('input-error', 'shake'); valid = false; }
             } else {
                 const deptInput = document.getElementById('college-dept');
                 const yearInput = document.getElementById('college-year');
@@ -550,29 +506,25 @@ HTML_TEMPLATE = """
                 if(!userDetails.sem) { semInput.classList.add('input-error', 'shake'); valid = false; }
             }
 
-            // Stop if invalid
             if (!valid) {
                 setTimeout(() => document.querySelectorAll('.shake').forEach(el => el.classList.remove('shake')), 500);
                 document.querySelectorAll('.input-error').forEach(el => {
                     el.addEventListener('input', function() { this.classList.remove('input-error'); }, {once:true});
-                    // For dropdowns (change event)
                     el.addEventListener('change', function() { this.classList.remove('input-error'); }, {once:true});
                 });
                 return;
             }
 
-            // Save & Start
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
 
             const overlay = document.getElementById("onboarding-overlay");
             overlay.classList.add('hidden');
             setTimeout(() => overlay.style.display = 'none', 600);
-            
             showApp();
         }
-            
-        // --- AUTH & LOAD ---
+
+        // --- AUTH & CHAT LOGIC ---
         function checkLogin() {
             const stored = localStorage.getItem("student_ai_user");
             if (stored) { 
@@ -600,51 +552,36 @@ HTML_TEMPLATE = """
             location.reload();
         }
 
-        // --- CHAT LOGIC (Kept same logic, simplified for brevity in this view) ---
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-        
-        // Use basic fetch logic from original code for send(), newChat(), etc.
-        // ... (Existing Chat Functions: send, newChat, loadHistory, etc. remain here) ...
         
         async function send() {
             const input = document.getElementById('input');
             const text = input.value.trim();
             if(!text && !currentAttachment.data) return;
-            
-            // Remove intro
             const intro = document.getElementById('intro-container');
             if(intro) intro.remove();
-
             const box = document.getElementById('chat-box');
             box.insertAdjacentHTML('beforeend', `<div class="msg user-msg"><div class="user-content">${text}</div></div>`);
             input.value = "";
-            
-            // Add Loading
             const msgId = "ai-" + Date.now();
             box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg">Thinking...</div>`);
             
-            // Backend Call
             if(!currentChatId) {
                 const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
                 const d = await r.json(); currentChatId = d.chat_id;
             }
-            
             const res = await fetch('/chat', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ message: text, username: currentUser, chat_id: currentChatId })
             });
             const data = await res.json();
-            
-            const aiDiv = document.getElementById(msgId);
-            aiDiv.innerHTML = `<div class="ai-content">${marked.parse(data.response)}</div>`;
+            document.getElementById(msgId).innerHTML = `<div class="ai-content">${marked.parse(data.response)}</div>`;
         }
         
-        // ... (Include other helper functions like loadHistory from original code) ...
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
              const list = document.getElementById('history-list'); list.innerHTML = "";
-             // ... populate list ...
              if(data.chats) {
                  Object.keys(data.chats).reverse().forEach(cid => {
                      list.innerHTML += `<div class="history-item" onclick="loadChat('${cid}')">${data.chats[cid].title}</div>`;
@@ -670,7 +607,6 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
 # --- BACKEND ROUTES (UNCHANGED) ---
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
