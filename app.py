@@ -864,7 +864,8 @@ HTML_TEMPLATE = """
             type();
         }
         /* --- 1. SEND FUNCTION (FIXED) --- */
-        async function send() {
+        
+         async function send() {
             if (typeof isGenerating !== 'undefined' && isGenerating) return;
 
             const inputEl = document.getElementById('msg-input');
@@ -873,7 +874,7 @@ HTML_TEMPLATE = """
 
             if (!txt && !fileData) return;
 
-            // Clear Input
+            // UI Reset
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
@@ -882,11 +883,13 @@ HTML_TEMPLATE = """
             // Show User Message
             addMsg('user', txt, fileData);
 
-            // Show AI Thinking
+            // Show AI Thinking Placeholder
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg"><div class="ai-content" style="color:var(--dim);">Thinking...</div></div>`
+                `<div id="${msgId}" class="msg ai-msg">
+                    <div class="msg-bubble" style="color:var(--dim);">Thinking...</div>
+                </div>`
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
             isGenerating = true;
@@ -905,41 +908,37 @@ HTML_TEMPLATE = """
                 });
                 const data = await res.json();
                 
-                // 1. AI Thinking-ஐ நீக்கு
+                // --- FIX START: TYPEWRITER LOGIC ---
+                // 1. Get the placeholder div
                 const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = ""; 
+                aiDiv.innerHTML = ""; // Clear "Thinking..."
                 
-                // 2. Bubble Create பண்றோம்
+                // 2. Create a new bubble for the text
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // 3. TYPEWRITER EFFECT START! 🔥
+                // 3. Call Typewriter (This makes it line-by-line)
                 typeWriter(bubble, data.response, () => {
-                    // 4. டைப்பிங் முடிஞ்சதும் Icons (Actions) சேர்க்கிறோம்
+                    // This runs AFTER typing finishes (Show Icons)
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-                    
                     const actionsHtml = `
                         <div class="msg-actions">
                             <div class="action-icon" onclick="copyText(\`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                             <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                             <div class="action-icon" onclick="shareText(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
-                    
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
                 });
-                
-                //Remove Thinking & Show Response
-                document.getElementById(msgId).remove();
-                addMsg('ai', data.response);
-               } catch (e) {
-                console.error(e);
-               document.getElementById(msgId).innerHTML = "Error sending message.";
+                // --- FIX END ---
+
+            } catch (e) {
+                document.getElementById(msgId).innerHTML = "Error sending message.";
             } finally {
                 isGenerating = false;
             }
-        }
+        }   
         /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
@@ -1044,27 +1043,27 @@ HTML_TEMPLATE = """
             navigator.clipboard.writeText(text)
                 .then(() => alert("Copied to clipboard!"))
                 .catch(err => console.error("Copy failed:", err));
+        } // <--- இந்த Bracket மிஸ்ஸிங் இருந்தது
+
         function shareText(text) {
             if (navigator.share) {
                 navigator.share({ title: 'Student AI Response', text: text })
                 .catch(console.error);
             } else {
-                // Fallback for PC
                 copyText(text);
-                alert("Sharing not supported on this device. Text copied instead.");
+                alert("Sharing not supported. Text copied.");
             }
         }
         
-        
-        }
         function editLastMessage(text) {
-            document.getElementById('input').value = text;
+            document.getElementById('msg-input').value = text;
         }
+        
         function regenerateLast() {
-            // Logic to resend last user message
-            // For UI demo:
             alert("Regenerating last response...");
         }
+        
+        // Init App
         checkLogin();
     </script>
 </body>
