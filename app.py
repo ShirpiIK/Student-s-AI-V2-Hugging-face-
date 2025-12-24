@@ -389,6 +389,11 @@ HTML_TEMPLATE = """
                         <option value="11th">11th Standard</option>
                         <option value="12th">12th Standard</option>
                     </select>
+                    
+                    <input type="text" id="school-subject" class="input-field" 
+                           placeholder="Enter Subject (e.g. Maths, Science)" 
+                           style="padding: 15px; margin-bottom: 15px;"
+                           autocomplete="off" onkeydown="if(event.key==='Enter') finishSetup()">
                 </div>
 
                 <div id="college-opts" class="hidden-opt">
@@ -411,23 +416,13 @@ HTML_TEMPLATE = """
                     <select id="college-sem" class="dropdown-select">
                         <option value="" disabled selected>Select Semester</option>
                     </select>
+                    
+                    <input type="text" id="college-subject" class="input-field" 
+                           placeholder="Enter Subject (e.g. Python, DS)" 
+                           style="padding: 15px; margin-bottom: 15px;"
+                           autocomplete="off" onkeydown="if(event.key==='Enter') finishSetup()">
                 </div>
-
-                <input 
-    type="search" 
-    id="subject-input" 
-    name="unique_subject_field_no_autofill" 
-    class="input-field" 
-    placeholder="Enter Subject (e.g. Math, Python)" 
-    style="padding: 15px; margin-bottom: 15px;" 
-    autocomplete="off" 
-    autocorrect="off" 
-    autocapitalize="off" 
-    spellcheck="false" 
-    readonly 
-    onfocus="this.removeAttribute('readonly');" 
-    onkeydown="if(event.key==='Enter') finishSetup()"
->
+                
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
 
@@ -550,24 +545,30 @@ HTML_TEMPLATE = """
         }
 
         function finishSetup() {
+            // Remove existing errors
             document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
             let valid = true;
             userDetails.name = currentUser;
             
-            // Validate Subject (Fixed)
-            const subInput = document.getElementById('subject-input');
-            userDetails.subject = subInput.value.trim();
-            if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
-
+            // Validate based on TYPE (School vs College)
             if(userDetails.type === 'school') {
+                // 1. Validate Standard
                 const stdInput = document.getElementById('school-std');
                 userDetails.standard = stdInput.value;
                 if(!userDetails.standard) { stdInput.classList.add('input-error', 'shake'); valid = false; }
+
+                // 2. Validate School Subject
+                const subInput = document.getElementById('school-subject');
+                userDetails.subject = subInput.value.trim();
+                if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
+
             } else {
+                // College Logic
                 const deptInput = document.getElementById('college-dept');
                 const yearInput = document.getElementById('college-year');
                 const semInput = document.getElementById('college-sem');
-
+                
+                // 1. Validate Dept/Year/Sem
                 userDetails.dept = deptInput.value;
                 userDetails.year = yearInput.value;
                 userDetails.sem = semInput.value;
@@ -575,8 +576,14 @@ HTML_TEMPLATE = """
                 if(!userDetails.dept) { deptInput.classList.add('input-error', 'shake'); valid = false; }
                 if(!userDetails.year) { yearInput.classList.add('input-error', 'shake'); valid = false; }
                 if(!userDetails.sem) { semInput.classList.add('input-error', 'shake'); valid = false; }
+
+                // 2. Validate College Subject
+                const subInput = document.getElementById('college-subject');
+                userDetails.subject = subInput.value.trim();
+                if(!userDetails.subject) { subInput.classList.add('input-error', 'shake'); valid = false; }
             }
 
+            // Error Animation Reset
             if (!valid) {
                 setTimeout(() => document.querySelectorAll('.shake').forEach(el => el.classList.remove('shake')), 500);
                 document.querySelectorAll('.input-error').forEach(el => {
@@ -586,6 +593,7 @@ HTML_TEMPLATE = """
                 return;
             }
 
+            // Save & Start App
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
 
