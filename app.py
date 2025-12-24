@@ -211,16 +211,19 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
+        /* --- REPLACE THIS #onboarding-overlay BLOCK --- */
         #onboarding-overlay { 
             position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
             
-            /* ✨ PREMIUM GRADIENT BACKGROUND ✨ */
-            background-color: #09090b;
+            /* ✨ DARK & RICH COLOURS (Updated) ✨ */
+            background-color: #05050a; /* Darker Base */
             background-image: 
-                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%), 
-                radial-gradient(circle at 85% 30%, rgba(147, 51, 234, 0.15), transparent 25%);
+                /* Blue Splash (Top Left) - Stronger (0.6 opacity) */
+                radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.6), transparent 60%), 
+                /* Purple Splash (Bottom Right) - Stronger (0.6 opacity) */
+                radial-gradient(circle at 100% 100%, rgba(126, 34, 206, 0.6), transparent 60%);
             background-attachment: fixed;
         }
         
