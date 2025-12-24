@@ -1,4 +1,8 @@
+# ==========================================
+# 👇 PART 1: PYTHON BACKEND & RAG SETUP 👇
+# ==========================================
 import sys
+# 1. FIX FOR CHROMA DB IN HUGGING FACE (SQLite Version Fix)
 try:
     __import__('pysqlite3')
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
@@ -17,29 +21,25 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
-# RAG IMPORTS
+# --- RAG IMPORTS (THE 4 PHASES) ---
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
-import tempfile
 
 warnings.filterwarnings("ignore")
 
-# ==========================================
-# 👇 CONFIGURATION 👇
-# ==========================================
+# --- CONFIGURATION ---
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
 current_key_index = 0
 
-# FOLDERS
 UPLOAD_FOLDER = 'uploads'
 DB_FOLDER = 'db_store'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(DB_FOLDER, exist_ok=True)
 
-# USER DATABASE
+# --- DATABASE (User Chat History) ---
 DB_FILE = "chat_db.json"
 def load_db():
     try:
@@ -47,45 +47,67 @@ def load_db():
             with open(DB_FILE, 'r') as f: return json.load(f)
     except: pass
     return {}
+
 def save_db(db):
     try:
         with open(DB_FILE, 'w') as f: json.dump(db, f, indent=2)
     except: pass
-user_db = load_db()
 
+user_db = load_db()
 app = Flask(__name__)
 
 # ==========================================
-# 👇 RAG LOGIC (THE 4 PHASES) 👇
+# 👇 RAG LOGIC (THE 4 PHASES IMPLEMENTED) 👇
 # ==========================================
 vectorstore = None
 
 def process_document_rag(file_path):
     global vectorstore
     try:
+        # PHASE 1: LOADING (PDF-ஐ படிக்கிறோம்)
         loader = PyPDFLoader(file_path)
         docs = loader.load()
+        
+        # PHASE 2: SPLITTING (சின்ன சின்ன துண்டுகளாக பிரிக்கிறோம்)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         splits = text_splitter.split_documents(docs)
+        
+        # PHASE 3: EMBEDDING (எழுத்துக்களை நம்பர்களாக மாத்துறோம்)
         embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=DB_FOLDER)
-        return True, "PDF Processed Successfully!"
+        
+        # PHASE 4: STORING (ChromaDB-ல சேமிக்கிறோம்)
+        # பழைய டேட்டா இருந்தால் அழித்துவிட்டு புதிதாக உருவாக்குவோம் (For simple usage)
+        if os.path.exists(DB_FOLDER):
+            shutil.rmtree(DB_FOLDER)
+            
+        vectorstore = Chroma.from_documents(
+            documents=splits, 
+            embedding=embeddings, 
+            persist_directory=DB_FOLDER
+        )
+        return True, "PDF Processed Successfully! I can now answer from it."
     except Exception as e:
         return False, str(e)
 
 def query_rag(question):
     global vectorstore
-    if not vectorstore: return None
+    if not vectorstore:
+        # Load existing DB if available
+        if os.path.exists(DB_FOLDER):
+            embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+            vectorstore = Chroma(persist_directory=DB_FOLDER, embedding_function=embeddings)
+        else:
+            return None
+            
     try:
+        # RETRIEVAL (கேள்விக்கு ஏற்ற பதிலை தேடுகிறோம்)
         retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
         docs = retriever.get_relevant_documents(question)
         context_text = "\n\n".join([d.page_content for d in docs])
         return context_text
     except: return None
 
-# ==========================================
-# 👇 GENERATION LOGIC 👇
-# ==========================================
+# --- GEMINI LOGIC ---
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
@@ -104,18 +126,27 @@ def process_image_data(image_data):
         return Image.open(io.BytesIO(image_bytes))
     except: return None
 
-def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], user_context="", rag_context=None):
+def generate_with_retry(prompt, image_data=None, history_messages=[], user_context="", rag_context=None):
     global current_key_index
     if not API_KEYS: return "🚨 API Keys Missing."
+    
     formatted_history = []
-    for m in history_messages[-6:]:
+    # Send last 10 messages for context
+    for m in history_messages[-10:]:
         role = "user" if m["role"] == "user" else "model"
         formatted_history.append({"role": role, "parts": [m["content"]]})
+        
     current_parts = []
-    full_prompt = f"Question: {prompt}"
-    if user_context: full_prompt = f"[User Profile: {user_context}]\n" + full_prompt
-    if rag_context: full_prompt = f"[PDF Context Found:\n{rag_context}]\n\n" + full_prompt
-    if file_text: current_parts.append(f"File content:\n{file_text}\n\n")
+    
+    # SYSTEM INSTRUCTION
+    system_instruction = f"You are a professional academic AI assistant. The student's profile: {user_context}. "
+    
+    # RAG CONTEXT INJECTION
+    if rag_context:
+        system_instruction += f"\n\n[REFERENCE DOCUMENT CONTENT]:\n{rag_context}\n\nUse the above reference to answer if relevant."
+    
+    full_prompt = f"{system_instruction}\n\nQuestion: {prompt}"
+    
     current_parts.append(full_prompt)
     if image_data:
         img = process_image_data(image_data)
@@ -130,784 +161,395 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
         try:
             genai.configure(api_key=key)
             model = genai.GenerativeModel(model_name=model_name)
-            if image_data or file_text or rag_context: response = model.generate_content(current_parts)
+            
+            if image_data:
+                response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
                 response = chat.send_message(full_prompt)
             return response.text
-        except Exception as e:
+        except Exception:
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
-    return "⚠️ System Busy. Please try again."
-HTML_TEMPLATE = """
+    return "⚠️ Server Busy. Please try again later."
+/* ==========================================
+   👇 PART 2: CSS STYLING 👇
+   ========================================== */
+   HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#09090b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
     <title>Student's AI</title>
+    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
-    /* --- 1. CORE VARIABLES --- */
+    /* --- VARIABLES --- */
     :root { 
-        --bg: #09090b; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
-        --border: #27272a; --dim: #71717a; --input-bg: #131315; 
-        --btn-bg: #ffffff; --btn-text: #000000;
-    }
-    [data-theme="light"] { 
-        --bg: #f4f4f5; --card: #ffffff; --user-msg: #e4e4e7; --text: #000000; 
-        --border: #d4d4d8; --dim: #71717a; --input-bg: #ffffff; 
-        --btn-bg: #000000; --btn-text: #ffffff;
+        --bg-chat: #000000; --card: #18181b; --user-msg: #27272a; --text: #e4e4e7; 
+        --dim: #a1a1aa; --border: #27272a; --accent: #fff;
     }
 
-    /* --- 2. GLOBAL STYLES --- */
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;display: flex; flex-direction: column; overflow: hidden; }
+    /* --- BODY LOCK (PREVENTS KEYBOARD JUMP) --- */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
+    body { 
+        margin: 0; background: var(--bg-chat); color: var(--text); 
+        font-family: 'Inter', sans-serif; 
+        /* 👇 This locks the screen */
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        overflow: hidden; display: flex; flex-direction: column;
+    }
 
-    /* 👇 GLOBAL COLOR BG (Static) */
+    /* --- GLOBAL BACKGROUND (Visible only on Login) --- */
     .global-bg {
-        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        z-index: -10; pointer-events: none;
-        background: #09090b;
-        background-image: radial-gradient(circle at center, rgba(9,9,11,0.7) 0%, rgba(9,9,11,1) 100%);
-        background-size: cover;
+        position: fixed; inset: 0; z-index: 1; pointer-events: none;
+        background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
     }
-    .bg-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; animation: moveBlob infinite alternate ease-in-out; }
-    .blob-pink { top: -10%; left: -10%; width: 40vmax; height: 40vmax; background: #ff00cc; animation-duration: 20s; }
-    .blob-blue { bottom: -10%; right: -10%; width: 35vmax; height: 35vmax; background: #00dbde; animation-duration: 15s; animation-delay: -5s; }
-    .blob-white { top: 50%; left: 50%; width: 20vmax; height: 20vmax; background: #ffffff; opacity: 0.2; animation-duration: 25s; transform: translate(-50%, -50%); }
-    @keyframes moveBlob { 0% { transform: translate(0, 0) scale(1) rotate(0deg); } 50% { transform: translate(50px, 50px) scale(1.1) rotate(180deg); } 100% { transform: translate(-50px, 20px) scale(0.9) rotate(360deg); } }
+    .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.6; animation: float 10s infinite alternate; }
+    .b1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #9d4edd; }
+    .b2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #00b4d8; animation-delay: -5s; }
+    @keyframes float { from { transform: translate(0,0); } to { transform: translate(30px, 30px); } }
 
-    /* --- 3. HEADER (Fixed to Relative) --- */
-    /* 👇 இதுதான் முக்கியம்! Header-ஐ Relative ஆக மாற்றினால் கீபோர்டு பிரச்சனை தீரும் */
-    header { 
-        height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98);
-            border-bottom: 1px solid var(--border-color);
-            display: flex; align-items: center; justify-content: space-between; 
-            z-index: 50;
-            padding-top: env(safe-area-inset-top);
-            position: absolute; top: 0; left: 0; right: 0;
+    /* --- LOGIN OVERLAYS --- */
+    .overlay {
+        position: fixed; inset: 0; z-index: 6000; /* Higher than header */
+        background: transparent; 
+        display: flex; flex-direction: column; 
+        align-items: center; justify-content: center;
+        padding: 20px; transition: opacity 0.3s ease;
     }
-    header.hidden-header { display: none; } 
-    .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
-    .menu-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color:var(--text); }
+    .overlay.hidden { opacity: 0; pointer-events: none; display: none !important; }
 
-    /* --- 4. CHAT AREA --- */
-    /* 👇 Header Relative ஆனதால், இங்கே Padding குறைக்கப்பட்டுள்ளது (90px -> 10px) */
-    #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 80px; 
-            display: flex; flex-direction: column; gap: 25px;
-            -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; min-height: 0; 
-        }
-    .input-wrapper { 
-        background: var(--bg); padding: 15px; border-top: 1px solid var(--border); 
-        flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
-        /* Hidden initially via HTML inline style */
+    .glass-box {
+        width: 100%; max-width: 380px;
+        background: rgba(255,255,255,0.03); backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
+        padding: 30px 25px; display: flex; flex-direction: column; gap: 15px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
-    .input-container { max-width: 900px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 12px; }
-    textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 8px 5px; resize: none; outline: none; font-family: 'Inter', sans-serif; height: auto; max-height: 150px; overflow-y: auto; }
+    .title-lg { font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 700; color: #fff; text-align: center; }
+    .subtitle { color: var(--dim); text-align: center; font-size: 14px; margin-bottom: 20px; }
 
-    /* --- 5. SIDEBAR --- */
-    #sidebar { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: var(--bg); z-index: 5000; padding: 25px; padding-top: 50px; transform: translateY(-100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
-    #sidebar.open { transform: translateY(0); }
-    #sidebar > div:first-child { margin-bottom: 15px; flex-shrink: 0; margin-top: 10px; }
-    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 8px; background: var(--card); border-radius: 12px; color: var(--dim); transition: background 0.2s; }
-    .history-item:active { transform: scale(0.98); }
-    .h-actions { display: flex; gap: 15px; }
-    #history-list { flex-grow: 1; overflow-y: auto; min-height: 0; margin-bottom: 10px; padding-right: 5px; }
-    #sidebar > div:last-child { flex-shrink: 0; padding-top: 15px; border-top: 1px solid var(--border); }
-
-    /* --- 6. OVERLAYS (Overlap Fix) --- */
-    .overlay { 
-        position: fixed; inset: 0; 
-        z-index: 6000; /* 🔥 இதுதான் Fix! Header (3000) ஐ விட அதிகம் */
-        display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
-        padding-top: 0; overflow-y: auto; 
-        background: transparent !important; 
-        opacity: 0; visibility: hidden;
-        transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* --- INPUTS & BUTTONS --- */
+    label { font-size: 12px; font-weight: 600; color: var(--dim); text-transform: uppercase; margin-left: 4px; margin-bottom: -8px; }
+    input, select {
+        width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+        color: #fff; padding: 14px; border-radius: 14px; font-size: 16px;
+        font-family: 'Inter', sans-serif;
     }
-    .overlay:not(.hidden) { opacity: 1; visibility: visible; transform: translateY(0); }
-    .overlay.hidden { opacity: 0; visibility: hidden; transform: translateY(15px); pointer-events: none; display: flex !important; }
+    /* Stop Search Cross Icon */
+    input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-    #welcome-overlay { justify-content: center; padding-top: 0 !important; }
-    #name-overlay, #details-overlay { padding-top: 140px; }
-
-    .data-box { 
-        width: 90%; max-width: 350px; 
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-        border-radius: 20px; padding: 20px; 
-        display:flex; flex-direction:column; gap:12px; margin: 0; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+    .btn-primary {
+        background: #fff; color: #000; border: none; padding: 14px;
+        border-radius: 14px; font-weight: 700; font-size: 16px; font-family: 'Outfit', sans-serif;
+        cursor: pointer; margin-top: 10px; width: 100%;
     }
+
+    /* --- CHAT HEADER (LOCKED) --- */
+    header {
+        height: 65px; padding: 0 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border); display: flex; align-items: center;
+        flex-shrink: 0; z-index: 100; position: relative; justify-content: space-between;
+    }
+    header.hidden { display: none; }
+    .header-info { text-align: center; flex: 1; display: flex; flex-direction: column; }
+    .student-name { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: #fff; }
+    .status-text { font-size: 11px; color: var(--dim); margin-top: 2px; }
+    .icon-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: transparent; border: 1px solid var(--border); color: #fff; cursor: pointer; }
+
+    /* --- CHAT AREA (SCROLLABLE) --- */
+    #chat-box {
+        flex-grow: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 20px;
+        background: #000; height: 0; min-height: 0;
+    }
+    .msg { display: flex; flex-direction: column; max-width: 85%; }
+    .user-msg { align-self: flex-end; align-items: flex-end; }
+    .ai-msg { align-self: flex-start; align-items: flex-start; width: 100%; }
     
-    .welcome-container { width: 100%; max-width: 400px; text-align: center; margin: 0 auto; margin-top: 30px; padding: 0 30px; }
-    .welcome-title { font-family: 'Outfit', sans-serif; font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 15px; color: var(--text); }
-    #welcome-overlay .welcome-title { color: #ffffff !important; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    #welcome-overlay p { color: #e4e4e7 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .msg-content { padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
+    .user-msg .msg-content { background: var(--user-msg); color: #fff; border-radius: 18px 18px 4px 18px; }
+    .ai-msg .msg-content { background: transparent; color: var(--text); padding-left: 0; }
+    .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.6; font-size: 12px; }
 
-    /* --- 7. INPUTS & BUTTONS --- */
-    .form-label { font-size: 11px; color: var(--dim); margin-left: 2px; margin-bottom:-8px; margin-top: 2px; font-weight:600; text-transform:uppercase; }
-    input, select { 
-        width: 100%; padding: 12px; border-radius: 10px; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; appearance: none;
-        background: rgba(255, 255, 255, 0.08) !important; 
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        color: #fff !important; 
-        backdrop-filter: blur(5px);
+    /* --- INPUT BAR (LOCKED BOTTOM) --- */
+    .input-wrapper {
+        background: #000; border-top: 1px solid var(--border); padding: 10px 15px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom)); flex-shrink: 0; z-index: 100;
     }
-    .submit-btn, .get-started-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #fff; color: #000; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 15px rgba(255,255,255,0.1); transition: transform 0.2s; }
-    .get-started-btn { width: auto; min-width: 140px; padding: 12px 30px; border-radius: 50px; margin-top: 25px; }
-
-    /* --- 8. SETTINGS & PROFILE --- */
-    .profile-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border); width: 100%; position: relative; }
-    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: #222; border: 2px solid var(--text); position: relative; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
-    .search-bar-container { position:relative; width:100%; margin-bottom:20px; display: flex; align-items: center; }
-    .search-clear { position:absolute; right:10px; color:var(--dim); cursor:pointer; display:none; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; }
-    .settings-container { display:flex; flex-direction:column; gap:0; background: var(--card); border-radius:15px; border:1px solid var(--border); overflow:hidden; }
-    .settings-option { padding:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; color: var(--text); font-size:16px; }
-    .nav-back-btn { font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: 'Outfit', sans-serif; }
-    .divider { height:1px; background: var(--border); width:100%; }
-
-    /* --- 9. LANDSCAPE FIXES --- */
-    @media (orientation: landscape) {
-        #sidebar { padding-top: 10px !important; padding-bottom: 10px !important; }
-        #sidebar > div:first-child { margin-top: 0 !important; margin-bottom: 10px !important; display: flex; align-items: center; justify-content: space-between; }
-        #sidebar .submit-btn { width: auto !important; min-width: 120px; max-width: 200px; display: block !important; margin: 0 auto 15px auto !important; padding: 10px 20px !important; font-size: 14px !important; }
-        #sidebar > div:nth-child(3) { margin-top: 15px !important; margin-bottom: 10px !important; }
-        #history-list { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; border: 1px solid var(--border); }
-        #sidebar > div:last-child { padding-top: 5px !important; margin-top: 0 !important; }
+    .input-wrapper.hidden { display: none; }
+    .chat-bar {
+        background: var(--card); border: 1px solid var(--border); border-radius: 24px;
+        padding: 8px 12px; display: flex; align-items: flex-end; gap: 10px;
     }
+    textarea#msg-input { 
+        background: transparent; border: none; padding: 10px 0; max-height: 120px; 
+        resize: none; height: 24px; width: 100%; color: #fff; font-size: 16px;
+    }
+
+    /* --- UTILS --- */
+    #sidebar { position: fixed; inset: 0; background: #000; z-index: 6000; transform: translateX(-100%); transition: transform 0.3s ease; display: flex; flex-direction: column; }
+    #sidebar.open { transform: translateX(0); }
+    .settings-page { background: #000; position: fixed; inset: 0; z-index: 5500; display: flex; flex-direction: column; }
     
-    .input-error { border: 1px solid #ef4444 !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); animation: shake 0.4s ease-in-out; }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-    #custom-modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); z-index: 6000; display:none; align-items:center; justify-content:center; }
-    .modal-box { background: var(--card); padding:25px; border-radius:20px; width:85%; max-width:320px; text-align:center; border:1px solid var(--border); }
-    .modal-btn-row { display:flex; gap:10px; margin-top:20px; }
-    .msg { display: flex; flex-direction: column; margin-bottom: 20px; opacity: 0; animation: fadeInstant 0.3s forwards; }
-    @keyframes fadeInstant { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    .user-msg { align-items: flex-end; } .user-content { background: var(--user-msg); padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 85%; color: var(--text); font-size: 16px; line-height: 1.5; }
-    .ai-msg { align-items: flex-start; width: 100%; } .ai-content { width: 100%; color: var(--text); font-size: 16px; line-height: 1.6; }
-    .msg-actions { display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; padding-left: 5px; }
-    .action-icon, .icon-btn, .send-btn { cursor: pointer; } .icon-btn { background: transparent; color: var(--dim); } .send-btn { background: var(--text); color: var(--bg); }
-    .icon-btn, .send-btn { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; font-size: 18px; flex-shrink: 0; }
-    .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 5px 0; } .typing-dot { width: 8px; height: 8px; background-color: var(--dim); border-radius: 50%; animation: wave 1.3s linear infinite; }
-    .typing-dot:nth-child(2) { animation-delay: -1.1s; } .typing-dot:nth-child(3) { animation-delay: -0.9s; }
-    @keyframes wave { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-    #preview-area { display:none; position:absolute; bottom:85px; left:20px; z-index:50; }
-    .preview-box { width:60px; height:60px; background:#222; border:2px solid #fff; border-radius:12px; overflow:hidden; } .preview-img { width:100%; height:100%; object-fit:cover; }
-    .no-results { color: var(--dim); text-align: center; padding: 20px; display: none; }
-    .icon-btn.active { background: var(--text) !important; color: var(--bg) !important; border: 1px solid var(--text) !important; transform: scale(1.1); font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+    /* Loading Bar for RAG */
+    .rag-status { font-size: 12px; color: #00d2ff; margin-bottom: 5px; display: none; }
     </style>
 </head>
+# ==========================================
+# 👇 PART 3: HTML & JAVASCRIPT 👇
+# ==========================================
 <body>
-    <div class="global-bg">
-        <div class="bg-blob blob-pink"></div>
-        <div class="bg-blob blob-blue"></div>
-        <div class="bg-blob blob-white"></div>
+    <div class="global-bg" id="bg-anim">
+        <div class="blob b1"></div><div class="blob b2"></div>
     </div>
 
-    <div id="custom-modal">
-        <div class="modal-box">
-            <h3 id="modal-title" style="margin:0 0 10px 0; color:var(--text);">Alert</h3>
-            <input type="text" id="modal-input" style="display:none; margin-top:10px;" placeholder="Enter text...">
-            <div class="modal-btn-row">
-                <button class="submit-btn" style="background:var(--dim); flex:1;" onclick="closeModal()">Cancel</button>
-                <button class="submit-btn" style="flex:1;" id="modal-confirm-btn">Confirm</button>
-            </div>
+    <div id="page-welcome" class="overlay">
+        <div class="glass-box" style="text-align: center;">
+            <div class="title-lg">Student's AI</div>
+            <div class="subtitle">Your ultimate AI companion with RAG capabilities.</div>
+            <button class="btn-primary" onclick="navTo('name')">Get Started</button>
         </div>
     </div>
 
-    <div id="welcome-overlay" class="overlay">
-        <div class="welcome-container">
-            <h1 class="welcome-title">Welcome to<br>Student's AI</h1>
-            <p class="welcome-desc">Your smart academic companion. Ask doubts, solve problems, and master your subjects.</p>
-            <button class="get-started-btn" onclick="showNameBox()">Get Started</button>
+    <div id="page-name" class="overlay hidden">
+        <div class="glass-box">
+            <div class="title-lg" style="font-size: 24px;">Who are you?</div>
+            <div><label>Name</label><input type="search" id="inp-name" autocomplete="off"></div>
+            <button class="btn-primary" onclick="saveName()">Next</button>
         </div>
     </div>
 
-    <div id="name-overlay" class="overlay hidden">
-        <div class="data-box">
-            <h2 style="color:var(--text); margin:0 0 10px 0; font-family:'Outfit',sans-serif;">Who are you?</h2>
-            <input type="search" id="username-input" name="student_search_name_random" autocomplete="off" placeholder="Enter your Name" onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleNameSubmit()">
-            <button class="submit-btn" onclick="handleNameSubmit()">Next</button>
+    <div id="page-details" class="overlay hidden">
+        <div class="glass-box">
+            <div class="title-lg" style="font-size: 24px;">Details</div>
+            <label>Education Level</label>
+            <select id="inp-level" onchange="toggleSem()"><option>School</option><option>College</option></select>
+            <label>Class / Year</label><input type="search" id="inp-year">
+            <div id="sem-box" style="display:none;"><label>Semester</label><input type="search" id="inp-sem"></div>
+            <label>Subject</label><input type="search" id="inp-subj">
+            <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
         </div>
     </div>
 
-    <div id="details-overlay" class="overlay hidden">
-        <div class="data-box">
-            <h2 style="color:var(--text); margin:0 0 5px 0; font-family:'Outfit',sans-serif;">Student Details</h2>
-            <span class="form-label">Education Level</span>
-            <select id="edu-level" onchange="updateEduOptions()" onfocus="clearError(this)">
-                <option value="" disabled selected>Select Level</option>
-                <option value="school">School (6th - 12th)</option>
-                <option value="college">College (Arts/Engg)</option>
-            </select>
-            <span class="form-label" id="lbl-year-select">Class / Year</span>
-            <select id="edu-year" onchange="updateSemesterOptions()" onfocus="clearError(this)">
-                <option value="" disabled selected>Select</option>
-            </select>
-            <div id="sem-container" style="display:none; flex-direction:column; gap:5px;">
-                <span class="form-label">Semester</span>
-                <select id="edu-sem" onfocus="clearError(this)"><option value="" disabled selected>Select Semester</option></select>
-            </div>
-            <span class="form-label">Main Subject</span>
-            <input type="search" id="edu-subject" name="student_search_subject_random" autocomplete="off" placeholder="Ex: Maths, CS..." onfocus="clearError(this)" onkeydown="if(event.key==='Enter') handleDetailsSubmit()">
-            <button class="submit-btn" onclick="handleDetailsSubmit()">Start Learning</button>
+    <header id="app-header" class="hidden">
+        <button class="icon-btn" onclick="toggleSidebar(true)"><i class="fas fa-bars"></i></button>
+        <div class="header-info">
+            <span class="student-name" id="display-name">Student</span>
+            <span class="status-text">Ready to master</span>
         </div>
-    </div>
-
-    <div id="settings-overlay" class="overlay hidden" style="background:var(--bg) !important;">
-        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px; margin-top:20px;">
-            <div class="nav-back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i> Back</div>
-        </div>
-        <div style="width:90%; max-width:350px;">
-            <div class="search-bar-container">
-                <input type="text" id="setting-search" class="search-input" placeholder="Search settings..." oninput="toggleSearchClear(this); handleSearch(this)" onkeydown="if(event.key==='Enter') this.blur()">
-                <i class="fas fa-times search-clear" id="search-clear-btn" onclick="clearSearch()"></i>
-            </div>
-            <div id="settings-list" class="settings-container">
-                <div class="settings-option" data-search="student profile" onclick="openProfileFromSettings()"><span>Student Profile</span> <i class="fas fa-chevron-right" style="font-size:12px;"></i></div>
-                <div class="divider"></div>
-                <div class="settings-option" data-search="theme light dark system" style="padding:15px; display:block; cursor:default;">
-                    <div style="font-size:12px; color:var(--dim); margin-bottom:10px; font-weight:600; letter-spacing:1px;">THEME</div>
-                    <div style="display:flex; gap:10px;">
-                        <button id="theme-light" class="icon-btn" onclick="setTheme('light')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-sun"></i></button>
-                        <button id="theme-dark" class="icon-btn" onclick="setTheme('dark')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-moon"></i></button>
-                        <button id="theme-system" class="icon-btn" onclick="setTheme('system')" style="border:1px solid var(--border); flex:1;"><i class="fas fa-desktop"></i></button>
-                    </div>
-                </div>
-            </div>
-            <div id="search-no-results" class="no-results">No results found</div>
-        </div>
-    </div>
-
-    <div id="profile-overlay" class="overlay hidden" style="background:var(--bg) !important;">
-        <div style="width:100%; display:flex; justify-content:flex-start; padding:0 20px; max-width:400px; margin-bottom:10px; margin-top:20px;">
-            <div class="nav-back-btn" onclick="backToSettings()"><i class="fas fa-arrow-left"></i> Back</div>
-        </div>
-        <div class="data-box profile-box" style="margin-top:5px; background:var(--card) !important; backdrop-filter:none;">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <img id="profile-pic-display" style="width:100%; height:100%; object-fit:cover; display:none; border-radius:50%;">
-                    <i class="fas fa-user" id="profile-icon" style="font-size:30px; color:#fff;"></i>
-                    <label for="profile-upload" style="position:absolute; bottom:0; right:-5px; background:var(--text); width:25px; height:25px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-camera" style="font-size:12px; color:var(--bg);"></i></label>
-                </div>
-                <input type="file" id="profile-upload" hidden accept="image/*" onchange="handleProfilePic(this)">
-            </div>
-            <span class="form-label">Name</span> <div class="profile-val" id="p-name">--</div>
-            <span class="form-label">Level</span> <div class="profile-val" id="p-level">--</div>
-            <span class="form-label" id="lbl-year-display">Class/Year</span> <div class="profile-val" id="p-year">--</div>
-            <div id="p-sem-box" style="display:none; flex-direction:column; gap:5px;"><span class="form-label">Semester</span><div class="profile-val" id="p-sem" style="margin-top:2px;">--</div></div>
-            <span class="form-label">Subject (Tap to Edit)</span>
-            <input type="text" id="p-subj-edit" value="" style="background:var(--input-bg) !important; color:var(--text) !important;" onkeydown="handleSubjectKey(event)">
-            <button class="submit-btn" style="background:var(--text); color:var(--bg); margin-top:10px;" onclick="saveProfileChanges()">Save Changes</button>
-            <button class="submit-btn" style="background:#ef4444; color:#fff; margin-top:10px;" onclick="handleLogout()">Log Out</button>
-        </div>
-    </div>
-
-    <header id="main-header" class="hidden-header">
-        <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
-        <span class="app-title">Student's AI</span>
-        <div style="width:40px;"></div>
+        <div style="width: 40px;"></div>
     </header>
 
+    <div id="chat-box"></div>
+
+    <div class="input-wrapper hidden" id="app-input">
+        <div id="rag-status" class="rag-status"><i class="fas fa-spinner fa-spin"></i> Processing Document...</div>
+        <div class="chat-bar">
+            <button class="icon-btn" style="border:none;" onclick="document.getElementById('file-upload').click()"><i class="fas fa-paperclip"></i></button>
+            <input type="file" id="file-upload" hidden accept="image/*, application/pdf" onchange="handleFile(this)">
+            
+            <textarea id="msg-input" placeholder="Message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+            <button class="icon-btn" style="background:#fff; color:#000; border:none;" onclick="sendMessage()"><i class="fas fa-arrow-up"></i></button>
+        </div>
+    </div>
+
     <div id="sidebar">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <div style="display:flex; align-items:center; gap:10px; font-size:18px; font-weight:700; color:var(--text);">
-                <img id="sidebar-pic" src="" style="width:30px; height:30px; border-radius:50%; display:none; object-fit:cover;">
-                <span>Hi <span id="display-name">User</span></span>
-            </div>
-            <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
+        <div style="padding:20px; display:flex; justify-content:space-between;">
+            <span style="color:#fff; font-weight:bold;">Menu</span>
+            <i class="fas fa-times" style="color:#fff; cursor:pointer;" onclick="toggleSidebar(false)"></i>
         </div>
-        <button class="submit-btn" style="margin:0 0 20px 0; padding:12px; font-size:15px; border-radius:12px;" onclick="newChat()">New Chat</button>
-        <div style="color:var(--dim); font-size:12px; font-weight:600; text-transform:uppercase;">Chat History</div>
-        <div id="history-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
-        <div style="margin-top:auto; padding-top:20px; border-top:1px solid var(--border);">
-            <div style="display:flex; align-items:center; gap:15px; color:var(--text); cursor:pointer;" onclick="openSettings()"><i class="fas fa-cog"></i><span style="margin-left:10px;">Settings</span></div>
+        <div style="padding:15px;"><button class="btn-primary" onclick="newChat()">+ New Chat</button></div>
+        <div id="history-container" style="flex:1; overflow-y:auto; padding:15px;"></div>
+        <div style="padding:20px; border-top:1px solid #333; color:#aaa;" onclick="document.getElementById('page-settings').classList.remove('hidden')"><i class="fas fa-cog"></i> Settings</div>
+    </div>
+
+    <div id="page-settings" class="settings-page hidden">
+        <div style="padding:15px; border-bottom:1px solid #333;">
+            <i class="fas fa-arrow-left" style="color:#fff; cursor:pointer;" onclick="this.closest('.settings-page').classList.add('hidden')"></i>
+            <span style="color:#fff; margin-left:15px; font-weight:bold;">Settings</span>
+        </div>
+        <div style="padding:20px;">
+            <button class="btn-primary" style="background:#ef4444; color:#fff;" onclick="handleLogout()">Log Out</button>
         </div>
     </div>
 
-    <div id="chat-box"></div> 
-    
-    <div class="input-wrapper" style="display:none;">
-        <div id="preview-area"><div class="preview-box"><img id="preview-img" class="preview-img"></div><button onclick="clearAttachment()" style="background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; position:absolute; top:-5px; right:-5px; z-index:60;">×</button></div>
-        <div class="input-container">
-            <button class="icon-btn" onclick="document.getElementById('file-input').click()"><i class="fas fa-paperclip"></i></button>
-            <input type="file" id="file-input" hidden onchange="handleFile(this)">
-            <textarea id="input" placeholder="Type a message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); send();}"></textarea>
-            <button class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></button>
-        </div>
-    </div>
     <script>
-        let currentUser = null, currentChatId = null, userContext = "", currentAttachment = null;
-        
-        function getIntroHtml(name) { 
-            return `<div id="intro-container"><div class="welcome-title" style="font-size:28px; margin-bottom:5px; text-align:center;">Hi ${name},</div><p style="color:var(--dim); text-align:center;">Ready to master ${userContext ? userContext.split(',')[0] : "studies"}?</p></div>`; 
-        }
+        let currentUser = null, currentChatId = null, userContext = "";
+        let currentFile = null, isPDF = false;
 
-       /* --- FIX: HEADER & INPUT HIDE ON LOAD --- */
         function checkLogin() {
-             // 1. தீம் செட் பண்றோம்
-             const t = localStorage.getItem("student_theme") || 'system'; 
-             setTheme(t);
-    
-             const u = localStorage.getItem("student_ai_user");
-             const c = localStorage.getItem("student_ai_context");
-    
-             if(u) {
-                 // யூசர் லாகின் செய்திருந்தால்...
-                 currentUser = u;
-                 if(c) {
-                    userContext = c;
-                    // எல்லா பாக்ஸையும் மறைச்சுட்டு ஆப் காட்டு
-                    document.getElementById('name-overlay').style.display = 'none';
-                    document.getElementById('details-overlay').style.display = 'none';
-                    showApp();
-                 } else {
-                    // டீடைல்ஸ் இல்லன்னா அதை காட்டு
-                    document.getElementById('name-overlay').style.display = 'none';
-                    const sel = document.getElementById('details-overlay');
-                    sel.classList.remove('hidden'); sel.style.display = 'flex';
-                    
-                    // 👇 முக்கியம்: பாக்கி உள்ளதை மறைக்கணும்
-                    document.getElementById('main-header').classList.add('hidden-header');
-                    document.querySelector('.input-wrapper').style.display = 'none';
-                 }
-             } else {
-                 // யூசர் லாகின் செய்யவில்லை என்றால் (Fresh Start)...
-                 
-                 // 👇 1. ஹெட்டரை மறை (Hide Header)
-                 document.getElementById('main-header').classList.add('hidden-header');
-                 
-                 // 👇 2. சேட் பாரை மறை (Hide Input Bar - இதுதான் மிஸ்ஸிங்!)
-                 document.querySelector('.input-wrapper').style.display = 'none';
-
-                 // 3. Welcome Page-ஐ காட்டு
-                 const welcome = document.getElementById('welcome-overlay');
-                 welcome.classList.remove('hidden'); welcome.style.display = 'flex';
-                 
-                 history.replaceState({step: 'welcome'}, null, null);
-             }
+            const u = localStorage.getItem("sai_user");
+            if(u) {
+                currentUser = u; userContext = localStorage.getItem("sai_context") || "";
+                document.getElementById('display-name').innerText = u;
+                showAppMode();
+            } else {
+                showLoginMode();
+            }
         }
 
-        /* --- FIX: LOGOUT & CLEAR DATA (Inputs Reset) --- */
-        function handleLogout() {
-            // 1. எல்லா Overlay-யையும் மறைக்கிறோம்
-            document.getElementById('profile-overlay').style.display = 'none';
-            document.getElementById('settings-overlay').style.display = 'none';
-            document.getElementById('details-overlay').style.display = 'none';
-            document.getElementById('name-overlay').style.display = 'none';
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('main-header').classList.add('hidden-header');
-            
-            // 2. Chat Bar-ஐ மறைக்கிறோம் & Chat-ஐ அழிக்கிறோம்
-            document.querySelector('.input-wrapper').style.display = 'none';
-            document.getElementById('chat-box').innerHTML = '';
-            
-            // 3. கலர் பேக்ரவுண்டை மீண்டும் கொண்டு வரோம்
-            document.querySelector('.global-bg').style.display = 'block';
-
-            // 4. Memory-ஐ அழிக்கிறோம் (LocalStorage)
-            localStorage.clear();
-            currentUser = null; 
-            userContext = ""; 
-            currentChatId = null;
-
-            // 👇 5. INPUT FIELDS CLEANUP (இதுதான் முக்கியம்!) 👇
-            // பெயர் பாக்ஸை காலி பண்ணு
-            document.getElementById('username-input').value = ""; 
-            // சப்ஜெக்ட் பாக்ஸை காலி பண்ணு
-            document.getElementById('edu-subject').value = ""; 
-            // Dropdowns-ஐ ரீசெட் பண்ணு (Select Level/Year)
-            document.getElementById('edu-level').selectedIndex = 0;
-            document.getElementById('edu-year').innerHTML = '<option value="" disabled selected>Select</option>';
-            document.getElementById('edu-sem').innerHTML = '<option value="" disabled selected>Select Semester</option>';
-            document.getElementById('sem-container').style.display = 'none';
-
-            // 6. Welcome Page-ஐ காட்டு
-            const welcome = document.getElementById('welcome-overlay');
-            welcome.classList.remove('hidden'); 
-            welcome.style.display = 'flex';
-            
-            history.replaceState({step: 'welcome'}, null, null);
+        function showLoginMode() {
+            document.getElementById('bg-anim').style.display = 'block';
+            document.getElementById('app-header').classList.add('hidden');
+            document.getElementById('app-input').classList.add('hidden');
+            navTo('welcome');
         }
 
-        function showApp() {
-            // 👇 1. REVEAL Chat Bar
-            document.querySelector('.input-wrapper').style.display = 'block';
-            
-            // 👇 2. HIDE Colorful Background (Make Chat Black)
-            document.querySelector('.global-bg').style.display = 'none';
-
-            document.getElementById('display-name').innerText = currentUser;
-            document.getElementById('main-header').classList.remove('hidden-header');
+        function showAppMode() {
+            document.getElementById('bg-anim').style.display = 'none';
+            document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('app-input').classList.remove('hidden');
             loadHistory();
-            if(!currentChatId && !document.getElementById('intro-container')) {
-                document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
-            }
-            updateSidebarPic();
+            if(!currentChatId) newChat();
         }
 
-        function clearError(input) { input.classList.remove('input-error'); }
+        function navTo(id) {
+            document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+            document.getElementById('page-'+id).classList.remove('hidden');
+        }
+
+        function saveName() { currentUser = document.getElementById('inp-name').value; navTo('details'); }
+        function toggleSem() { document.getElementById('sem-box').style.display = document.getElementById('inp-level').value === 'College' ? 'block' : 'none'; }
         
-        function showNameBox() { 
-            document.getElementById("welcome-overlay").style.display = 'none'; 
-            const nameBox = document.getElementById("name-overlay"); 
-            nameBox.classList.remove('hidden'); nameBox.style.display = 'flex'; 
-            history.pushState({step: 'name'}, null, null);
-        }
-        
-        function handleNameSubmit() {
-            const input = document.getElementById("username-input");
-            const name = input.value.trim();
-            if(!name) { input.classList.add('input-error'); return; }
-            localStorage.setItem("student_ai_user", name);
-            currentUser = name;
-            document.getElementById("name-overlay").style.display = 'none';
-            const details = document.getElementById("details-overlay");
-            details.classList.remove('hidden'); details.style.display = 'flex';
-            history.pushState({step: 'details'}, null, null);
+        function finishSetup() {
+            userContext = `${document.getElementById('inp-level').value}, ${document.getElementById('inp-year').value}, ${document.getElementById('inp-subj').value}`;
+            localStorage.setItem("sai_user", currentUser);
+            localStorage.setItem("sai_context", userContext);
+            showAppMode();
         }
 
-        function updateEduOptions() {
-            const level = document.getElementById('edu-level').value;
-            const yearSelect = document.getElementById('edu-year');
-            const semContainer = document.getElementById('sem-container');
-            const label = document.getElementById('lbl-year-select');
-            yearSelect.innerHTML = '<option value="" disabled selected>Select</option>';
-            document.getElementById('edu-sem').innerHTML = '<option value="" disabled selected>Select Semester</option>';
-            if(level === 'college') {
-                label.innerText = "Year";
-                semContainer.style.display = 'flex';
-                ["1st Year", "2nd Year", "3rd Year", "4th Year"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
-            } else {
-                label.innerText = "Standard";
-                semContainer.style.display = 'none';
-                ["6th Std", "7th Std", "8th Std", "9th Std", "10th Std", "11th Std", "12th Std"].forEach(o => yearSelect.innerHTML += `<option value="${o}">${o}</option>`);
-            }
-        }
-        function updateSemesterOptions() {
-            const level = document.getElementById('edu-level').value;
-            const year = document.getElementById('edu-year').value;
-            const semSelect = document.getElementById('edu-sem');
-            if (level !== 'college') return;
-            semSelect.innerHTML = '<option value="" disabled selected>Select Semester</option>';
-            let sems = [];
-            if (year === "1st Year") sems = ["Semester 1", "Semester 2"];
-            else if (year === "2nd Year") sems = ["Semester 3", "Semester 4"];
-            else if (year === "3rd Year") sems = ["Semester 5", "Semester 6"];
-            else if (year === "4th Year") sems = ["Semester 7", "Semester 8"];
-            sems.forEach(s => semSelect.innerHTML += `<option value="${s}">${s}</option>`);
-        }
-        function handleDetailsSubmit() {
-            const lElem = document.getElementById('edu-level');
-            const yElem = document.getElementById('edu-year');
-            const sElem = document.getElementById('edu-subject');
-            const semElem = document.getElementById('edu-sem');
-            const l = lElem.value, y = yElem.value, s = sElem.value.trim();
-            let isValid = true;
-            if(!l) { lElem.classList.add('input-error'); isValid = false; }
-            if(!y) { yElem.classList.add('input-error'); isValid = false; }
-            if(!s) { sElem.classList.add('input-error'); isValid = false; }
-            let semVal = "";
-            if(l === 'college') {
-                semVal = semElem.value;
-                if(!semVal) { semElem.classList.add('input-error'); isValid = false; }
-            }
-            if(!isValid) return;
-            userContext = l === 'college' ? `${l}, ${y}, ${semVal}, ${s}` : `${l}, ${y}, ${s}`;
-            localStorage.setItem("student_ai_context", userContext);
-            document.getElementById('details-overlay').style.display = 'none';
-            showApp();
+        function handleLogout() {
+            localStorage.clear();
+            document.getElementById('inp-name').value = "";
+            document.getElementById('chat-box').innerHTML = "";
+            location.reload();
         }
 
-        function updateSidebarPic() {
-            const pic = localStorage.getItem("student_profile_pic");
-            if(pic) {
-                const sb = document.getElementById('sidebar-pic');
-                sb.src = pic; sb.style.display = 'block';
-            }
-        }
-
-        function openSettings() {
-             document.getElementById('settings-overlay').classList.remove('hidden');
-             document.getElementById('settings-overlay').style.display = 'flex';
-             document.getElementById('sidebar').classList.remove('open');
-             document.getElementById('main-header').classList.add('hidden-header');
-             clearSearch();
-             history.pushState({step: 'settings'}, null, null);
-        }
-        function closeSettings() { 
-            document.getElementById('settings-overlay').style.display = 'none'; 
-            document.getElementById('main-header').classList.remove('hidden-header');
-        }
-        function openProfileFromSettings() { 
-            document.getElementById('settings-overlay').style.display = 'none'; 
-            openProfile(); 
-            history.pushState({step: 'profile'}, null, null);
-        }
-        function backToSettings() { 
-            document.getElementById('profile-overlay').style.display = 'none'; 
-            document.getElementById('settings-overlay').style.display = 'flex';
-        }
-        
-        function openProfile() {
-            document.getElementById('p-name').innerText = currentUser;
-            const parts = userContext.split(',');
-            const level = parts[0];
-            document.getElementById('p-level').innerText = level.toUpperCase();
-            document.getElementById('p-year').innerText = parts[1];
-            document.getElementById('lbl-year-display').innerText = level === 'college' ? "Year" : "Standard";
-            if(level === 'college' && parts.length >= 4) {
-                 document.getElementById('p-sem-box').style.display = 'flex';
-                 document.getElementById('p-sem').innerText = parts[2];
-                 document.getElementById('p-subj-edit').value = parts[3];
-            } else {
-                 document.getElementById('p-sem-box').style.display = 'none';
-                 document.getElementById('p-subj-edit').value = parts[2];
-            }
-            const prof = document.getElementById('profile-overlay');
-            prof.classList.remove('hidden'); prof.style.display = 'flex';
-            document.getElementById('main-header').classList.add('hidden-header');
-            const pic = localStorage.getItem("student_profile_pic");
-            if(pic) {
-                document.getElementById('profile-pic-display').src = pic;
-                document.getElementById('profile-pic-display').style.display = 'block';
-                document.getElementById('profile-icon').style.display = 'none';
-            }
-        }
-        
-        function handleSubjectKey(event) {
-            if(event.key === 'Enter') {
-                event.preventDefault(); 
-                saveProfileChanges();
-                document.getElementById('p-subj-edit').blur();
-            }
-        }
-
-        function saveProfileChanges() {
-            const newSubj = document.getElementById('p-subj-edit').value;
-            const parts = userContext.split(',');
-            if(parts[0] === 'college') parts[3] = newSubj;
-            else parts[2] = newSubj;
-            userContext = parts.join(',');
-            localStorage.setItem("student_ai_context", userContext);
-            
-            const btn = document.querySelector('#profile-overlay .submit-btn');
-            const originalText = btn.innerText;
-            btn.innerText = "Saved! ✓";
-            btn.style.background = "#22c55e"; 
-            
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.background = "var(--text)";
-                document.getElementById('profile-overlay').style.display = 'none';
-                document.getElementById('main-header').classList.remove('hidden-header');
-            }, 800);
-        }
-
-        function handleProfilePic(input) {
-            if (input.files && input.files[0]) {
-                const r = new FileReader();
-                r.onload = function(e) {
-                    localStorage.setItem("student_profile_pic", e.target.result);
-                    document.getElementById('profile-pic-display').src = e.target.result;
-                    document.getElementById('profile-pic-display').style.display = 'block';
-                    document.getElementById('profile-icon').style.display = 'none';
-                    updateSidebarPic();
-                }
-                r.readAsDataURL(input.files[0]);
-            }
-        }
-        function setTheme(t) {
-             localStorage.setItem("student_theme", t);
-             if(t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-             else if(t === 'dark') document.documentElement.removeAttribute('data-theme');
-             else { if(window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.setAttribute('data-theme', 'light'); else document.documentElement.removeAttribute('data-theme'); }
-             document.querySelectorAll('.icon-btn').forEach(btn => btn.classList.remove('active'));
-             const activeBtn = document.getElementById('theme-' + t);
-             if(activeBtn) activeBtn.classList.add('active');
-        }
-        
-        function toggleSearchClear(el) { document.getElementById('search-clear-btn').style.display = el.value ? 'flex' : 'none'; }
-        function clearSearch() { const el = document.getElementById('setting-search'); el.value = ''; toggleSearchClear(el); handleSearch(el); }
-        function handleSearch(el) {
-            const term = el.value.toLowerCase();
-            const items = document.querySelectorAll('.settings-option');
-            let hasResult = false;
-            items.forEach(item => {
-                const keywords = item.getAttribute('data-search');
-                if(keywords && keywords.includes(term)) {
-                    item.style.display = 'flex'; hasResult = true;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            document.querySelector('.divider').style.display = term ? 'none' : 'block';
-            document.getElementById('search-no-results').style.display = hasResult ? 'none' : 'block';
-        }
-        
-        function newChat() {
-            currentChatId = null;
-            document.getElementById('chat-box').innerHTML = getIntroHtml(currentUser);
-            document.getElementById('sidebar').classList.remove('open');
-        }
-
-        async function send() {
-            const txt = document.getElementById('input').value.trim();
-            if(!txt && !currentAttachment) return;
-            document.getElementById('intro-container').style.display = 'none';
-            const box = document.getElementById('chat-box');
-            let imgHtml = currentAttachment ? `<br><img src="${currentAttachment}" style="max-height:100px;border-radius:8px;">` : "";
-            
-            box.insertAdjacentHTML('beforeend', `
-                <div class="msg user-msg">
-                    <div class="user-content">${txt.replace(/</g, "&lt;")}${imgHtml}</div>
-                    <div class="msg-actions">
-                         <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${txt}')"></i>
-                         <i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${txt}'; document.getElementById('input').focus();"></i>
-                    </div>
-                </div>`);
-            
-            document.getElementById('input').value = ""; document.getElementById('input').style.height = 'auto';
-            let imgData = currentAttachment; clearAttachment();
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-            
-            const msgId = "ai-" + Date.now();
-            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`);
-            
-            try {
-                if(!currentChatId) {
-                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
-                }
-                const res = await fetch('/chat', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({message:txt, image:imgData, username:currentUser, chat_id:currentChatId, user_context:userContext})
-                });
-                const data = await res.json();
+        // --- RAG FILE HANDLING ---
+        async function handleFile(input) {
+            if(input.files[0]) {
+                const file = input.files[0];
                 
-                const aiMsgDiv = document.getElementById(msgId);
-                const contentDiv = aiMsgDiv.querySelector('.ai-content');
-                let words = data.response.split(" "); let currentText = ""; contentDiv.innerHTML = "";
-                
-                aiMsgDiv.insertAdjacentHTML('beforeend', `
-                    <div class="msg-actions" style="opacity:0; transition:opacity 0.5s;">
-                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').querySelector('.ai-content').innerText)"></i>
-                        <i class="fas fa-share-alt action-icon" onclick="if(navigator.share) navigator.share({text:this.closest('.ai-msg').querySelector('.ai-content').innerText})"></i>
-                        <i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='${txt}'; send();"></i>
-                    </div>`);
-
-                for (let i = 0; i < words.length; i++) {
-                    currentText += words[i] + " "; contentDiv.innerHTML = marked.parse(currentText);
-                    box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); await new Promise(r => setTimeout(r, 20));
-                }
-                contentDiv.innerHTML = marked.parse(data.response);
-                if(window.hljs) hljs.highlightAll(); if(window.MathJax) MathJax.typesetPromise([contentDiv]);
-                aiMsgDiv.querySelector('.msg-actions').style.opacity = '1';
-                if(data.new_title) loadHistory();
-            } catch(e) { document.getElementById(msgId).innerHTML = "Error."; }
-        }
-
-        function showCustomModal(title, isInput, callback) {
-            const m = document.getElementById('custom-modal');
-            document.getElementById('modal-title').innerText = title;
-            const inp = document.getElementById('modal-input');
-            inp.style.display = isInput ? 'block' : 'none'; inp.value = "";
-            m.style.display = 'flex';
-            document.getElementById('modal-confirm-btn').onclick = function() { callback(inp.value); m.style.display = 'none'; };
-        }
-        function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
-
-        async function renameChat(cid) { 
-            showCustomModal("Rename Chat", true, async (val) => { 
-                if(val) { 
-                    const titleEl = document.getElementById('chat-'+cid).querySelector('.h-title');
-                    if(titleEl) titleEl.innerText = val; 
-                    await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}); 
+                // If PDF -> Upload for RAG
+                if(file.type === "application/pdf") {
+                    document.getElementById('rag-status').style.display = 'block';
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const res = await fetch('/upload_pdf', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    
+                    document.getElementById('rag-status').style.display = 'none';
+                    if(data.status === 'success') {
+                        addMsg('ai', "📄 PDF Uploaded! I have read it. Ask me anything about it.");
+                    } else {
+                        alert("PDF Error: " + data.message);
+                    }
                 } 
-            }); 
-        }
-        async function deleteChat(cid) { 
-            showCustomModal("Delete Chat?", false, async () => { 
-                const item = document.getElementById('chat-'+cid); if(item) item.remove();
-                await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}); 
-                if(currentChatId === cid) newChat(); 
-            }); 
+                // If Image -> Keep for Gemini Vision
+                else {
+                    const r = new FileReader();
+                    r.onload = (e) => { currentFile = e.target.result; isPDF = false; alert("Image attached!"); }
+                    r.readAsDataURL(file);
+                }
+            }
         }
 
+        async function sendMessage() {
+            const txt = document.getElementById('msg-input').value.trim();
+            if(!txt && !currentFile) return;
+
+            addMsg('user', txt, currentFile);
+            document.getElementById('msg-input').value = "";
+            let fileData = currentFile; currentFile = null;
+
+            // Send to Backend
+            if(!currentChatId) {
+                const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                const d = await r.json(); currentChatId = d.chat_id;
+            }
+
+            const res = await fetch('/chat', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    message: txt, image: fileData, 
+                    username: currentUser, chat_id: currentChatId, 
+                    user_context: userContext
+                })
+            });
+            const data = await res.json();
+            addMsg('ai', data.response);
+        }
+
+        function addMsg(role, text, img=null) {
+            const box = document.getElementById('chat-box');
+            let content = role === 'ai' ? marked.parse(text) : text;
+            let imgHtml = img ? `<img src="${img}" style="max-width:200px; border-radius:10px; display:block; margin-bottom:5px;">` : "";
+            
+            box.insertAdjacentHTML('beforeend', 
+                `<div class="msg ${role}-msg"><div class="msg-content">${imgHtml}${content}</div></div>`
+            );
+            box.scrollTo(0, box.scrollHeight);
+        }
+
+        // Sidebar & History logic (Standard)
+        function toggleSidebar(open) { document.getElementById('sidebar').style.transform = open ? 'translateX(0)' : 'translateX(-100%)'; }
+        async function newChat() { currentChatId = null; document.getElementById('chat-box').innerHTML = ""; toggleSidebar(false); }
         async function loadHistory() {
-             const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-             const data = await res.json();
-             const list = document.getElementById('history-list'); list.innerHTML = "";
-             Object.keys(data.chats).reverse().forEach(cid => {
-                 list.innerHTML += `<div class="history-item" id="chat-${cid}" onclick="loadChat('${cid}')"><span class="h-title">${data.chats[cid].title || "Chat"}</span><div class="h-actions"><i class="fas fa-pen action-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i><i class="fas fa-trash action-icon" onclick="event.stopPropagation(); deleteChat('${cid}')"></i></div></div>`;
-             });
+            const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+            const data = await res.json();
+            const list = document.getElementById('history-container'); list.innerHTML = "";
+            Object.keys(data.chats).reverse().forEach(cid => {
+                list.innerHTML += `<div style="padding:10px; color:#aaa;" onclick="loadChat('${cid}')">${data.chats[cid].title || 'Chat'}</div>`;
+            });
         }
         async function loadChat(cid) {
-            currentChatId = cid;
+            currentChatId = cid; toggleSidebar(false);
             const res = await fetch('/get_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
             const data = await res.json();
-            const box = document.getElementById('chat-box'); box.innerHTML = "";
-            data.messages.forEach(m => {
-                let cls = m.role === 'user' ? 'user' : 'ai';
-                let content = m.role === 'user' ? m.content : marked.parse(m.content);
-                let actions = cls === 'ai' ? `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText(this.closest('.ai-msg').innerText)"></i><i class="fas fa-share-alt action-icon"></i><i class="fas fa-redo action-icon" onclick="document.getElementById('input').value='Regenerate'; send();"></i></div>` : `<div class="msg-actions"><i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${m.content}')"></i><i class="fas fa-pen action-icon" onclick="document.getElementById('input').value='${m.content}'; document.getElementById('input').focus();"></i></div>`;
-                box.insertAdjacentHTML('beforeend', `<div class="msg ${cls}-msg"><div class="${cls}-content">${content}</div>${actions}</div>`);
-            });
-            document.getElementById('sidebar').classList.remove('open');
-            hljs.highlightAll();
+            document.getElementById('chat-box').innerHTML = "";
+            data.messages.forEach(m => addMsg(m.role==='user'?'user':'ai', m.content));
         }
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-        function handleFile(input) { if(input.files[0]) { const r = new FileReader(); r.onload=(e)=>{ currentAttachment=e.target.result; document.getElementById('preview-area').style.display='block'; document.getElementById('preview-img').src=currentAttachment; }; r.readAsDataURL(input.files[0]); } }
-        function clearAttachment() { currentAttachment=null; document.getElementById('preview-area').style.display='none'; document.getElementById('file-input').value=""; }
-        const inp = document.getElementById('input'); const intro = document.getElementById('intro-container');
-        if(inp && intro) { inp.addEventListener('focus', () => intro.style.opacity = '0'); inp.addEventListener('blur', () => { if(!document.getElementById('chat-box').innerHTML.includes('msg')) intro.style.opacity = '1'; }); }
-        
-        window.addEventListener('popstate', function(event) {
-            if(document.getElementById('sidebar').classList.contains('open')) {
-                document.getElementById('sidebar').classList.remove('open'); return;
-            }
-            const overlays = ['profile-overlay', 'settings-overlay'];
-            for (let id of overlays) {
-                let el = document.getElementById(id);
-                if (el && el.style.display !== 'none') {
-                    if (id === 'profile-overlay') backToSettings(); 
-                    else closeSettings(); 
-                    return;
-                }
-            }
-            const step = event.state ? event.state.step : 'welcome';
-            document.getElementById('welcome-overlay').style.display = 'none';
-            document.getElementById('name-overlay').style.display = 'none';
-            document.getElementById('details-overlay').style.display = 'none';
-
-            if (step === 'details') {
-                const details = document.getElementById('details-overlay');
-                details.classList.remove('hidden'); details.style.display = 'flex';
-            } else if (step === 'name') {
-                const nameBox = document.getElementById('name-overlay');
-                nameBox.classList.remove('hidden'); nameBox.style.display = 'flex';
-            } else {
-                const welcome = document.getElementById('welcome-overlay');
-                welcome.classList.remove('hidden'); welcome.style.display = 'flex';
-            }
-        });
 
         checkLogin();
     </script>
 </body>
 </html>
 """
-# --- ROUTES ---
+# ==========================================
+# 👇 PART 4: NEW ROUTES FOR PDF & CHAT 👇
+# ==========================================
+
+@app.route("/upload_pdf", methods=["POST"])
+def upload_pdf():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"})
+        
+    if file:
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(file_path)
+        
+        # Trigger RAG Phase 1-4
+        success, msg = process_document_rag(file_path)
+        
+        if success:
+            return jsonify({"status": "success", "message": msg})
+        else:
+            return jsonify({"status": "error", "message": msg})
+
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
 
@@ -919,24 +561,6 @@ def new_chat():
     user_db[u][nid] = {"title": "New Chat", "messages": []}
     save_db(user_db)
     return jsonify({"chat_id": nid})
-
-@app.route("/rename_chat", methods=["POST"])
-def rename_chat():
-    d = request.json
-    u, cid, t = d.get("username"), d.get("chat_id"), d.get("title")
-    if u in user_db and cid in user_db[u]:
-        user_db[u][cid]["title"] = t
-        save_db(user_db)
-    return jsonify({"status":"ok"})
-
-@app.route("/delete_chat", methods=["POST"])
-def delete_chat():
-    d = request.json
-    u, cid = d.get("username"), d.get("chat_id")
-    if u in user_db and cid in user_db[u]:
-        del user_db[u][cid]
-        save_db(user_db)
-    return jsonify({"status":"ok"})
 
 @app.route("/get_history", methods=["POST"])
 def get_history():
@@ -953,43 +577,26 @@ def chat():
     d = request.json
     u, cid, msg, ctx = d.get("username"), d.get("chat_id"), d.get("message"), d.get("user_context", "")
     img = d.get("image")
+    
     if u not in user_db: user_db[u] = {}
     if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
+    
+    # Check RAG
+    rag_context = query_rag(msg)
+    
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
-    reply = generate_with_retry(msg, img, None, user_db[u][cid]["messages"][:-1], ctx)
+    
+    # Generate Response (With RAG Context if available)
+    reply = generate_with_retry(msg, img, user_db[u][cid]["messages"][:-1], ctx, rag_context)
+    
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
+    
     new_title = False
     if len(user_db[u][cid]["messages"]) <= 2:
         user_db[u][cid]["title"] = " ".join(msg.split()[:4])
         new_title = True
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
-
-# PWA MANIFEST ROUTE
-@app.route('/manifest.json')
-def manifest():
-    data = {
-        "name": "Student's AI",
-        "short_name": "StudentAI",
-        "start_url": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#09090b",
-        "theme_color": "#09090b",
-        "icons": [
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
-    return Response(json.dumps(data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
