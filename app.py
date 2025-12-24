@@ -830,65 +830,101 @@ HTML_TEMPLATE = """
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
         async function send() {
-            if(isGenerating) return;
-            const input = document.getElementById('input');
-            const text = input.value.trim();
-            if(!text) return;
-            
-            input.value = ""; input.style.height = 'auto';
-            const box = document.getElementById('chat-box');
-            
-            // User Message
-            const userHtml = `
-                <div class="msg user-msg">
-                    <div class="user-content">${text}</div>
-                    <div class="msg-actions" style="justify-content: flex-end;">
-                        <div class="action-icon" onclick="copyText('${text}')"><i class="fas fa-copy"></i></div>
-                        <div class="action-icon" onclick="editLastMessage('${text}')"><i class="fas fa-pen"></i></div>
-                    </div>
-                </div>`;
-            box.insertAdjacentHTML('beforeend', userHtml);
-            box.scrollTo(0, box.scrollHeight);
+            // 1. செண்டிங் நடக்குதான்னு செக் பண்றோம்
+            if (typeof isGenerating !== 'undefined' && isGenerating) return;
 
-            // AI Loading
+            // 👇 FIX: சரியான ID 'msg-input' பயன்படுத்தப்படுகிறது
+            const inputEl = document.getElementById('msg-input');
+            const txt = inputEl.value.trim();
+            
+            // Global file variable (from previous fix)
+            const fileData = window.currentFile;
+
+            // எழுத்தும் இல்லை, போட்டோவும் இல்லைன்னா ரிட்டர்ன் பண்ணிடு
+            if (!txt && !fileData) return;
+
+            // 2. UI சுத்தம் செய்தல்
+            inputEl.value = "";
+            inputEl.style.height = 'auto'; // Reset height
+            document.getElementById('preview-box').style.display = 'none';
+            window.currentFile = null; // Reset file
+
+            // 3. யூசர் மெசேஜை திரையில் காட்டு
+            addMsg('user', txt, fileData);
+
+            // 4. AI Thinking காட்டு
             const msgId = "ai-" + Date.now();
-            box.insertAdjacentHTML('beforeend', `<div id="${msgId}" class="msg ai-msg"><div class="ai-content">Thinking...</div></div>`);
-            isGenerating = true;
+            const chatBox = document.getElementById('chat-box');
+            chatBox.insertAdjacentHTML('beforeend', 
+                `<div id="${msgId}" class="msg ai-msg">
+                    <div class="msg-bubble" style="color:#aaa;">Thinking...</div>
+                </div>`
+            );
+            chatBox.scrollTo(0, chatBox.scrollHeight);
+            
+            if (typeof isGenerating !== 'undefined') isGenerating = true;
 
-            if(!currentChatId) {
-                const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                const d = await r.json(); currentChatId = d.chat_id;
-                loadHistory();
+            // 5. Backend-க்கு அனுப்பு
+            try {
+                // Chat ID இருக்கான்னு பாரு
+                if (!currentChatId) {
+                    const r = await fetch('/new_chat', {
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify({username: currentUser})
+                    });
+                    const d = await r.json(); 
+                    currentChatId = d.chat_id; 
+                    if(typeof loadHistory === 'function') loadHistory();
+                }
+
+                // Send Request
+                const res = await fetch('/chat', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        message: txt, 
+                        image: fileData, 
+                        username: currentUser, 
+                        chat_id: currentChatId,
+                        user_context: (typeof userContext !== 'undefined' ? userContext : "")
+                    })
+                });
+                
+                const data = await res.json();
+                
+                // 6. AI பதிலை காட்டு (Update Thinking Message)
+                const aiDiv = document.getElementById(msgId);
+                aiDiv.innerHTML = ""; // Clear 'Thinking...'
+                
+                // Bubble Create
+                const bubble = document.createElement('div');
+                bubble.className = "msg-bubble";
+                aiDiv.appendChild(bubble);
+                
+                // Typewriter Effect or Direct Render
+                if (typeof typeWriter === 'function') {
+                    typeWriter(bubble, data.response);
+                } else {
+                    bubble.innerHTML = marked.parse(data.response);
+                }
+                
+                // Add Actions (Copy/Regen)
+                const actionsHtml = `
+                    <div class="msg-actions">
+                        <div class="action-icon" onclick="navigator.clipboard.writeText(\`${data.response.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i> Copy</div>
+                        <div class="action-icon"><i class="fas fa-share-alt"></i> Share</div>
+                    </div>`;
+                aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById(msgId).innerHTML = `<div class="msg-bubble" style="color:red;">Error sending message.</div>`;
+            } finally {
+                if (typeof isGenerating !== 'undefined') isGenerating = false;
+                chatBox.scrollTo(0, chatBox.scrollHeight);
             }
-
-            const res = await fetch('/chat', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ message: text, username: currentUser, chat_id: currentChatId })
-            });
-            const data = await res.json();
-            
-            // Typewriter Effect
-            const aiDiv = document.getElementById(msgId);
-            aiDiv.innerHTML = `<div class="ai-content"></div>`;
-            const contentDiv = aiDiv.querySelector('.ai-content');
-            
-            // Simple Type simulation (since markdown parsing happens at once, we fade in)
-            // But to support "Buttery Smooth" feel:
-            contentDiv.innerHTML = marked.parse(data.response);
-            
-            // Add Actions
-            const actionsHtml = `
-                <div class="msg-actions">
-                    <div class="action-icon" onclick="copyText(\`${data.response.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync"></i> Regen</div>
-                    <div class="action-icon" onclick="navigator.share({text:'${data.response.substring(0,100)}...'})"><i class="fas fa-share"></i> Share</div>
-                </div>`;
-            aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-            
-            box.scrollTo(0, box.scrollHeight);
-            isGenerating = false;
         }
-
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
