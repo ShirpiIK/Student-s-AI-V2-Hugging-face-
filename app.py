@@ -445,51 +445,26 @@ HTML_TEMPLATE = """
         .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 30%, 70% { transform: translate3d(-4px, 0, 0); } 50% { transform: translate3d(4px, 0, 0); } }
 
-        /* --- NEW FONT SIZE UPDATE --- */
+        /* --- FIX: FONT SIZE & FULL WIDTH --- */
+    
+    /* 1. மெசேஜ் பாக்ஸ் செட்டிங்ஸ் */
     .msg-bubble { 
-        padding: 14px 20px !important; /* பெட்டி அளவு */
-        border-radius: 18px; 
-        font-size: 18px !important; /* 👇 எழுத்து அளவு 18px ஆக மாற்றப்பட்டது */
-        line-height: 1.8 !important; /* வரிகளுக்கு இடையே இடைவெளி */
-        max-width: 90%; 
-        word-wrap: break-word; 
-        position: relative; 
+        padding: 12px 16px; 
+        
+        /* 👇 எழுத்து அளவு பெரிதாக்கப்பட்டது */
+        font-size: 18px !important; 
+        line-height: 1.8 !important; 
+        
+        /* 👇 வலது பக்கம் இடம் வீணாவதை தடுக்க (Full Width) */
+        max-width: 100% !important; 
         width: fit-content;
     }
-    
-    /* AI Thinking Text Size */
-    .ai-content {
-        font-size: 18px !important;
+
+    /* 2. AI Text செட்டிங்ஸ் */
+    .ai-content { 
+        font-size: 18px !important; 
         line-height: 1.8 !important;
     }
-    /* --- CHAT BUBBLE FIX --- */
-        
-        .user-content { 
-            max-width: 85%; 
-            background: var(--user-msg); 
-            color: var(--text);
-            padding: 12px 18px; 
-            border-radius: 20px 20px 4px 20px; 
-            font-size: 17px; 
-            line-height: 1.6; 
-            position: relative;
-            
-            /* 👇 இதுதான் முக்கியம்! "Hi" உடையாமல் தடுக்கும் */
-            width: fit-content; 
-            min-width: 40px; /* மிகச்சிறிய மெசேஜுக்கும் குறைந்தபட்ச அகலம் */
-            word-wrap: break-word;
-        }
-        
-        .ai-content { 
-            width: 100%; 
-            color: var(--text); 
-            font-size: 17px; 
-            line-height: 1.7; 
-            
-            /* 👇 AI பதிலும் தெளிவாக தெரிய */
-            width: fit-content;
-            max-width: 100%;
-        }
     </style>
 </head>
 <body>
