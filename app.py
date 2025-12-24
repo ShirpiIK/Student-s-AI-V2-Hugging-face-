@@ -833,31 +833,30 @@ HTML_TEMPLATE = """
 
 
         /* --- TYPEWRITER EFFECT FUNCTION --- */
+        /* --- FAST TYPEWRITER EFFECT --- */
         function typeWriter(element, text, callback) {
             let i = 0;
-            element.innerHTML = ""; // பழைய டெக்ஸ்ட் இருந்தால் அழித்துவிடும்
+            element.innerHTML = ""; 
             
-            // வேகம் (Speed): குறைத்தால் வேகம் கூடும் (10-30ms is good)
-            let speed = 20; 
+            // 👇 வேகம்: இதை 5 அல்லது 1-க்கு மாற்றினால் ஜெட் வேகத்தில் வரும்!
+            let speed = 5; 
 
             function type() {
                 if (i < text.length) {
-                    // ஒவ்வொரு எழுத்தாக சேர்க்கிறோம்
-                    // குறிப்பு: டைப் ஆகும்போது Markdown (*) குறியீடுகள் தெரியும், 
-                    // முடிஞ்சதும் அது மறையும். இதுதான் ChatGPT ஸ்டைல்.
-                    element.innerHTML += text.charAt(i);
-                    i++;
+                    // 👇 தந்திரம்: ஒரே நேரத்தில் 4 எழுத்துக்களைச் சேர்க்கிறோம் (Chunking)
+                    // இது டைப்பிங்கை மிகவும் ஸ்மூத் மற்றும் ஃபாஸ்ட் ஆக்கும்.
+                    let chunk = text.substring(i, i + 4); 
+                    element.innerHTML += chunk;
+                    i += 4;
                     
-                    // Auto Scroll to bottom
+                    // Auto Scroll
                     const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTo(0, chatBox.scrollHeight);
                     
                     setTimeout(type, speed);
                 } else {
-                    // டைப்பிங் முடிந்ததும் Markdown ஆக மாற்று (Bold, Italic வேலை செய்யும்)
+                    // முடித்ததும் Markdown ஸ்டைல் அப்ளை செய்
                     element.innerHTML = marked.parse(text);
-                    
-                    // முடிஞ்சதும் Action Icons (Copy/Share) காட்ட Callback கூப்பிடுறோம்
                     if (callback) callback();
                 }
             }
