@@ -1,3 +1,13 @@
+# ==========================================
+# 👇 PART 1: PYTHON BACKEND 👇
+# ==========================================
+import sys
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 import os
 import uuid
 import time
@@ -9,16 +19,17 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
-# --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
-# ==========================================
-# 👇 API KEYS SETUP 👇
-# ==========================================
+# --- CONFIGURATION ---
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
+current_key_index = 0
 
-# --- 💾 DATABASE ---
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# --- DATABASE ---
 DB_FILE = "chat_db.json"
 def load_db():
     try:
@@ -26,27 +37,16 @@ def load_db():
             with open(DB_FILE, 'r') as f: return json.load(f)
     except: pass
     return {}
+
 def save_db(db):
     try:
         with open(DB_FILE, 'w') as f: json.dump(db, f, indent=2)
     except: pass
-user_db = load_db()
 
-current_key_index = 0
+user_db = load_db()
 app = Flask(__name__)
 
-# --- 🧠 SYSTEM INSTRUCTION ---
-SYSTEM_INSTRUCTION = """
-ROLE: You are "Student's AI", a professional academic tutor.
-RULES:
-1. **MATH:** Use LaTeX for formulas ($$ ... $$).
-2. **DIAGRAMS:** Use Mermaid.js (```mermaid ... ```).
-3. **LANGUAGE:** English by default. Use Tamil/Tanglish ONLY if requested.
-4. **FORMAT:** Markdown. Bold key terms.
-5. **CODE:** Use Python/Java/C++ blocks. Explain logic briefly.
-"""
-
-# --- 🧬 MODEL & FILE HANDLING ---
+# --- GEMINI LOGIC ---
 def get_working_model(key):
     try:
         genai.configure(api_key=key)
@@ -54,554 +54,570 @@ def get_working_model(key):
         chat_models = [m for m in models if 'generateContent' in m.supported_generation_methods]
         for m in chat_models:
             if "flash" in m.name.lower() and "1.5" in m.name: return m.name
-        for m in chat_models:
-            if "pro" in m.name.lower() and "1.5" in m.name: return m.name
         if chat_models: return chat_models[0].name
     except: return None
     return None
 
-def process_image(image_data):
+def process_image_data(image_data):
     try:
-        if "base64," in image_data:
-            image_data = image_data.split("base64,")[1]
+        if "base64," in image_data: image_data = image_data.split("base64,")[1]
         image_bytes = base64.b64decode(image_data)
         return Image.open(io.BytesIO(image_bytes))
     except: return None
 
-def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[]):
+def generate_with_retry(prompt, image_data=None, history_messages=[], user_context=""):
     global current_key_index
     if not API_KEYS: return "🚨 API Keys Missing."
-
+    
     formatted_history = []
-    for m in history_messages[-6:]:
+    for m in history_messages[-10:]:
         role = "user" if m["role"] == "user" else "model"
         formatted_history.append({"role": role, "parts": [m["content"]]})
-
+        
     current_parts = []
-    if file_text: current_parts.append(f"analyzing file:\n{file_text}\n\n")
-    current_parts.append(prompt)
+    system_instruction = f"You are a professional academic AI assistant. The student's profile: {user_context}. Answer precisely."
+    full_prompt = f"{system_instruction}\n\nQuestion: {prompt}"
+    
+    current_parts.append(full_prompt)
     if image_data:
-        img = process_image(image_data)
+        img = process_image_data(image_data)
         if img: current_parts.append(img)
 
     for i in range(len(API_KEYS)):
         key = API_KEYS[current_key_index]
         model_name = get_working_model(key)
-        
         if not model_name:
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             continue
-
         try:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel(model_name=model_name, system_instruction=SYSTEM_INSTRUCTION)
-            
-            if image_data or file_text:
+            model = genai.GenerativeModel(model_name=model_name)
+            if image_data:
                 response = model.generate_content(current_parts)
             else:
                 chat = model.start_chat(history=formatted_history)
-                response = chat.send_message(prompt)
+                response = chat.send_message(full_prompt)
             return response.text
-        except Exception as e:
+        except Exception:
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
-
-    return "⚠️ System Busy. Please try again."
-
-# --- UI TEMPLATE (UPDATED: PROFESSIONAL UI V2) ---
-
+    return "⚠️ Server Busy. Please try again later."
+    # ==========================================
+# 👇 PART 2: CSS & HEAD 👇
+# ==========================================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#09090b">
-    <link rel="manifest" href="/manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
     <title>Student's AI</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>window.MathJax = { tex: { inlineMath: [['$', '$']] }, svg: { fontCache: 'global' } };</script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-      mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
-      window.mermaid = mermaid;
-    </script>
 
     <style>
-        /* --- CORE VARIABLES --- */
-        :root {
-            --bg: #000000; --card: #141414; --user-msg: #27272a; 
-            --text: #ececec; --text-muted: #a1a1aa; 
-            --accent: #fff; --border: #27272a;
-            --input-bg: #1a1a1a;
-        }
+    /* --- VARIABLES --- */
+    :root { 
+        --bg: #000000; --card: #18181b; --user-msg: #27272a; 
+        --text: #ffffff; --dim: #a1a1aa; --border: #333;
+        --input-bg: #1a1a1a;
+    }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { 
-            margin: 0; background: var(--bg); color: var(--text); 
-            font-family: 'Outfit', sans-serif; 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            overflow: hidden; display: flex; flex-direction: column;
-        }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    body { 
+        margin: 0; background: var(--bg); color: var(--text); 
+        font-family: 'Inter', sans-serif; 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        overflow: hidden; display: flex; flex-direction: column;
+    }
 
-        /* --- HEADER --- */
-        header {
-            height: 60px; padding: 0 15px; 
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; 
-            z-index: 50; flex-shrink: 0;
-        }
-        .app-title { font-weight: 700; font-size: 18px; }
-        .menu-btn { font-size: 20px; padding: 10px; cursor: pointer; }
+    /* --- HEADER (IMPROVED) --- */
+    header {
+        height: 70px; padding: 0 15px; 
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between; 
+        z-index: 50; flex-shrink: 0;
+    }
+    .header-content { text-align: center; }
+    /* 👇 User Requirement: Bigger Name & Professional Font */
+    .app-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+    .header-status { font-size: 11px; color: var(--dim); font-weight: 500; margin-top: 2px; }
+    .menu-btn { font-size: 20px; padding: 10px; cursor: pointer; color: #fff; }
 
-        /* --- CHAT BOX --- */
-        #chat-box { 
-            flex: 1; overflow-y: auto; padding: 20px 15px; 
-            /* 👇 FIX: Reduced empty space */
-            padding-bottom: 20px; 
-            display: flex; flex-direction: column; gap: 25px; scroll-behavior: smooth;
-        }
+    /* --- CHAT BOX (GAP FIXED) --- */
+    #chat-box { 
+        flex: 1; overflow-y: auto; padding: 20px 15px; 
+        padding-bottom: 20px; display: flex; flex-direction: column; gap: 20px; 
+        scroll-behavior: smooth;
+    }
 
-        .msg { display: flex; flex-direction: column; width: 100%; }
-        .user-msg { align-items: flex-end; }
-        .ai-msg { align-items: flex-start; }
+    .msg { display: flex; flex-direction: column; width: 100%; margin-bottom: 5px; }
+    .user-msg { align-items: flex-end; }
+    .ai-msg { align-items: flex-start; }
 
-        .msg-content { 
-            padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.6; 
-            max-width: 85%; word-wrap: break-word;
-        }
-        .user-msg .msg-content { 
-            background: var(--user-msg); color: #fff; 
-            border-bottom-right-radius: 4px;
-        }
-        .ai-msg .msg-content { 
-            background: transparent; padding-left: 0; color: var(--text); 
-        }
+    .msg-bubble { 
+        padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.6; 
+        /* 👇 FIX: Width adjusted to avoid huge gaps */
+        max-width: 90%; word-wrap: break-word; position: relative;
+    }
+    .user-msg .msg-bubble { 
+        background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px;
+    }
+    .ai-msg .msg-bubble { 
+        background: transparent; padding-left: 0; color: #ececec; width: 100%; max-width: 100%;
+    }
 
-        /* 👇 FIX: ACTIONS VISIBLE ALWAYS (Not just on click/hover) */
-        .msg-actions { 
-            display: flex; gap: 15px; margin-top: 8px; opacity: 0.7; 
-            font-size: 12px; padding: 0 5px;
-        }
-        .action-icon { cursor: pointer; display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
-        .action-icon:hover { color: #fff; }
+    /* Image in Chat */
+    .chat-img { 
+        max-width: 100%; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border); 
+        display: block; max-height: 300px; object-fit: contain; background: #111;
+    }
+    .user-msg .msg-text { margin-top: 5px; }
 
-        /* --- PREVIEW AREA (NEW) --- */
-        #preview-container {
-            display: none; padding: 10px 15px; background: var(--bg);
-            border-top: 1px solid var(--border);
-        }
-        .preview-box {
-            position: relative; display: inline-block;
-            width: 60px; height: 60px; border-radius: 10px;
-            overflow: hidden; border: 1px solid var(--border);
-        }
-        .preview-img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-        .close-preview {
-            position: absolute; top: 2px; right: 2px;
-            background: rgba(0,0,0,0.7); color: #fff; border-radius: 50%;
-            width: 18px; height: 18px; display: flex; align-items: center; 
-            justify-content: center; font-size: 10px; cursor: pointer;
-        }
+    /* Actions */
+    .msg-actions { 
+        display: flex; gap: 15px; margin-top: 5px; opacity: 0.7; 
+        font-size: 12px; padding: 0 2px;
+    }
+    .action-icon { cursor: pointer; color: var(--dim); transition: color 0.2s; }
+    .action-icon:hover { color: #fff; }
 
-        /* --- INPUT AREA (PROFESSIONAL DESIGN) --- */
-        .input-wrapper { 
-            background: var(--bg); padding: 10px 15px; 
-            padding-bottom: max(15px, env(safe-area-inset-bottom));
-            flex-shrink: 0; z-index: 60;
-        }
-        .input-container { 
-            background: var(--input-bg); border: 1px solid var(--border); 
-            border-radius: 30px; padding: 5px 8px; 
-            display: flex; align-items: flex-end; gap: 8px;
-            transition: border 0.3s;
-        }
-        .input-container:focus-within { border-color: #444; }
+    /* --- INPUT AREA (CAMERA OPTION ADDED) --- */
+    .input-wrapper { 
+        background: var(--bg); padding: 10px 15px; 
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border); z-index: 60;
+    }
+    .input-container { 
+        background: var(--input-bg); border: 1px solid var(--border); 
+        border-radius: 30px; padding: 6px 10px; 
+        display: flex; align-items: flex-end; gap: 10px;
+    }
+    
+    /* Plus Button */
+    .attach-btn {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: #333; color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
+    }
+    
+    /* Attachment Menu (Popup) */
+    #attach-menu {
+        position: absolute; bottom: 80px; left: 15px;
+        background: #18181b; border: 1px solid var(--border);
+        border-radius: 16px; padding: 10px; display: none;
+        flex-direction: column; gap: 5px; width: 150px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 70;
+    }
+    .attach-opt { 
+        padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px; 
+        color: #fff; cursor: pointer; font-size: 14px; 
+    }
+    .attach-opt:active { background: #333; }
 
-        /* Icon Styling */
-        .attach-btn {
-            width: 40px; height: 40px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted); cursor: pointer; font-size: 18px;
-            transition: color 0.2s;
-        }
-        .attach-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    textarea { 
+        flex: 1; background: transparent; border: none; color: #fff; 
+        font-size: 16px; max-height: 120px; padding: 10px 0; 
+        resize: none; font-family: 'Outfit', sans-serif;
+    }
+    .send-btn { 
+        width: 38px; height: 38px; border-radius: 50%;
+        background: #fff; color: #000; display: flex; 
+        align-items: center; justify-content: center; 
+        cursor: pointer; font-size: 16px; flex-shrink: 0; margin-bottom: 2px;
+    }
 
-        textarea { 
-            flex: 1; background: transparent; border: none; color: #fff; 
-            font-size: 16px; max-height: 120px; padding: 10px 5px; 
-            resize: none; font-family: 'Outfit', sans-serif;
-        }
+    /* Preview Box */
+    #preview-box {
+        display: none; padding: 10px 15px; background: var(--bg);
+        border-top: 1px solid var(--border);
+    }
+    .preview-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #444; }
+    .preview-close { 
+        position: absolute; left: 65px; margin-top: -65px; 
+        background: red; color: white; border-radius: 50%; 
+        width: 20px; height: 20px; text-align: center; line-height: 20px; font-size: 12px; cursor: pointer; 
+    }
 
-        .send-btn { 
-            width: 40px; height: 40px; border-radius: 50%;
-            background: #fff; color: #000; display: flex; 
-            align-items: center; justify-content: center; 
-            cursor: pointer; font-size: 16px; transition: transform 0.2s;
-            margin-bottom: 2px;
-        }
-        .send-btn:active { transform: scale(0.9); }
+    /* --- SIDEBAR & SETTINGS --- */
+    #sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; opacity: 0; pointer-events: none; transition: 0.3s; }
+    #sidebar-overlay.active { opacity: 1; pointer-events: auto; }
 
-        /* --- SIDEBAR & OVERLAY --- */
-        #sidebar-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
-            backdrop-filter: blur(3px); z-index: 99; opacity: 0; 
-            pointer-events: none; transition: opacity 0.3s;
-        }
-        #sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+    #sidebar {
+        position: fixed; top: 0; left: 0; width: 280px; height: 100%; 
+        background: #09090b; z-index: 100; border-right: 1px solid var(--border);
+        transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        display: flex; flex-direction: column;
+    }
+    #sidebar.open { transform: translateX(0); }
 
-        #sidebar {
-            position: fixed; top: 0; left: 0; width: 280px; height: 100%; 
-            background: #09090b; z-index: 100; border-right: 1px solid var(--border);
-            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            display: flex; flex-direction: column;
-        }
-        #sidebar.open { transform: translateX(0); }
+    .history-item { 
+        padding: 15px; margin: 5px 10px; border-radius: 10px; 
+        color: var(--dim); font-size: 14px; 
+        display: flex; justify-content: space-between; align-items: center;
+        cursor: pointer; transition: 0.2s;
+    }
+    .history-item:active { background: #222; color: #fff; }
 
-        /* History Styling */
-        .history-item { 
-            padding: 15px; margin: 5px 10px; border-radius: 10px; 
-            color: var(--text-muted); font-size: 14px; 
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: 0.2s;
-        }
-        .history-item:active { background: var(--card); color: #fff; }
-
-        /* --- PROFESSIONAL CUSTOM MODAL --- */
-        #custom-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); 
-            z-index: 2000; display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        .modal-box {
-            background: #18181b; width: 90%; max-width: 320px;
-            padding: 25px; border-radius: 20px; border: 1px solid #333;
-            text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            transform: scale(0.9); animation: popIn 0.2s forwards;
-        }
-        @keyframes popIn { to { transform: scale(1); } }
-        
-        .modal-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 10px; }
-        .modal-input {
-            width: 100%; padding: 12px; border-radius: 10px; 
-            background: #000; border: 1px solid #333; color: #fff;
-            margin: 15px 0; font-size: 16px; outline: none;
-        }
-        .modal-input:focus { border-color: #fff; }
-        
-        .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
-        .m-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; }
-        .m-cancel { background: #27272a; color: #fff; }
-        .m-confirm { background: #fff; color: #000; }
-
-        /* Image View Modal */
-        #img-viewer {
-            position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,0.95);
-            display: none; align-items: center; justify-content: center;
-        }
-        #img-viewer img { max-width: 95%; max-height: 90%; border-radius: 5px; }
-        .close-viewer { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 24px; cursor: pointer; }
-
-        /* Misc */
-        .typing-cursor::after { content: 'l'; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+    /* --- SETTINGS PAGES (NEW PAGE STYLE) --- */
+    .sub-page {
+        position: fixed; inset: 0; background: #000; z-index: 200;
+        transform: translateX(100%); transition: transform 0.3s ease;
+        display: flex; flex-direction: column;
+    }
+    .sub-page.active { transform: translateX(0); }
+    
+    .page-header {
+        padding: 20px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 15px; font-size: 18px; font-weight: 700;
+    }
+    .search-bar-wrap {
+        margin: 20px; background: #1a1a1a; border-radius: 12px; padding: 12px;
+        display: flex; align-items: center; gap: 10px; border: 1px solid var(--border);
+    }
+    .settings-list { padding: 0 20px; }
+    .setting-row {
+        padding: 15px 0; border-bottom: 1px solid #222; font-size: 16px;
+        display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+    }
+    
+    /* --- LOGIN OVERLAYS --- */
+    .overlay { position: fixed; inset: 0; z-index: 6000; background: transparent; display: flex; align-items: center; justify-content: center; }
+    .glass-box { width: 90%; max-width: 380px; background: rgba(20,20,20,0.9); border: 1px solid #333; padding: 30px; border-radius: 24px; text-align: center; }
+    .global-bg { position: fixed; inset: 0; z-index: 1; background: radial-gradient(circle, #1a0b2e 0%, #000000 100%); }
+    .btn-primary { width: 100%; padding: 14px; background: #fff; color: #000; border: none; border-radius: 12px; font-weight: 700; margin-top: 15px; }
+    
+    /* --- MODAL --- */
+    #modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; }
+    .modal-box { background: #18181b; padding: 25px; border-radius: 20px; width: 85%; max-width: 300px; text-align: center; border: 1px solid #333; }
+    .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; margin-top: 15px; }
     </style>
-    <body>
-    <div id="img-viewer">
-        <div class="close-viewer" onclick="document.getElementById('img-viewer').style.display='none'">&times;</div>
-        <img id="full-image" src="">
+</head>
+# ==========================================
+# 👇 PART 3: HTML BODY & JS 👇
+# ==========================================
+<body>
+    <div class="global-bg" id="bg-anim"></div>
+
+    <div id="page-welcome" class="overlay">
+        <div class="glass-box">
+            <h1 style="font-size:32px; font-weight:800; color:#fff; font-family:'Outfit',sans-serif;">Student's AI</h1>
+            <p style="color:#aaa; font-size:14px;">Your ultimate AI companion.</p>
+            <button class="btn-primary" onclick="navTo('name')">Get Started</button>
+        </div>
     </div>
 
-    <div id="custom-modal">
-        <div class="modal-box">
-            <div class="modal-title" id="m-title">Title</div>
-            <input type="text" id="m-input" class="modal-input" autocomplete="off" placeholder="Type here...">
-            <div class="modal-btns">
-                <button class="m-btn m-cancel" onclick="closeModal()">Cancel</button>
-                <button class="m-btn m-confirm" id="m-confirm-btn">Confirm</button>
-            </div>
+    <div id="page-name" class="overlay" style="display:none;">
+        <div class="glass-box">
+            <h2 style="color:#fff;">Who are you?</h2>
+            <input type="text" id="inp-name" placeholder="Enter Name" style="width:100%; padding:12px; border-radius:10px; border:1px solid #333; background:#000; color:#fff; margin-top:10px;">
+            <button class="btn-primary" onclick="saveName()">Next</button>
+        </div>
+    </div>
+
+    <div id="page-details" class="overlay" style="display:none;">
+        <div class="glass-box">
+            <h2 style="color:#fff;">Details</h2>
+            <input type="text" id="inp-det" placeholder="Class / Subject" style="width:100%; padding:12px; border-radius:10px; border:1px solid #333; background:#000; color:#fff; margin-top:10px;">
+            <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
+        </div>
+    </div>
+
+    <header id="app-header" style="display:none;">
+        <div class="menu-btn" onclick="toggleSidebar(true)"><i class="fas fa-bars"></i></div>
+        <div class="header-content">
+            <div class="app-title" id="display-name">Student's AI</div>
+            <div class="header-status">Ready to master?</div>
+        </div>
+        <div style="width:40px;"></div>
+    </header>
+
+    <div id="chat-box" style="display:none;"></div>
+
+    <div class="input-wrapper" id="app-input" style="display:none;">
+        <div id="preview-box">
+            <img id="preview-img" class="preview-thumb">
+            <div class="preview-close" onclick="clearFile()">×</div>
+        </div>
+
+        <div class="input-container">
+            <div class="attach-btn" onclick="toggleAttachMenu()"><i class="fas fa-plus"></i></div>
+            <textarea id="msg-input" placeholder="Message..." rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+            <div class="send-btn" onclick="send()"><i class="fas fa-arrow-up"></i></div>
+        </div>
+        
+        <div id="attach-menu">
+            <label class="attach-opt"><i class="fas fa-camera" style="color:#00d2ff;"></i> Camera <input type="file" hidden accept="image/*" capture="environment" onchange="handleFile(this)"></label>
+            <label class="attach-opt"><i class="fas fa-image" style="color:#bf5af2;"></i> Gallery <input type="file" hidden accept="image/*" onchange="handleFile(this)"></label>
+            <label class="attach-opt"><i class="fas fa-file-pdf" style="color:#ff3b30;"></i> File <input type="file" hidden accept="application/pdf" onchange="handleFile(this)"></label>
         </div>
     </div>
 
     <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
-
     <div id="sidebar">
-        <div style="padding: 20px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#fff; font-weight:700; font-size:18px;">Menu</span>
-            <i class="fas fa-times" style="color:#aaa; font-size:20px; cursor:pointer;" onclick="toggleSidebar(false)"></i>
+        <div style="padding:20px; display:flex; justify-content:space-between; border-bottom:1px solid #333;">
+            <span style="font-weight:700; font-size:18px;">Menu</span>
+            <i class="fas fa-times" style="cursor:pointer; color:#aaa;" onclick="toggleSidebar(false)"></i>
         </div>
-        <div style="padding:15px;">
-            <div style="background:#fff; color:#000; padding:12px; border-radius:10px; text-align:center; font-weight:600; cursor:pointer;" onclick="newChat()">+ New Chat</div>
-        </div>
-        <div style="padding: 0 15px; color:#666; font-size:12px; font-weight:600; text-transform:uppercase;">History</div>
-        <div id="history-list" style="flex:1; overflow-y:auto; padding:10px 0;"></div>
-        <div style="padding:15px; border-top:1px solid var(--border); color:#ccc; cursor:pointer;" onclick="alert('Settings Page')">
+        <div style="padding:15px;"><button class="btn-primary" onclick="newChat()">+ New Chat</button></div>
+        <div id="history-list" style="flex:1; overflow-y:auto;"></div>
+        <div style="padding:20px; border-top:1px solid #333; cursor:pointer;" onclick="openPage('settings')">
             <i class="fas fa-cog"></i> Settings
         </div>
     </div>
 
-    <header>
-        <div class="menu-btn" onclick="toggleSidebar(true)"><i class="fas fa-bars"></i></div>
-        <span class="app-title">Student's AI</span>
-        <div style="width:40px;"></div>
-    </header>
-
-    <div id="chat-box">
+    <div id="page-settings" class="sub-page">
+        <div class="page-header">
+            <i class="fas fa-arrow-left" style="cursor:pointer;" onclick="closePage('settings')"></i> Settings
         </div>
+        <div class="search-bar-wrap">
+            <i class="fas fa-search" style="color:#aaa;"></i>
+            <input type="text" id="set-search" placeholder="Search..." style="background:transparent; border:none; color:#fff; width:100%; outline:none;" oninput="filterSettings(this.value)">
+            <i class="fas fa-times" onclick="document.getElementById('set-search').value=''; filterSettings('')" style="color:#aaa; cursor:pointer;"></i>
+        </div>
+        <div class="settings-list" id="set-list">
+            <div class="setting-row" onclick="openPage('profile')"><span>Student Profile</span> <i class="fas fa-chevron-right" style="font-size:12px; color:#666;"></i></div>
+            <div class="setting-row" onclick="openPage('theme')"><span>Theme</span> <i class="fas fa-chevron-right" style="font-size:12px; color:#666;"></i></div>
+            <div class="setting-row" style="color:#ef4444;" onclick="handleLogout()">Log Out</div>
+        </div>
+    </div>
 
-    <div id="preview-container">
-        <div class="preview-box">
-            <img id="preview-img" class="preview-img" onclick="viewImage(this.src)">
-            <div class="close-preview" onclick="clearFile()">×</div>
+    <div id="page-profile" class="sub-page">
+        <div class="page-header"><i class="fas fa-arrow-left" style="cursor:pointer;" onclick="closePage('profile')"></i> Profile</div>
+        <div style="padding:20px;">
+            <p style="color:#aaa; font-size:12px;">NAME</p>
+            <div style="font-size:18px; margin-bottom:20px;" id="p-name">--</div>
+            <p style="color:#aaa; font-size:12px;">DETAILS</p>
+            <div style="font-size:18px;" id="p-det">--</div>
         </div>
     </div>
 
-    <div class="input-wrapper">
-        <div class="input-container">
-            <div class="attach-btn" onclick="document.getElementById('file-upload').click()">
-                <i class="fas fa-paperclip"></i>
-            </div>
-            <input type="file" id="file-upload" hidden accept="image/*" onchange="handleFile(this)">
-            
-            <textarea id="input" placeholder="Type a message..." rows="1" oninput="autoResize(this)"></textarea>
-            
-            <div class="send-btn" onclick="send()">
-                <i class="fas fa-arrow-up"></i>
+    <div id="page-theme" class="sub-page">
+        <div class="page-header"><i class="fas fa-arrow-left" style="cursor:pointer;" onclick="closePage('theme')"></i> Theme</div>
+        <div style="padding:20px;">
+            <div class="setting-row" onclick="alert('Dark Mode Active')">Dark Mode <i class="fas fa-check"></i></div>
+            <div class="setting-row" onclick="alert('Light Mode Coming Soon')">Light Mode</div>
+        </div>
+    </div>
+
+    <div id="modal-bg">
+        <div class="modal-box">
+            <h3 style="margin-top:0; color:#fff;" id="m-title">Alert</h3>
+            <input type="text" id="m-input" style="width:100%; padding:10px; background:#000; border:1px solid #333; color:#fff; display:none;">
+            <div style="display:flex; gap:10px;">
+                <button class="m-btn" style="background:#333; color:#fff;" onclick="closeModal()">Cancel</button>
+                <button class="m-btn" style="background:#fff; color:#000;" id="m-ok">Confirm</button>
             </div>
         </div>
     </div>
+
     <script>
-        let currentUser = "Shirpi"; // Default for now
-        let currentChatId = null;
-        let currentFile = null;
-        let isGenerating = false;
+        let currentUser = "", currentChatId = null, currentFile = null;
 
-        // --- 1. SIDEBAR LOGIC ---
-        function toggleSidebar(open) {
-            const sb = document.getElementById('sidebar');
-            const ov = document.getElementById('sidebar-overlay');
-            if(open) {
-                sb.classList.add('open');
-                ov.classList.add('active');
-            } else {
-                sb.classList.remove('open');
-                ov.classList.remove('active');
-            }
+        // --- NAVIGATION ---
+        function navTo(id) {
+            document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
+            document.getElementById('page-' + id).style.display = 'flex';
+        }
+        function saveName() { currentUser = document.getElementById('inp-name').value; navTo('details'); }
+        function finishSetup() {
+            document.getElementById('bg-anim').style.display = 'none';
+            document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
+            document.getElementById('app-header').style.display = 'flex';
+            document.getElementById('chat-box').style.display = 'flex';
+            document.getElementById('app-input').style.display = 'block';
+            document.getElementById('display-name').innerText = currentUser || "Student's AI";
+            
+            // Update Profile Page Data
+            document.getElementById('p-name').innerText = currentUser;
+            document.getElementById('p-det').innerText = document.getElementById('inp-det').value;
+            
+            newChat();
         }
 
-        // --- 2. FILE HANDLING & PREVIEW ---
+        // --- CHAT ---
+        function toggleAttachMenu() {
+            const m = document.getElementById('attach-menu');
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        }
+
         function handleFile(input) {
-            if(input.files && input.files[0]) {
+            if(input.files[0]) {
                 const r = new FileReader();
-                r.onload = function(e) {
+                r.onload = (e) => {
                     currentFile = e.target.result;
-                    document.getElementById('preview-container').style.display = 'block';
                     document.getElementById('preview-img').src = currentFile;
-                }
+                    document.getElementById('preview-box').style.display = 'block';
+                    document.getElementById('attach-menu').style.display = 'none';
+                };
                 r.readAsDataURL(input.files[0]);
             }
         }
+        function clearFile() { currentFile = null; document.getElementById('preview-box').style.display = 'none'; }
 
-        function clearFile() {
-            currentFile = null;
-            document.getElementById('file-upload').value = "";
-            document.getElementById('preview-container').style.display = 'none';
-        }
-
-        function viewImage(src) {
-            document.getElementById('full-image').src = src;
-            document.getElementById('img-viewer').style.display = 'flex';
-        }
-
-        function autoResize(el) {
-            el.style.height = 'auto';
-            el.style.height = el.scrollHeight + 'px';
-        }
-
-        // --- 3. CHAT & TYPEWRITER LOGIC ---
         async function send() {
-            if(isGenerating) return;
-            const inp = document.getElementById('input');
-            const txt = inp.value.trim();
+            const txt = document.getElementById('msg-input').value.trim();
             if(!txt && !currentFile) return;
 
-            // UI Cleanup
-            inp.value = ""; inp.style.height = 'auto';
-            document.getElementById('preview-container').style.display = 'none';
+            document.getElementById('msg-input').value = "";
+            document.getElementById('preview-box').style.display = 'none';
             
-            // Add User Msg
             addMsg('user', txt, currentFile);
-            let fileData = currentFile; currentFile = null; // Reset after sending
+            let fileData = currentFile; currentFile = null;
 
-            // AI Placeholder
+            // AI Typing...
             const msgId = "ai-" + Date.now();
-            const box = document.getElementById('chat-box');
-            box.insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg">
-                    <div class="msg-content typing-cursor">Thinking...</div>
-                </div>`
+            document.getElementById('chat-box').insertAdjacentHTML('beforeend', 
+                `<div id="${msgId}" class="msg ai-msg"><div class="msg-bubble" style="color:#aaa;">Thinking...</div></div>`
             );
-            box.scrollTo(0, box.scrollHeight);
-            isGenerating = true;
 
-            // Fetch Logic (Keep existing backend logic)
+            // Backend Call
             if(!currentChatId) {
-                // Creates new chat logic here...
-                currentChatId = "chat-" + Date.now(); // Simulation
+                const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                const d = await r.json(); currentChatId = d.chat_id; loadHistory();
             }
 
-            try {
-                const res = await fetch('/chat', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
-                });
-                const data = await res.json();
-                
-                // Start Typewriter
-                const aiContentDiv = document.getElementById(msgId).querySelector('.msg-content');
-                aiContentDiv.classList.remove('typing-cursor');
-                aiContentDiv.innerHTML = ""; // Clear "Thinking..."
-                
-                typeWriter(aiContentDiv, data.response, msgId);
-
-            } catch(e) {
-                document.getElementById(msgId).innerHTML = "Error.";
-                isGenerating = false;
-            }
+            const res = await fetch('/chat', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
+            });
+            const data = await res.json();
+            
+            // Render Response (Typewriter not needed for simple raw fetch, but Markdown is)
+            const aiDiv = document.getElementById(msgId);
+            aiDiv.innerHTML = `
+                <div class="msg-bubble">
+                    ${marked.parse(data.response)}
+                    <div class="msg-actions">
+                        <i class="fas fa-copy action-icon" onclick="navigator.clipboard.writeText('${data.response.substr(0,50)}...')"></i>
+                        <i class="fas fa-redo action-icon" onclick="alert('Regenerate')"></i>
+                    </div>
+                </div>`;
+            document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
         }
 
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
-            let imgHtml = img ? `<img src="${img}" onclick="viewImage(this.src)" style="max-width:200px; border-radius:10px; margin-bottom:5px; cursor:pointer;">` : "";
-            let content = text; // User text is raw
+            let content = "";
             
-            let actions = "";
-            if(role === 'user') {
-                actions = `
-                <div class="msg-actions" style="justify-content:flex-end;">
-                    <div class="action-icon" onclick="document.getElementById('input').value='${text}'"><i class="fas fa-pen"></i></div>
-                    <div class="action-icon" onclick="navigator.clipboard.writeText('${text}')"><i class="fas fa-copy"></i></div>
-                </div>`;
-            }
+            if(img) content += `<img src="${img}" class="chat-img" onclick="viewImage('${img}')">`;
+            if(text) content += `<div class="msg-text">${text}</div>`;
 
             box.insertAdjacentHTML('beforeend', 
                 `<div class="msg ${role}-msg">
-                    <div class="msg-content">${imgHtml}${content}</div>
-                    ${actions}
+                    <div class="msg-bubble">
+                        ${content}
+                        ${role==='user' ? `<div class="msg-actions" style="justify-content:flex-end;"><i class="fas fa-pen action-icon"></i></div>` : ''}
+                    </div>
                 </div>`
             );
             box.scrollTo(0, box.scrollHeight);
         }
 
-        // --- TYPEWRITER EFFECT (ChatGPT Style) ---
-        function typeWriter(element, text, msgId) {
-            // For simple line-by-line effect without backend stream:
-            // We parse markdown first, then reveal standard elements or just type raw text then render.
-            // Best visual: Type raw words, then render markdown at end.
-            
-            let words = text.split(" ");
-            let i = 0;
-            element.innerText = "";
-            
-            function type() {
-                if (i < words.length) {
-                    element.innerText += words[i] + " ";
-                    i++;
-                    document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
-                    setTimeout(type, 30); // Speed of typing
-                } else {
-                    // Finished typing, render Markdown & Add Actions
-                    element.innerHTML = marked.parse(text);
-                    addAiActions(msgId, text);
-                    isGenerating = false;
-                }
-            }
-            type();
+        // --- MENU & SETTINGS ---
+        function toggleSidebar(open) {
+            document.getElementById('sidebar').style.transform = open ? 'translateX(0)' : 'translateX(-100%)';
+            document.getElementById('sidebar-overlay').style.opacity = open ? '1' : '0';
+            document.getElementById('sidebar-overlay').style.pointerEvents = open ? 'auto' : 'none';
         }
 
-        function addAiActions(msgId, text) {
-            const div = document.getElementById(msgId);
-            const actions = `
-            <div class="msg-actions">
-                <div class="action-icon" onclick="navigator.clipboard.writeText(\`${text.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                <div class="action-icon" onclick="alert('Regenerate')"><i class="fas fa-sync"></i> Regen</div>
-                <div class="action-icon"><i class="fas fa-share"></i> Share</div>
-            </div>`;
-            div.insertAdjacentHTML('beforeend', actions);
+        function newChat() {
+            currentChatId = null;
+            document.getElementById('chat-box').innerHTML = `
+                <div style="text-align:center; margin-top:50px; color:#444;">
+                    <h1>Hi ${currentUser},</h1><p>Ready to master?</p>
+                </div>`;
+            toggleSidebar(false);
         }
 
-        // --- 4. CUSTOM MODALS (Unique & Professional) ---
-        let modalCallback = null;
+        function openPage(id) {
+            document.getElementById('page-' + id).style.transform = 'translateX(0)';
+        }
+        function closePage(id) {
+            document.getElementById('page-' + id).style.transform = 'translateX(100%)';
+        }
 
-        function showModal(title, isInput, placeholder, cb) {
-            const m = document.getElementById('custom-modal');
+        function filterSettings(val) {
+            val = val.toLowerCase();
+            const rows = document.querySelectorAll('#set-list .setting-row');
+            rows.forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
+            });
+        }
+
+        // --- HISTORY & MODAL ---
+        let modalCb = null;
+        function openModal(title, input, cb) {
             document.getElementById('m-title').innerText = title;
             const inp = document.getElementById('m-input');
+            if(input) { inp.style.display='block'; inp.value=''; inp.focus(); } 
+            else inp.style.display='none';
             
-            if(isInput) {
-                inp.style.display = 'block';
-                inp.value = "";
-                inp.placeholder = placeholder;
-                inp.focus();
-            } else {
-                inp.style.display = 'none';
-            }
-            
-            modalCallback = cb;
-            m.style.display = 'flex';
+            document.getElementById('modal-bg').style.display = 'flex';
+            modalCb = cb;
         }
-
-        function closeModal() {
-            document.getElementById('custom-modal').style.display = 'none';
-            modalCallback = null;
-        }
-
-        document.getElementById('m-confirm-btn').onclick = function() {
-            const val = document.getElementById('m-input').value;
-            if(modalCallback) modalCallback(val);
+        function closeModal() { document.getElementById('modal-bg').style.display='none'; }
+        document.getElementById('m-ok').onclick = () => {
+            if(modalCb) modalCb(document.getElementById('m-input').value);
             closeModal();
-        };
+        }
 
-        // Long Press Simulation for History
-        // (Call this from your existing loadHistory function logic)
-        function showHistoryOptions(chatId) {
-            // This replaces the old ugly popup logic
-            // Example usage: Right click or Long press context
-            showModal("Manage Chat", false, "", () => {
-                // This is a placeholder for action selection
-                // Ideally, show buttons for Rename / Delete inside modal
-                // For simplicity as requested:
-                showRename(chatId);
+        async function loadHistory() {
+            const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+            const data = await res.json();
+            const list = document.getElementById('history-list'); list.innerHTML = "";
+            Object.keys(data.chats).reverse().forEach(cid => {
+                list.innerHTML += `
+                <div class="history-item">
+                    <span onclick="loadChat('${cid}')">${data.chats[cid].title || 'Chat'}</span>
+                    <div style="display:flex; gap:10px;">
+                        <i class="fas fa-pen" onclick="renameChat('${cid}')"></i>
+                        <i class="fas fa-trash" onclick="deleteChat('${cid}')"></i>
+                    </div>
+                </div>`;
             });
         }
 
-        function showRename(cid) {
-            showModal("Rename Chat", true, "New name...", (val) => {
-                if(val) fetch('/rename_chat', { /*...*/ });
+        function renameChat(cid) {
+            openModal("Rename Chat", true, (val) => {
+                if(val) fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:val})}).then(loadHistory);
             });
         }
+        function deleteChat(cid) {
+            openModal("Delete Chat?", false, () => {
+                fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})}).then(loadHistory);
+            });
+        }
+        async function loadChat(cid) {
+            currentChatId = cid; toggleSidebar(false);
+            const res = await fetch('/get_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
+            const data = await res.json();
+            document.getElementById('chat-box').innerHTML = "";
+            data.messages.forEach(m => addMsg(m.role==='user'?'user':'ai', m.content));
+        }
+
+        function handleLogout() { localStorage.clear(); location.reload(); }
         
-        function showDelete(cid) {
-            showModal("Delete Chat?", false, "", () => {
-                fetch('/delete_chat', { /*...*/ });
-            });
+        // Initial Check
+        if(localStorage.getItem('sai_user')) {
+            currentUser = localStorage.getItem('sai_user');
+            // Mock skipping login for demo continuity
+            // finishSetup(); 
         }
-
     </script>
 </body>
 </html>
 """
-# --- BACKEND ROUTES (UNCHANGED) ---
+
+# ==========================================
+# 👇 ROUTES (Paste at end of app.py) 👇
+# ==========================================
 @app.route("/", methods=["GET"])
 def home(): return render_template_string(HTML_TEMPLATE)
 
@@ -645,49 +661,21 @@ def get_chat():
 @app.route("/chat", methods=["POST"])
 def chat():
     d = request.json
-    u, cid, msg = d.get("username"), d.get("chat_id"), d.get("message")
-    img_data = d.get("image")
-    file_text = d.get("file_text")
-
+    u, cid, msg, ctx = d.get("username"), d.get("chat_id"), d.get("message"), d.get("user_context", "")
+    img = d.get("image")
     if u not in user_db: user_db[u] = {}
     if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
-
+    
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
-    reply = generate_with_retry(msg, img_data, file_text, user_db[u][cid]["messages"][:-1])
+    reply = generate_with_retry(msg, img, user_db[u][cid]["messages"][:-1], ctx)
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
     
     new_title = False
     if len(user_db[u][cid]["messages"]) <= 2:
         user_db[u][cid]["title"] = " ".join(msg.split()[:4])
         new_title = True
-        
     save_db(user_db)
     return jsonify({"response": reply, "new_title": new_title})
-
-@app.route('/manifest.json')
-def manifest():
-    data = {
-        "name": "Student's AI",
-        "short_name": "Student's AI",
-        "start_url": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#09090b",
-        "theme_color": "#09090b",
-        "icons": [
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png", 
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
-    return Response(json.dumps(data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
