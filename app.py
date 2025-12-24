@@ -211,31 +211,74 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (PREMIUM FIX) --- */
-        /* --- FIXED: TIGHTER GRADIENT (No Spread in Middle) --- */
-        #onboarding-overlay { 
-            position: fixed; inset: 0; z-index: 2000; 
-            display: flex; align-items: center; justify-content: center;
-            transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
-            
-            /* Deep Black Base */
-            background-color: #050505; 
-            
-            background-image: 
-                /* 🟣 TOP PURPLE: Ends at 40% (Leaves middle empty) */
-                radial-gradient(circle at 50% 0%, rgba(192, 38, 211, 0.5) 0%, transparent 40%), 
-                
-                /* 🔵 BOTTOM TEAL: Ends at 40% (Leaves middle empty) */
-                radial-gradient(circle at 50% 100%, rgba(20, 184, 166, 0.5) 0%, transparent 40%);
-            
-            background-attachment: fixed;
-        }
+        /* --- FIXED: ANIMATED ONBOARDING OVERLAY --- */
+#onboarding-overlay { 
+    position: fixed; 
+    inset: 0; 
+    z-index: 2000; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: opacity 0.6s ease; 
+    opacity: 1; 
+    pointer-events: auto;
+    
+    /* Deep Black Base */
+    background-color: #050505; 
+    overflow: hidden; /* Idhu mukkiyam, colors veliya pona scroll bar vara kudadhu */
+}
 
-        /* Subtle Blur to mix the edges smoothly */
-        #onboarding-overlay::before {
-            content: ""; position: absolute; inset: 0;
-            backdrop-filter: blur(50px);
-            z-index: -1;
-        }
+/* Common Styles for the Glowing Circles */
+#onboarding-overlay::before,
+#onboarding-overlay::after {
+    content: "";
+    position: absolute;
+    width: 60vw; /* Screen la 60% alavu */
+    height: 60vw;
+    border-radius: 50%; /* Vattam */
+    filter: blur(80px); /* Nalla soft glow kidaikum */
+    z-index: -1; /* Content pinnadi irukanum */
+    opacity: 0.6; /* Konjam transparent ah irundha dhaan azhagu */
+}
+
+/* 🟣 TOP LEFT: Punchy Purple Animation */
+#onboarding-overlay::before {
+    top: -20%;
+    left: -20%;
+    /* Unga pazhaya purple ah vida konjam punchy ah */
+    background: radial-gradient(circle at center, #d946ef, #7e22ce); 
+    animation: moveTopLeft 18s infinite alternate ease-in-out;
+}
+
+/* 🔵 BOTTOM RIGHT: Punchy Teal Animation */
+#onboarding-overlay::after {
+    bottom: -20%;
+    right: -20%;
+    /* Unga pazhaya teal ah vida konjam punchy ah */
+    background: radial-gradient(circle at center, #2dd4bf, #0f766e);
+    animation: moveBottomRight 15s infinite alternate ease-in-out;
+}
+
+/* --- ANIMATION KEYFRAMES (Slow Motion) --- */
+
+@keyframes moveTopLeft {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        transform: translate(20%, 20%) scale(1.2); /* Mela irundhu konjam keela varum */
+    }
+}
+
+@keyframes moveBottomRight {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        transform: translate(-20%, -20%) scale(1.3); /* Keela irundhu konjam mela pogum */
+    }
+}
+
         
         .wizard-container {
             width: 90%; max-width: 450px; text-align: center;
