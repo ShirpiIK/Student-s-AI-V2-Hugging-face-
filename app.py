@@ -210,10 +210,25 @@ HTML_TEMPLATE = """
         .send-btn { background: #fff; color: #000; }
 
         /* --- 🚀 ONBOARDING OVERLAY (NEW) --- */
+        /* --- REPLACE THIS WHOLE #onboarding-overlay BLOCK --- */
         #onboarding-overlay { 
-            position: fixed; inset: 0; background: #000; z-index: 2000; 
+            position: fixed; inset: 0; z-index: 2000; 
             display: flex; align-items: center; justify-content: center;
             transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
+            
+            /* ✨ NEW PREMIUM BACKGROUND (Deep Blue + Purple Glow) ✨ */
+            background-color: #09090b; /* Base Dark Color */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(147, 51, 234, 0.15), transparent 25%);
+            background-attachment: fixed;
+        }
+        
+        /* Optional: Add a subtle blur to make it smooth */
+        #onboarding-overlay::before {
+            content: ""; position: absolute; inset: 0;
+            backdrop-filter: blur(40px);
+            z-index: -1;
         }
         #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
         
@@ -303,7 +318,7 @@ HTML_TEMPLATE = """
             <div id="step-2" class="step-content">
                 <h2 class="intro-title" style="font-size: 26px;">What's your name?</h2>
                 <p class="intro-desc">So I can address you properly.</p>
-                <input type="text" id="name-input" class="input-field" placeholder="Enter your Name" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(3)">
+                <input type="text" id="name-input" class="input-field" placeholder="Enter your Name" autocomplete="off" autocorrect="off" onkeydown="if(event.key==='Enter') nextStep(3)">
                 <button class="btn-primary" onclick="nextStep(3)">Next</button>
             </div>
 
@@ -361,7 +376,7 @@ HTML_TEMPLATE = """
                         <option value="Sem 7">Semester 7</option>
                         <option value="Sem 8">Semester 8</option>
                     </select>
-                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
+                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" autocomplete="off" autocorrect="off" onkeydown="if(event.key==='Enter') finishSetup()">
                 
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
