@@ -345,8 +345,7 @@ HTML_TEMPLATE = """
                         <option value="3rd Year">3rd Year</option>
                         
                         <option value="4th Year">4th Year</option>
-                        </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
-                
+                        
                     </select>
                 
 
@@ -362,10 +361,8 @@ HTML_TEMPLATE = """
                         <option value="Sem 7">Semester 7</option>
                         <option value="Sem 8">Semester 8</option>
                     </select>
-                </div>
-
+                </div> <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;" onkeydown="if(event.key==='Enter') finishSetup()">
                 
-                <input type="text" id="subject-input" class="input-field" placeholder="Enter Subject (e.g. Math, Python)" style="padding: 15px; margin-bottom: 15px;">    
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
 
