@@ -829,87 +829,69 @@ HTML_TEMPLATE = """
         // --- CHAT FUNCTIONS ---
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
+        /* --- 1. SEND FUNCTION (FIXED) --- */
         async function send() {
-            // 1. செண்டிங் நடக்குதான்னு செக் பண்றோம்
             if (typeof isGenerating !== 'undefined' && isGenerating) return;
 
-            // 👇 FIX: சரியான ID 'msg-input' பயன்படுத்தப்படுகிறது
+            // ID 'msg-input' பயன்படுத்தப்படுகிறது
             const inputEl = document.getElementById('msg-input');
-            const txt = inputEl.value.trim();
+            if (!inputEl) return console.error("Input element not found!");
             
-            // Global file variable (from previous fix)
-            const fileData = window.currentFile;
+            const txt = inputEl.value.trim();
+            const fileData = window.currentFile; // Global file from preview
 
-            // எழுத்தும் இல்லை, போட்டோவும் இல்லைன்னா ரிட்டர்ன் பண்ணிடு
             if (!txt && !fileData) return;
 
-            // 2. UI சுத்தம் செய்தல்
+            // UI சுத்தம் செய்தல்
             inputEl.value = "";
-            inputEl.style.height = 'auto'; // Reset height
+            inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
-            window.currentFile = null; // Reset file
+            window.currentFile = null;
 
-            // 3. யூசர் மெசேஜை திரையில் காட்டு
+            // 👇 இங்கே addMsg-ஐ கூப்பிடுகிறோம் (கீழே அதற்கான கோட் உள்ளது)
             addMsg('user', txt, fileData);
 
-            // 4. AI Thinking காட்டு
+            // AI Thinking...
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
                 `<div id="${msgId}" class="msg ai-msg">
-                    <div class="msg-bubble" style="color:#aaa;">Thinking...</div>
+                    <div class="ai-content" style="color:#aaa;">Thinking...</div>
                 </div>`
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
             
             if (typeof isGenerating !== 'undefined') isGenerating = true;
 
-            // 5. Backend-க்கு அனுப்பு
+            // Backend Call
             try {
-                // Chat ID இருக்கான்னு பாரு
                 if (!currentChatId) {
                     const r = await fetch('/new_chat', {
-                        method: 'POST', 
-                        headers: {'Content-Type': 'application/json'}, 
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, 
                         body: JSON.stringify({username: currentUser})
                     });
-                    const d = await r.json(); 
-                    currentChatId = d.chat_id; 
+                    const d = await r.json(); currentChatId = d.chat_id; 
                     if(typeof loadHistory === 'function') loadHistory();
                 }
 
-                // Send Request
                 const res = await fetch('/chat', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
-                        message: txt, 
-                        image: fileData, 
-                        username: currentUser, 
-                        chat_id: currentChatId,
-                        user_context: (typeof userContext !== 'undefined' ? userContext : "")
+                        message: txt, image: fileData, 
+                        username: currentUser, chat_id: currentChatId 
                     })
                 });
                 
                 const data = await res.json();
                 
-                // 6. AI பதிலை காட்டு (Update Thinking Message)
+                // AI Response Update
                 const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = ""; // Clear 'Thinking...'
+                aiDiv.innerHTML = `<div class="ai-content"></div>`;
                 
-                // Bubble Create
-                const bubble = document.createElement('div');
-                bubble.className = "msg-bubble";
-                aiDiv.appendChild(bubble);
+                // Markdown Render
+                aiDiv.querySelector('.ai-content').innerHTML = marked.parse(data.response);
                 
-                // Typewriter Effect or Direct Render
-                if (typeof typeWriter === 'function') {
-                    typeWriter(bubble, data.response);
-                } else {
-                    bubble.innerHTML = marked.parse(data.response);
-                }
-                
-                // Add Actions (Copy/Regen)
+                // Add Actions
                 const actionsHtml = `
                     <div class="msg-actions">
                         <div class="action-icon" onclick="navigator.clipboard.writeText(\`${data.response.replace(/`/g, '\\`')}\`)"><i class="fas fa-copy"></i> Copy</div>
@@ -918,12 +900,37 @@ HTML_TEMPLATE = """
                 aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
 
             } catch (e) {
-                console.error(e);
-                document.getElementById(msgId).innerHTML = `<div class="msg-bubble" style="color:red;">Error sending message.</div>`;
+                document.getElementById(msgId).innerHTML = `<div class="ai-content" style="color:red;">Error sending message.</div>`;
             } finally {
                 if (typeof isGenerating !== 'undefined') isGenerating = false;
                 chatBox.scrollTo(0, chatBox.scrollHeight);
             }
+        }
+
+        /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
+        function addMsg(role, text, img) {
+            const box = document.getElementById('chat-box');
+            let content = "";
+            
+            // இமேஜ் இருந்தால் காட்டு
+            if(img) content += `<img src="${img}" style="max-width:200px; border-radius:12px; margin-bottom:8px; border:1px solid #333;">`;
+            // டெக்ஸ்ட் இருந்தால் காட்டு
+            if(text) content += `<div>${text}</div>`;
+
+            // HTML Structure
+            const msgHtml = `
+                <div class="msg ${role === 'user' ? 'user-msg' : 'ai-msg'}">
+                    <div class="${role === 'user' ? 'user-content' : 'ai-content'}">
+                        ${content}
+                    </div>
+                    ${role === 'user' ? `
+                    <div class="msg-actions" style="justify-content: flex-end;">
+                        <div class="action-icon" onclick="navigator.clipboard.writeText(\`${text}\`)"><i class="fas fa-copy"></i></div>
+                    </div>` : ''}
+                </div>`;
+
+            box.insertAdjacentHTML('beforeend', msgHtml);
+            box.scrollTo(0, box.scrollHeight);
         }
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
