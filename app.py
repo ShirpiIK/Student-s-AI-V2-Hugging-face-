@@ -169,7 +169,7 @@ HTML_TEMPLATE = """
 
     /* --- 2. GLOBAL STYLES --- */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100dvh; position: fixed; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;display: flex; flex-direction: column; overflow: hidden; }
 
     /* 👇 GLOBAL COLOR BG (Static) */
     .global-bg {
@@ -188,9 +188,12 @@ HTML_TEMPLATE = """
     /* --- 3. HEADER (Fixed to Relative) --- */
     /* 👇 இதுதான் முக்கியம்! Header-ஐ Relative ஆக மாற்றினால் கீபோர்டு பிரச்சனை தீரும் */
     header { 
-        height: 70px; padding: 0 20px; background: var(--bg); border-bottom: 1px solid var(--border); 
-        display: flex; align-items: center; z-index: 3000; 
-        position: relative; flex-shrink: 0; transition: transform 0.3s ease; 
+        height: 70px; padding: 0 20px; background: rgba(9,9,11, 0.98);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 50;
+            padding-top: env(safe-area-inset-top);
+            position: absolute; top: 0; left: 0; right: 0;
     }
     header.hidden-header { display: none; } 
     .app-title { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); text-align:center; flex:1; }
@@ -198,8 +201,10 @@ HTML_TEMPLATE = """
 
     /* --- 4. CHAT AREA --- */
     /* 👇 Header Relative ஆனதால், இங்கே Padding குறைக்கப்பட்டுள்ளது (90px -> 10px) */
-    #chat-box { flex-grow: 1; overflow-y: auto; padding: 20px 5%; padding-top: 10px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
-    
+    #chat-box { flex: 1; overflow-y: auto; padding: 20px 5%; padding-bottom: 80px; 
+            display: flex; flex-direction: column; gap: 25px;
+            -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; min-height: 0; 
+        }
     .input-wrapper { 
         background: var(--bg); padding: 15px; border-top: 1px solid var(--border); 
         flex-shrink: 0; z-index: 40; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
