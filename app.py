@@ -1169,16 +1169,16 @@ HTML_TEMPLATE = """
             toggleSidebar();
         }
 
-        // Search & Clear Logic
+        // FIXED SEARCH & CLEAR LOGIC
         function filterHistory(query) {
             const items = document.querySelectorAll('.history-item');
             const clearBtn = document.getElementById('clear-search');
             clearBtn.style.display = query.length > 0 ? 'block' : 'none';
     
-        items.forEach(item => {
-        const title = item.querySelector('span').innerText.toLowerCase();
-        item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
-        });
+            items.forEach(item => {
+                const title = item.querySelector('span').innerText.toLowerCase();
+                item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
+            });
         }
 
         function clearSearch() {
