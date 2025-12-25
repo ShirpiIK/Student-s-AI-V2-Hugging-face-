@@ -237,26 +237,45 @@ HTML_TEMPLATE = """
         }
 
         #hist-search {
-            font-family: 'Outfit', sans-serif !important;
+           width: 100%; 
+           padding: 8px 35px 8px 12px; /* உயரத்தைக் குறைக்க padding குறைக்கப்பட்டுள்ளது */
+           border-radius: 8px; 
+           border: 1px solid var(--border); 
+           background: var(--card); 
+           color: var(--text); 
+           outline: none;
+           font-size: 14px; /* எழுத்து அளவு குறைப்பு */
         }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
         .sidebar-overlay-gap { 
-    flex: 1; 
-    background: rgba(0,0,0,0);
-    transition: background 0.4s ease;
-}
+           flex: 1; 
+           background: rgba(0,0,0,0);
+           transition: background 0.4s ease;
+        }
 
-#sidebar.open .sidebar-overlay-gap {
-    background: rgba(0,0,0,0.5); /* மெனு திறக்கும்போது மெதுவா கருப்பாகும் */
-}
+        #sidebar.open .sidebar-overlay-gap {
+        background: rgba(0,0,0,0.5); /* மெனு திறக்கும்போது மெதுவா கருப்பாகும் */
+        }
         /* --- MENU HEADER & X BUTTON FIX --- */
         /* --- MENU CLOSE BUTTON DESIGN --- */
        .sidebar-header { 
            display: flex; 
            justify-content: space-between; 
            align-items: center; 
-           margin-bottom: 25px;
-           padding: 10px 5px;
+           margin-bottom: 20px;
+        }
+        .sidebar-header .menu-btn {
+             width: 32px; 
+             height: 32px; 
+             background: var(--user-msg); /* வட்டம் தெரிய இது முக்கியம் */
+            border-radius: 50%; 
+             display: flex; 
+             align-items: center; 
+            justify-content: center; 
+             font-size: 14px;
+             cursor: pointer;
+            border: none;
+            flex-shrink: 0; /* வட்டம் சுருங்காமல் இருக்க */
         }
 
        .sidebar-content .menu-btn {
@@ -697,11 +716,9 @@ HTML_TEMPLATE = """
     <div id="sidebar">
         <div class="sidebar-content">
             <div style="position:relative; margin-bottom:15px;">
-                <input type="text" id="hist-search" placeholder="Search history..." 
-                       style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
-                       oninput="filterHistory(this.value)">
+                <input type="text" id="hist-search" placeholder="Search history..." oninput="filterHistory(this.value)">
                 <i class="fas fa-times" id="clear-search" 
-                   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"
+                   style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted); font-size: 12px;"
                    onclick="clearSearch()"></i>
             </div>
             
@@ -711,6 +728,7 @@ HTML_TEMPLATE = """
             </div>
 
             <button class="new-chat-btn" onclick="newChat()"><i class="fas fa-plus"></i> New Chat</button>
+            
             <div class="history-label">Chat History</div>
             <div id="history-list"></div>
             
