@@ -581,18 +581,25 @@ HTML_TEMPLATE = """
     .settings-sub-page.active { transform: translateX(0); }
 
     /* --- 1. CSS FIX FOR SMOOTH MENU --- */
-    .sub-header {
+
+/* Sub-header தனி */
+.sub-header {
     padding: 20px; 
     padding-top: calc(20px + env(safe-area-inset-top));
     display: flex; align-items: center; gap: 15px;
     border-bottom: 1px solid var(--border); margin-bottom: 20px;
-    }
+}
 
-    /* 👇 இந்த வரிகள் .sub-header க்கு வெளியே இருக்க வேண்டும் */
-    #sidebar.open .sidebar-content,
-    #settings-overlay.active, 
-    .settings-sub-page.active {
+/* Active States (மெனு ஸ்மூத்தா வர இது முக்கியம்) */
+#sidebar.open .sidebar-content,
+#settings-overlay.active, 
+.settings-sub-page.active {
     transform: translateX(0);
+}
+
+/* Sidebar Animation */
+.sidebar-content {
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Buttery Smooth */
 }
 
 </style>
@@ -1385,14 +1392,14 @@ function closeSubPage(pageId) {
 /* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE --- */
 document.addEventListener("DOMContentLoaded", function() {
     
-    // 1. Chat Page
+    // 1. Chat Page (Send & Hide Keyboard)
     const msgInput = document.getElementById('msg-input');
     if(msgInput) {
         msgInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send();
-                this.blur(); // 👇 கீபோர்டு மறைய இதுதான் முக்கியம்
+                this.blur(); // 👇 இதுதான் கீபோர்டை மறைய வைக்கும்
             }
         });
     }
@@ -1403,7 +1410,7 @@ document.addEventListener("DOMContentLoaded", function() {
         nameInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 nextStep(3);
-                this.blur();
+                this.blur(); // Hide Keyboard
             }
         });
     }
@@ -1416,7 +1423,7 @@ document.addEventListener("DOMContentLoaded", function() {
         schoolSub.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 finishSetup();
-                this.blur();
+                this.blur(); // Hide Keyboard
             }
         });
     }
@@ -1424,11 +1431,11 @@ document.addEventListener("DOMContentLoaded", function() {
         collegeSub.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 finishSetup();
-                this.blur();
+                this.blur(); // Hide Keyboard
             }
         });
     }
-    });
+});
     // --- SETTINGS SEARCH LOGIC ---
     function filterSettings(query) {
     const btns = document.querySelectorAll('.settings-option-btn');
