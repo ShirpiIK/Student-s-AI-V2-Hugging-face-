@@ -635,17 +635,6 @@ HTML_TEMPLATE = """
 
     <div id="sidebar">
         <div class="sidebar-content">
-    <div style="position:relative; margin-bottom:15px;">
-        <input type="text" id="hist-search" placeholder="Search history..." 
-               style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
-               oninput="filterHistory(this.value)">
-        <i class="fas fa-times" id="clear-search" 
-           style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"
-           onclick="clearSearch()"></i>
-    </div>
-    
-    <div id="sidebar">
-        <div class="sidebar-content">
             <div style="position:relative; margin-bottom:15px;">
                 <input type="text" id="hist-search" placeholder="Search history..." 
                        style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
