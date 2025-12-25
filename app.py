@@ -722,25 +722,32 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <div id="sidebar">
+   <div id="sidebar">
         <div class="sidebar-content">
-            <div style="position:relative; margin-bottom:15px;">
-                <input type="text" id="hist-search" placeholder="Search history..." 
-                       style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
-                       oninput="filterHistory(this.value)">
+            
+            <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                <div class="menu-btn" onclick="toggleSidebar()" 
+                     style="width:34px; height:34px; background:var(--user-msg); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; border:none; transition:0.2s;">
+                    <i class="fas fa-times" style="color:var(--text);"></i>
+                </div>
+            </div>
+
+            <div style="position:relative; margin-bottom:20px; flex-shrink:0;">
+                <input type="text" id="hist-search" placeholder="Search history..." oninput="filterHistory(this.value)">
                 <i class="fas fa-times" id="clear-search" 
-                   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"
                    onclick="clearSearch()"></i>
             </div>
             
-            <div class="sidebar-header">
-                <span class="user-info-text" id="display-name">User</span>
-                <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
+            <div style="margin-bottom:20px; padding-left:5px;">
+                <span class="user-info-text" id="display-name" style="font-size:22px; font-weight:700;">User</span>
             </div>
 
-            <button class="new-chat-btn" onclick="newChat()"><i class="fas fa-plus"></i> New Chat</button>
-            <div class="history-label">Chat History</div>
-            <div id="history-list"></div>
+            <button class="new-chat-btn" onclick="newChat()">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+            
+            <div class="history-label" style="flex-shrink:0;">Chat History</div>
+            <div id="history-list" style="flex:1; overflow-y:auto; padding-right:5px; margin-bottom:10px;"></div>
             
             <div class="sidebar-footer">
                 <div class="footer-link" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</div>
@@ -749,7 +756,6 @@ HTML_TEMPLATE = """
         </div>
         <div class="sidebar-overlay-gap" onclick="toggleSidebar()"></div> 
     </div>
-    
     <div id="app-container">
         <header>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
