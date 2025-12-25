@@ -230,7 +230,7 @@ HTML_TEMPLATE = """
     }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
         .sidebar-overlay-gap { flex: 1; cursor: pointer; }
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 5px 0 5px 5px;}
         .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
         
         .new-chat-btn { 
