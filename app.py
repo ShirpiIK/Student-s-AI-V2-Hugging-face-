@@ -190,8 +190,15 @@ HTML_TEMPLATE = """
         .menu-btn:active { background: var(--hover); }
         .app-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
 
-        body, html, * { 
-             font-family: 'Outfit', sans-serif !important; /* ஆப் முழுவதும் ஒரே சீரான ஃபான்ட் */
+        /* --- FONT FIX: Allows Icons to Show --- */
+        body, html, input, textarea, button, select { 
+           font-family: 'Outfit', sans-serif; 
+        }
+    
+         /* ஐகான்களைத் தொடாதே! */
+        i, .fas, .fab, .far {
+              font-family: "Font Awesome 6 Free" !important;
+              font-weight: 900;
         }
         /* --- SIDEBAR --- */
         #sidebar {
