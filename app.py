@@ -230,7 +230,7 @@ HTML_TEMPLATE = """
     }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
         .sidebar-overlay-gap { flex: 1; cursor: pointer; }
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 20px 10px 20px 20px;}
+        .sidebar-header { display: flex; /*justify-content: space-between;*/ align-items: center; margin-bottom: 20px; padding: 20px 10px 20px 20px;}
         .sidebar-content .menu-btn {
              width: 32px;
              height: 32px;
