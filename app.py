@@ -1176,6 +1176,7 @@ HTML_TEMPLATE = """
             filterHistory("");
             input.focus();
         }
+        
         // 7. INITIALIZE APP
         checkLogin();
     </script>
