@@ -202,20 +202,31 @@ HTML_TEMPLATE = """
         }
         /* --- SIDEBAR --- */
         #sidebar {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0); /* ஆரம்பத்தில் வெளிப்படையாக இருக்கும் */
-            z-index: 100; transform: translateX(-100%); 
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
+              position: fixed; 
+              top: 0; 
+              left: 0; 
+              width: 100%; 
+              height: 100%; 
+              z-index: 1000;
+              visibility: hidden; /* ஆரம்பத்தில் தெரியாது */
+              transition: visibility 0.4s;
         }
 
-         #sidebar.open { transform: translateX(0); background: rgba(0,0,0,0.5); }
+        #sidebar.open { 
+              visibility: visible;
+        }
 
-        /* உண்மையான மெனு பகுதி */
         .sidebar-content {
-            width: 280px; height: 100%; background: var(--bg);
-            display: flex; flex-direction: column; padding: 20px;
-            border-right: 1px solid var(--border);
+              width: 280px; 
+              height: 100%; 
+              background: var(--bg);
+              border-right: 1px solid var(--border);
+              /* 👇 இதுதான் ஸ்மூத் அனிமேஷன் (Slide in) */
+              transform: translateX(-100%); 
+              transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #sidebar.open .sidebar-content {
+              transform: translateX(0);
         }
         /* --- SIDEBAR ICONS & FONT FIX --- */
        .sidebar-content i {
@@ -229,28 +240,41 @@ HTML_TEMPLATE = """
             font-family: 'Outfit', sans-serif !important;
         }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
-        .sidebar-overlay-gap { flex: 1; cursor: pointer; }
-        /* --- MENU HEADER & X BUTTON FIX --- */
-        .sidebar-header { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 20px;
-        padding: 5px 0; /* நேர்த்தியான இடைவெளி */
-        }  
+        .sidebar-overlay-gap { 
+    flex: 1; 
+    background: rgba(0,0,0,0);
+    transition: background 0.4s ease;
+}
 
-        /* மெனுவிற்குள் இருக்கும் X பட்டன் மட்டும் */
-        .sidebar-content .menu-btn {
-        width: 35px;
-        height: 35px;
-        background: var(--card); /* பட்டன் எடுப்பாகத் தெரிய */
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        transition: all 0.2s;
-        }  
+#sidebar.open .sidebar-overlay-gap {
+    background: rgba(0,0,0,0.5); /* மெனு திறக்கும்போது மெதுவா கருப்பாகும் */
+}
+        /* --- MENU HEADER & X BUTTON FIX --- */
+        /* --- MENU CLOSE BUTTON DESIGN --- */
+       .sidebar-header { 
+           display: flex; 
+           justify-content: space-between; 
+           align-items: center; 
+           margin-bottom: 25px;
+           padding: 10px 5px;
+        }
+
+       .sidebar-content .menu-btn {
+           width: 32px;
+           height: 32px;
+           background: var(--user-msg); /* லேசான சாம்பல் நிற வட்டம் */
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 14px;
+           cursor: pointer;
+           transition: 0.2s;
+       }
+
+       .sidebar-content .menu-btn:active {
+           transform: scale(0.9);
+       }
         .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
         
         .new-chat-btn { 
