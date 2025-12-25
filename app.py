@@ -374,9 +374,18 @@ HTML_TEMPLATE = """
         /* Editable Subject */
         .editable-subject { border-bottom: 1px dashed var(--text-muted); cursor: pointer; }
         .subject-edit-input { 
-            background: var(--bg); color: var(--text); border: 1px solid var(--text); 
-            padding: 5px; border-radius: 5px; width: 100%; text-align: right; 
-        }
+            background: var(--bg); 
+            color: var(--text); 
+            border: 1px solid var(--text); 
+            padding: 5px; 
+            border-radius: 5px; 
+    
+            /* 👇 இங்கே மாற்றம் செய்யப்பட்டுள்ளது */
+            width: 60%;          /* 100% ல இருந்து 60% ஆக குறைத்துள்ளேன் */
+            margin-left: 15px;   /* இதுதான் அந்த இடைவெளியை (Gap) கொடுக்கும் */
+    
+            text-align: right; 
+            }
 
         /* Themes */
         .theme-list { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
