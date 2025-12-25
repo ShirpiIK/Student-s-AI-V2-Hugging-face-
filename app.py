@@ -309,15 +309,19 @@ HTML_TEMPLATE = """
             font-size: 16px; max-height: 120px; padding: 12px 0; resize: none; outline: none; 
             font-family: 'Outfit', sans-serif; 
         }
-        /* --- SETTINGS PAGE (OVERLAY) --- */
         #settings-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 2000; display: flex; flex-direction: column;
-            transform: translateX(100%); transition: transform 0.3s ease;
-            overflow-y: auto;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--bg); z-index: 2000;
+        display: flex; flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        
+        /* 👇 இந்த இரண்டு வரிகள் தான் பிரச்சனையைத் தீர்க்கும் */
+        overflow-x: hidden !important; /* வலது பக்கம் ஸ்க்ரோல் ஆவதைத் தடுக்கும் */
+        overscroll-behavior: none;     /* பக்கம் ரப்பர் மாதிரி இழுபடுவதைத் தடுக்கும் */
         }
+    
         #settings-overlay.active { transform: translateX(0); }
-
         .settings-header {
             padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
             display: flex; align-items: center; gap: 15px;
