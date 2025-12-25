@@ -580,11 +580,15 @@ HTML_TEMPLATE = """
     }
     .settings-sub-page.active { transform: translateX(0); }
 
+    /* --- 1. CSS FIX FOR SMOOTH MENU --- */
     .sub-header {
-    padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
+    padding: 20px; 
+    padding-top: calc(20px + env(safe-area-inset-top));
     display: flex; align-items: center; gap: 15px;
     border-bottom: 1px solid var(--border); margin-bottom: 20px;
     }
+
+    /* 👇 இந்த வரிகள் .sub-header க்கு வெளியே இருக்க வேண்டும் */
     #sidebar.open .sidebar-content,
     #settings-overlay.active, 
     .settings-sub-page.active {
@@ -603,10 +607,17 @@ HTML_TEMPLATE = """
             <h2 style="margin:0; font-size:20px; color:var(--text);">Settings</h2>
         </div>
 
-        <div class="settings-search">
-            <i class="fas fa-search" style="color:var(--text-muted);"></i>
-            <input type="text" placeholder="Search settings...">
-        </div>
+        <div class="settings-search" style="position:relative;">
+    <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+    
+    <input type="text" id="setting-search-input" placeholder="Search settings..." 
+           style="width:100%; padding:12px 40px; background:transparent; border:none; color:var(--text); outline:none;"
+           oninput="filterSettings(this.value)"
+           onkeydown="if(event.key==='Enter') this.blur()">
+           
+    <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
+       style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
+</div>
 
         <div class="settings-content">
             <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
@@ -1371,43 +1382,72 @@ function closeSubPage(pageId) {
     else document.getElementById(pageId).classList.remove('active');
 }
 
-// 3. UNIVERSAL ENTER KEY SUPPORT
+/* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE --- */
 document.addEventListener("DOMContentLoaded", function() {
     
-    // A. Chat Message Input
+    // 1. Chat Page
     const msgInput = document.getElementById('msg-input');
     if(msgInput) {
         msgInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send();
+                this.blur(); // 👇 கீபோர்டு மறைய இதுதான் முக்கியம்
             }
         });
     }
 
-    // B. Onboarding: Name Input (Step 2)
+    // 2. Onboarding Name
     const nameInput = document.getElementById('name-input');
     if(nameInput) {
         nameInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') nextStep(3);
+            if (e.key === 'Enter') {
+                nextStep(3);
+                this.blur();
+            }
         });
     }
 
-    // C. Onboarding: Subject Inputs (Step 3)
+    // 3. Onboarding Subjects
     const schoolSub = document.getElementById('school-subject');
     const collegeSub = document.getElementById('college-subject');
 
     if(schoolSub) {
         schoolSub.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') finishSetup();
+            if (e.key === 'Enter') {
+                finishSetup();
+                this.blur();
+            }
         });
     }
     if(collegeSub) {
         collegeSub.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') finishSetup();
+            if (e.key === 'Enter') {
+                finishSetup();
+                this.blur();
+            }
         });
     }
     });
+    // --- SETTINGS SEARCH LOGIC ---
+    function filterSettings(query) {
+    const btns = document.querySelectorAll('.settings-option-btn');
+    const clearBtn = document.getElementById('clear-setting-search');
+    
+    if(clearBtn) clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+
+    btns.forEach(btn => {
+        const text = btn.innerText.toLowerCase();
+        btn.style.display = text.includes(query.toLowerCase()) ? 'flex' : 'none';
+    });
+    }
+
+    function clearSettingsSearch() {
+    const inp = document.getElementById('setting-search-input');
+    inp.value = "";
+    filterSettings("");
+    inp.blur(); // கீபோர்டு மறைய
+    }
         // 7. INITIALIZE APP
         checkLogin();
     </script>
