@@ -723,19 +723,19 @@ HTML_TEMPLATE = """
     </div>
 
    <div id="sidebar">
-        <div class="sidebar-content">
-            
-            <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                <div class="menu-btn" onclick="toggleSidebar()" 
-                     style="width:34px; height:34px; background:var(--user-msg); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; border:none; transition:0.2s;">
-                    <i class="fas fa-times" style="color:var(--text);"></i>
-                </div>
+        <div class="sidebar-content" style="position:relative;"> <div onclick="toggleSidebar()" 
+                 style="position:absolute; top:15px; right:15px; cursor:pointer; padding:5px; z-index:10;">
+                <i class="fas fa-times" style="color:var(--text-muted); font-size:22px;"></i>
             </div>
 
-            <div style="position:relative; margin-bottom:20px; flex-shrink:0;">
-                <input type="text" id="hist-search" placeholder="Search history..." oninput="filterHistory(this.value)">
-                <i class="fas fa-times" id="clear-search" 
-                   onclick="clearSearch()"></i>
+            <div style="position:relative; margin-top:50px; margin-bottom:20px; flex-shrink:0;">
+                <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none;"></i>
+                
+                <input type="text" id="hist-search" placeholder="Search..." oninput="filterHistory(this.value)" 
+                       style="width:100%; height:45px; padding:0 35px 0 40px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none; font-size:15px;">
+                
+                <i class="fas fa-times" id="clear-search" onclick="clearSearch()" 
+                   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
             </div>
             
             <div style="margin-bottom:20px; padding-left:5px;">
