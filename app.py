@@ -848,33 +848,31 @@ HTML_TEMPLATE = """
         });
 
         /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
+        /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
         function typeWriter(element, text, callback) {
             let i = 0;
-            element.innerHTML = ""; 
-            let speed = 5; // ஜெட் வேகம்
+            let speed = 5; 
+            let chatBox = document.getElementById('chat-box');
 
             function type() {
                 if (i < text.length) {
-                    // 4 எழுத்துக்களை சேர்த்து டைப் செய்வதால் வேகம் அதிகமாக இருக்கும்
-                    let chunk = text.substring(i, i + 4); 
-                    element.innerHTML += chunk;
-                    i += 4;
+                    // 5 எழுத்துக்களாகச் சேர்த்து டைப் செய்யும் (Fast & Smooth)
+                    i += 5; 
+                    let currentText = text.substring(0, i);
                     
-                    // பதில் வர வர ஸ்கிரீன் கீழே நகரும்
-                    const chatBox = document.getElementById('chat-box');
-                    chatBox.scrollTop = chatBox.scrollHeight; 
+                    // 👇 ஒவ்வொரு முறையும் Markdown-ஆக மாற்றுவதால் பதில் வரும்போதே Table/Bold தெரியும்
+                    element.innerHTML = marked.parse(currentText);
+                    
+                    // Auto-Scroll
+                    chatBox.scrollTop = chatBox.scrollHeight;
                     
                     setTimeout(type, speed);
                 } else {
-                    // அனிமேஷன் முடிந்ததும் Markdown மற்றும் Mermaid-ஐ லோடு செய்யும்
+                    // முழுமையாக முடிந்ததும் இறுதி வடிவம் மற்றும் Mermaid-ஐ செக் செய்
                     element.innerHTML = marked.parse(text);
-                    
-                    // Mermaid டயக்ராம் இருந்தால் அதை ரெண்டர் செய்யும்
-                    if (window.mermaid) {
-                        mermaid.run();
+                    if (window.mermaid && text.includes("```mermaid")) {
+                        mermaid.run({ nodes: [element] });
                     }
-                    
-                    const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTop = chatBox.scrollHeight;
                     if (callback) callback();
                 }
@@ -883,7 +881,6 @@ HTML_TEMPLATE = """
         }
 
         
-
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
                 const originalIcon = btn.innerHTML;
@@ -954,6 +951,7 @@ HTML_TEMPLATE = """
         }
 
         /* --- 2. UPDATED SEND FUNCTION --- */
+        /* --- UPDATED SEND FUNCTION --- */
         async function send() {
             if (isGenerating) return;
 
@@ -963,22 +961,19 @@ HTML_TEMPLATE = """
 
             if (!txt && !fileData) return;
 
-            // UI Clear
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
-            // User மெசேஜை காட்டுகிறது
             addMsg('user', txt, fileData);
 
-            // AI Placeholder
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
                 `<div id="${msgId}" class="msg ai-msg"><div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div></div>`
             );
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatBox.scrollTo(0, chatBox.scrollHeight);
             isGenerating = true;
 
             try {
@@ -998,7 +993,7 @@ HTML_TEMPLATE = """
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // அனிமேஷனை தொடங்குகிறது
+                // Typing starts here
                 typeWriter(bubble, data.response, () => {
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
@@ -1009,7 +1004,7 @@ HTML_TEMPLATE = """
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     
-                    isGenerating = false; 
+                    isGenerating = false; // அனிமேஷன் முடிந்ததும் மட்டும் false ஆகும்
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
             } catch (e) {
@@ -1017,7 +1012,6 @@ HTML_TEMPLATE = """
                 isGenerating = false;
             }
         }
-
         // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
