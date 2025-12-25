@@ -849,30 +849,45 @@ HTML_TEMPLATE = """
 
         /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
         /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
+        
+        /* --- CHATGPT STYLE ANIMATION (NO SHAKE & PERFECT SCROLL) --- */
         function typeWriter(element, text, callback) {
+            const chatBox = document.getElementById('chat-box');
             let i = 0;
-            let speed = 5; 
-            let chatBox = document.getElementById('chat-box');
+            
+            // 1. பதிலை முதலிலேயே Markdown ஆக மாற்றி ஒரு மறைமுக இடத்தில் (Hidden Div) வைக்கிறோம்
+            // இது பெட்டி அதிருவதை (Shake) தடுக்கும்.
+            element.innerHTML = marked.parse(text);
+            const finalHTML = element.innerHTML;
+            element.innerHTML = ""; // அனிமேஷனுக்காக மீண்டும் காலியாக்குகிறோம்
+
+            // 2. டயக்ராம் இருந்தால் அது தெரியாமல் இருக்க பெட்டியின் உயரத்தை லாக் செய்கிறோம்
+            element.style.minHeight = "20px";
 
             function type() {
-                if (i < text.length) {
-                    // 5 எழுத்துக்களாகச் சேர்த்து டைப் செய்யும் (Fast & Smooth)
-                    i += 5; 
-                    let currentText = text.substring(0, i);
+                if (i < finalHTML.length) {
+                    // HTML Tags-ஐ கண்டறிந்தால் அதை முழுமையாக ஒரே நேரத்தில் சேர்க்க வேண்டும்
+                    if (finalHTML.charAt(i) === '<') {
+                        let tagEnd = finalHTML.indexOf('>', i);
+                        i = tagEnd + 1;
+                    } else {
+                        i += 3; // வேகத்திற்காக 3 எழுத்துகளாக பிரிக்கிறோம்
+                    }
                     
-                    // 👇 ஒவ்வொரு முறையும் Markdown-ஆக மாற்றுவதால் பதில் வரும்போதே Table/Bold தெரியும்
-                    element.innerHTML = marked.parse(currentText);
+                    element.innerHTML = finalHTML.substring(0, i);
                     
-                    // Auto-Scroll
+                    // 👇 இதுதான் வார்த்தை மேலே வருவதை (Auto-scroll) உறுதி செய்யும்
                     chatBox.scrollTop = chatBox.scrollHeight;
                     
-                    setTimeout(type, speed);
+                    requestAnimationFrame(type); // சீரான அனிமேஷனுக்கு setTimeout-க்கு பதில் இது சிறந்தது
                 } else {
-                    // முழுமையாக முடிந்ததும் இறுதி வடிவம் மற்றும் Mermaid-ஐ செக் செய்
-                    element.innerHTML = marked.parse(text);
+                    element.innerHTML = finalHTML; // இறுதியில் முழுமையாக உறுதி செய்
+                    
+                    // Mermaid டயக்ராம் இருந்தால் மட்டும் லோடு செய்
                     if (window.mermaid && text.includes("```mermaid")) {
                         mermaid.run({ nodes: [element] });
                     }
+                    
                     chatBox.scrollTop = chatBox.scrollHeight;
                     if (callback) callback();
                 }
@@ -952,6 +967,8 @@ HTML_TEMPLATE = """
 
         /* --- 2. UPDATED SEND FUNCTION --- */
         /* --- UPDATED SEND FUNCTION --- */
+        
+        /* --- UPDATED SEND FUNCTION --- */
         async function send() {
             if (isGenerating) return;
 
@@ -993,7 +1010,6 @@ HTML_TEMPLATE = """
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // Typing starts here
                 typeWriter(bubble, data.response, () => {
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
@@ -1004,14 +1020,15 @@ HTML_TEMPLATE = """
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     
-                    isGenerating = false; // அனிமேஷன் முடிந்ததும் மட்டும் false ஆகும்
+                    isGenerating = false; 
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
             } catch (e) {
                 document.getElementById(msgId).innerHTML = "Error.";
                 isGenerating = false;
             }
-        }
+        }       
+            
         // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
