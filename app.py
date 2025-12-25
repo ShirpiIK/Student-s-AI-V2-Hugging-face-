@@ -543,11 +543,37 @@ HTML_TEMPLATE = """
     }
     .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
     .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+    /* --- NEW SETTINGS UI --- */
+    .settings-option-btn {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 20px; margin-bottom: 12px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; cursor: pointer; color: var(--text);
+    font-weight: 500; transition: background 0.2s;
+    }
+    .settings-option-btn:active { transform: scale(0.98); background: var(--hover); }
+
+    /* Sub-Pages (Hidden by default) */
+    .settings-sub-page {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg); z-index: 2050;
+    display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform 0.3s ease;
+    }
+    .settings-sub-page.active { transform: translateX(0); }
+
+    .sub-header {
+    padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
+    display: flex; align-items: center; gap: 15px;
+    border-bottom: 1px solid var(--border); margin-bottom: 20px;
+}
 </style>
 </head>
 <body>
 
     <div id="settings-overlay">
+    
+    <div id="settings-main-view">
         <div class="settings-header">
             <div class="back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i></div>
             <h2 style="margin:0; font-size:20px; color:var(--text);">Settings</h2>
@@ -559,7 +585,31 @@ HTML_TEMPLATE = """
         </div>
 
         <div class="settings-content">
-            <div class="section-title">Student Profile</div>
+            <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="fas fa-user-grad" style="color:var(--text);"></i>
+                    <span>Student Details</span>
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
+            </div>
+
+            <div class="settings-option-btn" onclick="openSubPage('subpage-themes')">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <i class="fas fa-palette" style="color:var(--text);"></i>
+                    <span>Themes</span>
+                </div>
+                <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="subpage-profile" class="settings-sub-page">
+        <div class="sub-header">
+            <div class="back-btn" onclick="closeSubPage('subpage-profile')"><i class="fas fa-arrow-left"></i></div>
+            <h2 style="margin:0; font-size:20px; color:var(--text);">Student Details</h2>
+        </div>
+        
+        <div class="settings-content">
             <div class="profile-card">
                 <div class="profile-pic-wrapper">
                     <img id="settings-pic" src="https://ui-avatars.com/api/?name=User&background=random" class="profile-pic">
@@ -586,10 +636,16 @@ HTML_TEMPLATE = """
                     <div class="logout-row" onclick="handleLogout()">Log Out</div>
                 </div>
             </div>
+            </div>
+    </div>
 
-            <div style="border-bottom: 1px solid var(--border); margin-bottom: 20px;"></div>
+    <div id="subpage-themes" class="settings-sub-page">
+        <div class="sub-header">
+            <div class="back-btn" onclick="closeSubPage('subpage-themes')"><i class="fas fa-arrow-left"></i></div>
+            <h2 style="margin:0; font-size:20px; color:var(--text);">Themes</h2>
+        </div>
 
-            <div class="section-title">Themes</div>
+        <div class="settings-content">
             <div class="theme-list">
                 <div class="theme-option" onclick="setTheme('light')">
                     <div class="theme-icon"><i class="fas fa-sun"></i></div>
@@ -604,8 +660,10 @@ HTML_TEMPLATE = """
                     <span>System Default</span>
                 </div>
             </div>
-        </div>
+             </div>
     </div>
+
+</div>
 
     <div id="onboarding-overlay">
         <div class="wizard-container">
@@ -1195,7 +1253,14 @@ HTML_TEMPLATE = """
             filterHistory("");
             input.focus();
         }
-        
+        // --- SETTINGS NAVIGATION ---
+        function openSubPage(pageId) {
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function closeSubPage(pageId) {
+            document.getElementById(pageId).classList.remove('active');
+        }
         // 7. INITIALIZE APP
         checkLogin();
     </script>
