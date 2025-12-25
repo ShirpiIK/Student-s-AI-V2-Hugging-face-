@@ -997,7 +997,7 @@ HTML_TEMPLATE = """
             send(); 
         }
 
-        /* --- 1. FIXED ADDMSG WITH ICONS --- */
+        /* --- 1. FIXED ADDMSG WITH WORKING ICONS --- */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1012,14 +1012,14 @@ HTML_TEMPLATE = """
             let actionsHtml = "";
 
             if (role === 'user') {
-                // 👇 Question Buttons with Icons
+                // 👇 Question Icons
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                // 👇 Response Buttons with Icons
+                // 👇 Response Icons
                 actionsHtml = `
                 <div class="msg-actions">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
@@ -1036,7 +1036,7 @@ HTML_TEMPLATE = """
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 2. FIXED SEND WITH ICON RENDERING --- */
+        /* --- 2. FIXED SEND FUNCTION --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1086,13 +1086,13 @@ HTML_TEMPLATE = """
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     isGenerating = false; 
-                    chatBox.scrollTo(0, chatBox.scrollHeight);
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 });
             } catch (e) {
                 document.getElementById(msgId).innerHTML = "Error.";
                 isGenerating = false;
             }
-        }      
+        }
             
         // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
