@@ -997,6 +997,7 @@ HTML_TEMPLATE = """
             send(); 
         }
 
+        /* --- 1. FIXED ADDMSG WITH ICONS --- */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1006,15 +1007,19 @@ HTML_TEMPLATE = """
             } else {
                 contentHtml += `<div class="user-content">${text}</div>`;
             }
+
             const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
             let actionsHtml = "";
+
             if (role === 'user') {
+                // 👇 Question Buttons with Icons
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
+                // 👇 Response Buttons with Icons
                 actionsHtml = `
                 <div class="msg-actions">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
@@ -1022,24 +1027,21 @@ HTML_TEMPLATE = """
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
             }
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
             msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
+            
             box.appendChild(msgDiv);
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 2. UPDATED SEND FUNCTION --- */
-        /* --- UPDATED SEND FUNCTION --- */
-        
-        /* --- UPDATED SEND FUNCTION --- */
+        /* --- 2. FIXED SEND WITH ICON RENDERING --- */
         async function send() {
             if (isGenerating) return;
-
             const inputEl = document.getElementById('msg-input');
             const txt = inputEl.value.trim();
             const fileData = window.currentFile;
-
             if (!txt && !fileData) return;
 
             inputEl.value = "";
@@ -1083,15 +1085,14 @@ HTML_TEMPLATE = """
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-                    
                     isGenerating = false; 
-                    chatBox.scrollTop = chatBox.scrollHeight;
+                    chatBox.scrollTo(0, chatBox.scrollHeight);
                 });
             } catch (e) {
                 document.getElementById(msgId).innerHTML = "Error.";
                 isGenerating = false;
             }
-        }       
+        }      
             
         // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
