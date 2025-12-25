@@ -847,20 +847,33 @@ HTML_TEMPLATE = """
             }
         });
 
+        /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
         function typeWriter(element, text, callback) {
             let i = 0;
             element.innerHTML = ""; 
-            let speed = 5; 
+            let speed = 5; // ஜெட் வேகம்
+
             function type() {
                 if (i < text.length) {
+                    // 4 எழுத்துக்களை சேர்த்து டைப் செய்வதால் வேகம் அதிகமாக இருக்கும்
                     let chunk = text.substring(i, i + 4); 
                     element.innerHTML += chunk;
                     i += 4;
+                    
+                    // பதில் வர வர ஸ்கிரீன் கீழே நகரும்
                     const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTop = chatBox.scrollHeight; 
+                    
                     setTimeout(type, speed);
                 } else {
+                    // அனிமேஷன் முடிந்ததும் Markdown மற்றும் Mermaid-ஐ லோடு செய்யும்
                     element.innerHTML = marked.parse(text);
+                    
+                    // Mermaid டயக்ராம் இருந்தால் அதை ரெண்டர் செய்யும்
+                    if (window.mermaid) {
+                        mermaid.run();
+                    }
+                    
                     const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTop = chatBox.scrollHeight;
                     if (callback) callback();
@@ -868,6 +881,8 @@ HTML_TEMPLATE = """
             }
             type();
         }
+
+        
 
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
@@ -938,25 +953,32 @@ HTML_TEMPLATE = """
             box.scrollTo(0, box.scrollHeight);
         }
 
+        /* --- 2. UPDATED SEND FUNCTION --- */
         async function send() {
             if (isGenerating) return;
+
             const inputEl = document.getElementById('msg-input');
             const txt = inputEl.value.trim();
             const fileData = window.currentFile;
+
             if (!txt && !fileData) return;
 
+            // UI Clear
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
+            // User மெசேஜை காட்டுகிறது
             addMsg('user', txt, fileData);
+
+            // AI Placeholder
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
                 `<div id="${msgId}" class="msg ai-msg"><div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div></div>`
             );
-            chatBox.scrollTo(0, chatBox.scrollHeight);
+            chatBox.scrollTop = chatBox.scrollHeight;
             isGenerating = true;
 
             try {
@@ -969,12 +991,14 @@ HTML_TEMPLATE = """
                     body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
                 });
                 const data = await res.json();
+                
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
+                // அனிமேஷனை தொடங்குகிறது
                 typeWriter(bubble, data.response, () => {
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
@@ -984,6 +1008,7 @@ HTML_TEMPLATE = """
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    
                     isGenerating = false; 
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
