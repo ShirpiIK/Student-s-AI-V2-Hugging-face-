@@ -1057,7 +1057,7 @@ HTML_TEMPLATE = """
         }
 
         // 6. UPDATED SEND FUNCTION (To use new addMsg)
-        async function send() {
+       async function send() {
             if (typeof isGenerating !== 'undefined' && isGenerating) return;
 
             const inputEl = document.getElementById('msg-input');
@@ -1066,18 +1066,24 @@ HTML_TEMPLATE = """
 
             if (!txt && !fileData) return;
 
+            // UI Reset
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
-            addMsg('user', txt, fileData); // Shows new bubble style immediately
+            // 1. பயனர் மெசேஜை திரையில் காட்டு
+            addMsg('user', txt, fileData);
 
+            // 2. AI Thinking மெசேஜை உருவாக்கு
             const msgId = "ai-" + Date.now();
-            document.getElementById('chat-box').insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg"><div class="ai-content" style="color:#aaa;">Thinking...</div></div>`
+            const chatBox = document.getElementById('chat-box');
+            chatBox.insertAdjacentHTML('beforeend', 
+                `<div id="${msgId}" class="msg ai-msg">
+                    <div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div>
+                </div>`
             );
-            document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
+            chatBox.scrollTo(0, chatBox.scrollHeight);
             isGenerating = true;
 
             try {
@@ -1092,30 +1098,35 @@ HTML_TEMPLATE = """
                 });
                 const data = await res.json();
                 
+                // --- LINE BY LINE ANIMATION START ---
                 const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = ""; 
+                aiDiv.innerHTML = ""; // Thinking மெசேஜை அழி
+
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
+                // 👇 முக்கிய மாற்றம்: addMsg-ஐ மீண்டும் அழைக்காமல் நேரடியாக typeWriter-ஐ பயன்படுத்துகிறோம்
                 typeWriter(bubble, data.response, () => {
+                    // அனிமேஷன் முடிந்த பிறகு பட்டன்களைக் காட்டு
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-                    const actions = `
-                    <div class="msg-actions">
-                        <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                        <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                    </div>`;
-                    aiDiv.insertAdjacentHTML('beforeend', actions);
+                    const actionsHtml = `
+                        <div class="msg-actions">
+                            <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                            <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                        </div>`;
+                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
                 });
+                // --- ANIMATION END ---
 
-            } catch(e) {
-                document.getElementById(msgId).innerHTML = "Error.";
+            } catch (e) {
+                document.getElementById(msgId).innerHTML = "Error sending message.";
             } finally {
                 isGenerating = false;
             }
-        }
-        
+        }   
             
         // Init App
         checkLogin();
