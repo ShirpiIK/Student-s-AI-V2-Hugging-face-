@@ -654,14 +654,14 @@ HTML_TEMPLATE = """
             </div>
         </div>
     </div>
-
     <script>
+        // 1. GLOBAL VARIABLES
         let currentUser = null;
         let userDetails = { type: 'school' };
         let currentChatId = null;
         let isGenerating = false;
 
-        // --- ONBOARDING LOGIC ---
+        // 2. ONBOARDING & LOGIN LOGIC
         function nextStep(targetStep) {
             if (targetStep === 3) { 
                 const name = document.getElementById('name-input').value.trim();
@@ -691,7 +691,7 @@ HTML_TEMPLATE = """
              const year = document.getElementById('college-year').value;
              const semSelect = document.getElementById('college-sem');
              semSelect.innerHTML = '<option value="" disabled selected>Select Semester</option>';
-             let options = year === '1st Year' ? ['Sem 1', 'Sem 2'] : ['Sem 3', 'Sem 4']; // Sample logic
+             let options = year === '1st Year' ? ['Sem 1', 'Sem 2'] : ['Sem 3', 'Sem 4'];
              options.forEach(s => {
                  let opt = document.createElement('option'); opt.value = s; opt.innerText = s; semSelect.appendChild(opt);
              });
@@ -711,8 +711,7 @@ HTML_TEMPLATE = """
                 userDetails.subject = document.getElementById('college-subject').value.trim();
                 if(!userDetails.dept || !userDetails.subject) valid = false;
             }
-            
-            if(!valid) { alert("Please fill all details"); return; } // Simple validation for now
+            if(!valid) { alert("Please fill all details"); return; }
 
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
@@ -728,7 +727,7 @@ HTML_TEMPLATE = """
             el.addEventListener('input', () => el.classList.remove('input-error'), {once:true});
         }
 
-        // --- MAIN APP LOGIC ---
+        // 3. APP CORE & SETTINGS LOGIC
         function checkLogin() {
             const stored = localStorage.getItem("student_ai_user");
             if (stored) { 
@@ -737,7 +736,6 @@ HTML_TEMPLATE = """
                 document.getElementById("onboarding-overlay").style.display = 'none';
                 showApp();
             }
-            // Load Theme
             const theme = localStorage.getItem('app_theme') || 'system';
             setTheme(theme);
         }
@@ -745,7 +743,6 @@ HTML_TEMPLATE = """
         function showApp() {
             document.getElementById("display-name").innerText = currentUser;
             updateProfileUI();
-            
             const introDiv = document.getElementById("chat-box");
             if(introDiv.innerHTML === "") {
                 const sub = userDetails.subject || 'your subjects';
@@ -754,12 +751,12 @@ HTML_TEMPLATE = """
             loadHistory();
         }
 
-        // --- SETTINGS & PROFILE ---
         function openSettings() {
             document.getElementById('settings-overlay').classList.add('active');
-            toggleSidebar(); // Close sidebar
+            if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
             updateProfileUI();
         }
+
         function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
 
         function updateProfileUI() {
@@ -767,7 +764,6 @@ HTML_TEMPLATE = """
             document.getElementById('profile-edu').innerText = userDetails.type === 'school' ? 'School' : 'College';
             document.getElementById('profile-std').innerText = userDetails.type === 'school' ? userDetails.standard : userDetails.dept;
             document.getElementById('profile-sub').innerText = userDetails.subject;
-            
             const pic = localStorage.getItem('profile_pic');
             if(pic) {
                 document.getElementById('settings-pic').src = pic;
@@ -786,58 +782,6 @@ HTML_TEMPLATE = """
             }
         }
 
-        /* --- BUTTON & PREVIEW LOGIC --- */
-        
-        // 1. மெனுவை காட்டு/மறை (Toggle Menu)
-        function toggleAttachMenu() {
-            const menu = document.getElementById('attach-menu');
-            if (menu.style.display === 'none' || menu.style.display === '') {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
-        }
-
-        // 2. பைல் செலக்ட் செய்ததும் பிரிவியூ காட்டு (Handle File)
-        function handleFile(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    // குளோபல் வேரியபிளில் சேமிக்கிறோம் (Global variable logic needed in send func)
-                    // குறிப்பு: உங்க send() ஃபங்ஷனில் 'currentFile' என்ற வேரியபிளை பயன்படுத்தவும்.
-                    window.currentFile = e.target.result; 
-                    
-                    // Preview காட்டு
-                    document.getElementById('preview-img').src = e.target.result;
-                    document.getElementById('preview-box').style.display = 'block';
-                    
-                    // மெனுவை மறை
-                    document.getElementById('attach-menu').style.display = 'none';
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // 3. பிரிவியூவை க்ளியர் செய் (Clear File)
-        function clearFile() {
-            window.currentFile = null;
-            document.getElementById('preview-box').style.display = 'none';
-            // எல்லா இன்புட்டையும் ரீசெட் செய்
-            document.querySelectorAll('input[type="file"]').forEach(el => el.value = "");
-        }
-
-        // 4. வெளியே கிளிக் செய்தால் மெனுவை மூடு (Close on click outside)
-        document.addEventListener('click', function(e) {
-            const menu = document.getElementById('attach-menu');
-            const btn = document.querySelector('.attach-btn'); // அல்லது .plus-btn
-            if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.style.display = 'none';
-            }
-        });
-        
         function editSubject(el) {
             const currentSub = el.innerText;
             const input = document.createElement('input');
@@ -845,7 +789,6 @@ HTML_TEMPLATE = """
             input.className = 'subject-edit-input';
             el.replaceWith(input);
             input.focus();
-            
             const save = () => {
                 const newVal = input.value.trim() || currentSub;
                 userDetails.subject = newVal;
@@ -869,37 +812,55 @@ HTML_TEMPLATE = """
             }
         }
 
-        function handleLogout() {
-            localStorage.clear();
-            location.reload();
+        function handleLogout() { localStorage.clear(); location.reload(); }
+
+        // 4. ATTACHMENT & UTILITY LOGIC
+        function toggleAttachMenu() {
+            const menu = document.getElementById('attach-menu');
+            menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
         }
 
-        // --- CHAT FUNCTIONS ---
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function handleFile(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    window.currentFile = e.target.result; 
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('preview-box').style.display = 'block';
+                    document.getElementById('attach-menu').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
 
+        function clearFile() {
+            window.currentFile = null;
+            document.getElementById('preview-box').style.display = 'none';
+            document.querySelectorAll('input[type="file"]').forEach(el => el.value = "");
+        }
 
-        /* --- TYPEWRITER EFFECT FUNCTION --- */
-        /* --- FAST TYPEWRITER EFFECT --- */
-        /* --- FAST TYPEWRITER WITH SMOOTH AUTO-SCROLL --- */
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('attach-menu');
+            const btn = document.querySelector('.plus-btn');
+            if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+
         function typeWriter(element, text, callback) {
             let i = 0;
             element.innerHTML = ""; 
             let speed = 5; 
-
             function type() {
                 if (i < text.length) {
                     let chunk = text.substring(i, i + 4); 
                     element.innerHTML += chunk;
                     i += 4;
-                    
-                    // 👇 இதுதான் முக்கியம்: பதில் வர வர மெதுவாக கீழே நகர்த்தும்
                     const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTop = chatBox.scrollHeight; 
-                    
                     setTimeout(type, speed);
                 } else {
                     element.innerHTML = marked.parse(text);
-                    // பதில் முடிந்ததும் மீண்டும் ஒருமுறை கீழே நகர்த்தவும்
                     const chatBox = document.getElementById('chat-box');
                     chatBox.scrollTop = chatBox.scrollHeight;
                     if (callback) callback();
@@ -907,12 +868,132 @@ HTML_TEMPLATE = """
             }
             type();
         }
-        /* --- 1. SEND FUNCTION (FIXED) --- */
-        
-         
-            
-        /* --- 2. ADD MESSAGE FUNCTION (MISSING PIECE) --- */
-        
+
+        function copyText(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check" style="color:#4ade80;"></i> Copied';
+                setTimeout(() => { btn.innerHTML = originalIcon; }, 2000);
+            });
+        }
+
+        function shareContent(text) {
+            if (navigator.share) {
+                navigator.share({ title: 'Student AI', text: text }).catch(console.error);
+            } else {
+                alert("Sharing not supported. Text copied.");
+            }
+        }
+
+        // 5. CHAT HANDLING LOGIC
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        function editMessage(text) {
+            const inputEl = document.getElementById('msg-input');
+            inputEl.value = text;
+            inputEl.focus();
+            inputEl.style.height = 'auto';
+            inputEl.style.height = inputEl.scrollHeight + 'px';
+        }
+
+        async function regenerateLast() {
+            const userMsgs = document.querySelectorAll('.user-content');
+            if (userMsgs.length === 0) return;
+            const lastMsgText = userMsgs[userMsgs.length - 1].innerText;
+            const aiMsgs = document.querySelectorAll('.ai-msg');
+            if (aiMsgs.length > 0) aiMsgs[aiMsgs.length - 1].remove();
+            document.getElementById('msg-input').value = lastMsgText;
+            send(); 
+        }
+
+        function addMsg(role, text, img) {
+            const box = document.getElementById('chat-box');
+            let contentHtml = "";
+            if (img) contentHtml += `<img src="${img}" class="chat-img">`;
+            if (role === 'ai') {
+                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
+            } else {
+                contentHtml += `<div class="user-content">${text}</div>`;
+            }
+            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+            let actionsHtml = "";
+            if (role === 'user') {
+                actionsHtml = `
+                <div class="msg-actions" style="justify-content: flex-end;">
+                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
+                </div>`;
+            } else {
+                actionsHtml = `
+                <div class="msg-actions">
+                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                </div>`;
+            }
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
+            box.appendChild(msgDiv);
+            box.scrollTo(0, box.scrollHeight);
+        }
+
+        async function send() {
+            if (isGenerating) return;
+            const inputEl = document.getElementById('msg-input');
+            const txt = inputEl.value.trim();
+            const fileData = window.currentFile;
+            if (!txt && !fileData) return;
+
+            inputEl.value = "";
+            inputEl.style.height = 'auto';
+            document.getElementById('preview-box').style.display = 'none';
+            window.currentFile = null;
+
+            addMsg('user', txt, fileData);
+            const msgId = "ai-" + Date.now();
+            const chatBox = document.getElementById('chat-box');
+            chatBox.insertAdjacentHTML('beforeend', 
+                `<div id="${msgId}" class="msg ai-msg"><div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div></div>`
+            );
+            chatBox.scrollTo(0, chatBox.scrollHeight);
+            isGenerating = true;
+
+            try {
+                if (!currentChatId) {
+                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
+                }
+                const res = await fetch('/chat', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
+                });
+                const data = await res.json();
+                const aiDiv = document.getElementById(msgId);
+                aiDiv.innerHTML = ""; 
+                const bubble = document.createElement('div');
+                bubble.className = "msg-bubble";
+                aiDiv.appendChild(bubble);
+                
+                typeWriter(bubble, data.response, () => {
+                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+                    const actionsHtml = `
+                        <div class="msg-actions">
+                            <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                            <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                        </div>`;
+                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    isGenerating = false; 
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                });
+            } catch (e) {
+                document.getElementById(msgId).innerHTML = "Error.";
+                isGenerating = false;
+            }
+        }
+
+        // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
@@ -933,15 +1014,12 @@ HTML_TEMPLATE = """
         
         async function loadChat(cid) {
             currentChatId = cid; 
-            toggleSidebar(false); // Close menu
-            
+            toggleSidebar();
             const res = await fetch('/get_chat', {
-                method:'POST', 
-                headers:{'Content-Type':'application/json'}, 
+                method:'POST', headers:{'Content-Type':'application/json'}, 
                 body:JSON.stringify({username:currentUser, chat_id:cid})
             });
             const d = await res.json();
-            
             document.getElementById('chat-box').innerHTML = "";
             d.messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content));
         }
@@ -968,174 +1046,11 @@ HTML_TEMPLATE = """
             toggleSidebar();
         }
 
-        
-        function editLastMessage(text) {
-            document.getElementById('msg-input').value = text;
-        }
-        /* --- PROFESSIONAL BUTTONS & LOGIC (NO POPUPS) --- */
-
-        // 1. SMART COPY (Icon changes to Checkmark)
-        function copyText(btn, text) {
-            navigator.clipboard.writeText(text).then(() => {
-                const originalIcon = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check" style="color:#4ade80;"></i> Copied';
-                setTimeout(() => { btn.innerHTML = originalIcon; }, 2000);
-            });
-        }
-
-        // 2. REGENERATE (Resends last message)
-        async function regenerateLast() {
-            const userMsgs = document.querySelectorAll('.user-content');
-            if (userMsgs.length === 0) return;
-            const lastMsgText = userMsgs[userMsgs.length - 1].innerText;
-
-            // Remove last AI response
-            const aiMsgs = document.querySelectorAll('.ai-msg');
-            if (aiMsgs.length > 0) aiMsgs[aiMsgs.length - 1].remove();
-
-            // Re-send
-            document.getElementById('msg-input').value = lastMsgText;
-            send(); 
-        }
-
-        // 3. EDIT (Loads text into input)
-        function editMessage(text) {
-            const inputEl = document.getElementById('msg-input');
-            inputEl.value = text;
-            inputEl.focus();
-            inputEl.style.height = 'auto';
-            inputEl.style.height = inputEl.scrollHeight + 'px';
-        }
-
-        // 4. SHARE (Native Share or Copy fallback)
-        function shareContent(text) {
-            if (navigator.share) {
-                navigator.share({ title: 'Student AI', text: text }).catch(console.error);
-            } else {
-                copyText(event.currentTarget, text);
-            }
-        }
-
-        // 5. UPDATED ADDMSG (With Smart Buttons)
-        function addMsg(role, text, img) {
-            const box = document.getElementById('chat-box');
-            let contentHtml = "";
-            
-            if (img) contentHtml += `<img src="${img}" class="chat-img" onclick="viewImage('${img}')">`;
-            
-            if (role === 'ai') {
-                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
-            } else {
-                contentHtml += `<div class="user-content">${text}</div>`;
-            }
-
-            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-            let actionsHtml = "";
-
-            if (role === 'user') {
-                actionsHtml = `
-                <div class="msg-actions" style="justify-content: flex-end;">
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
-                </div>`;
-            } else {
-                actionsHtml = `
-                <div class="msg-actions">
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                </div>`;
-            }
-
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-            msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
-            
-            box.appendChild(msgDiv);
-            box.scrollTo(0, box.scrollHeight);
-        }
-
-        // 6. UPDATED SEND FUNCTION (To use new addMsg)
-       async function send() {
-            if (typeof isGenerating !== 'undefined' && isGenerating) return;
-
-            const inputEl = document.getElementById('msg-input');
-            const txt = inputEl.value.trim();
-            const fileData = window.currentFile;
-
-            if (!txt && !fileData) return;
-
-            // UI Reset
-            inputEl.value = "";
-            inputEl.style.height = 'auto';
-            document.getElementById('preview-box').style.display = 'none';
-            window.currentFile = null;
-
-            // 1. பயனர் மெசேஜை திரையில் காட்டு
-            addMsg('user', txt, fileData);
-
-            // 2. AI Thinking மெசேஜை உருவாக்கு
-            const msgId = "ai-" + Date.now();
-            const chatBox = document.getElementById('chat-box');
-            chatBox.insertAdjacentHTML('beforeend', 
-                `<div id="${msgId}" class="msg ai-msg">
-                    <div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div>
-                </div>`
-            );
-            chatBox.scrollTo(0, chatBox.scrollHeight);
-            isGenerating = true;
-
-            try {
-                if (!currentChatId) {
-                    const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-                    const d = await r.json(); currentChatId = d.chat_id; loadHistory();
-                }
-
-                const res = await fetch('/chat', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
-                });
-                const data = await res.json();
-                
-                // --- LINE BY LINE ANIMATION START ---
-                const aiDiv = document.getElementById(msgId);
-                aiDiv.innerHTML = ""; // Thinking மெசேஜை அழி
-
-                const bubble = document.createElement('div');
-                bubble.className = "msg-bubble";
-                aiDiv.appendChild(bubble);
-                
-                // 👇 முக்கிய மாற்றம்: addMsg-ஐ மீண்டும் அழைக்காமல் நேரடியாக typeWriter-ஐ பயன்படுத்துகிறோம்
-                // ... Backend Call முடிந்து பதில் வந்த பிறகு ...
-                
-                typeWriter(bubble, data.response, () => {
-                    // 👇 டைப்பிங் முடிந்த பிறகு பட்டன்களைக் காட்டு
-                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-                    const actionsHtml = `
-                        <div class="msg-actions">
-                            <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                            <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                        </div>`;
-                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-                    
-                    // 👇 அனிமேஷன் முடிந்த பிறகு 'Generating' நிலையை நிறுத்து
-                    isGenerating = false; 
-                    
-                    const chatBox = document.getElementById('chat-box');
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                });
-
-            } catch (e) {
-                document.getElementById(msgId).innerHTML = "Error.";
-                isGenerating = false; // Error வந்தாலும் நிறுத்து
-            }
-            // ❌ இங்கிருந்த 'finally { isGenerating = false; }' ஐ நீக்கிவிடவும்.
-            
-        // Init App
+        // 7. INITIALIZE APP
         checkLogin();
     </script>
-</body>
+    
+</body>       
 </html>
 """
 """Part 3: Backend Routes & Main Execution
