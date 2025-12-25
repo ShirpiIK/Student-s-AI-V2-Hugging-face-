@@ -225,12 +225,32 @@ HTML_TEMPLATE = """
             font-size: 16px;
         }
 
-    #hist-search {
-        font-family: 'Outfit', sans-serif !important;
-    }
+        #hist-search {
+            font-family: 'Outfit', sans-serif !important;
+        }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
         .sidebar-overlay-gap { flex: 1; cursor: pointer; }
-        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        /* --- MENU HEADER & X BUTTON FIX --- */
+        .sidebar-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 20px;
+        padding: 5px 0; /* நேர்த்தியான இடைவெளி */
+        }  
+
+        /* மெனுவிற்குள் இருக்கும் X பட்டன் மட்டும் */
+        .sidebar-content .menu-btn {
+        width: 35px;
+        height: 35px;
+        background: var(--card); /* பட்டன் எடுப்பாகத் தெரிய */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        transition: all 0.2s;
+        }  
         .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
         
         .new-chat-btn { 
@@ -824,12 +844,36 @@ HTML_TEMPLATE = """
 
         function openSettings() {
             document.getElementById('settings-overlay').classList.add('active');
-            if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+            history.pushState({settings: 'open'}, null, ""); // ஹிஸ்டரி சேர்ப்பு
+            const sb = document.getElementById('sidebar');
+            if(sb.classList.contains('open')) sb.classList.remove('open');
             updateProfileUI();
         }
 
-        function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
+        function closeSettings() {
+            document.getElementById('settings-overlay').classList.remove('active');
+            // செட்டிங்ஸ் மூடும்போது ஹிஸ்டரியை சரி செய்கிறது
+            if(window.history.state && window.history.state.settings) history.back();
+        }
+        window.onpopstate = function(event) {
+        const sb = document.getElementById('sidebar');
+        const st = document.getElementById('settings-overlay');
+        const onboarding = document.getElementById('onboarding-overlay');
 
+         // 1. செட்டிங்ஸ் திறந்திருந்தால் மூடு
+        if (st.classList.contains('active')) {
+        st.classList.remove('active');
+         } 
+        // 2. மெனு திறந்திருந்தால் மூடு
+        else if (sb.classList.contains('open')) {
+        sb.classList.remove('open');
+        }
+         // 3. மற்ற ஆன்-போர்டிங் ஸ்டெப்கள் (ஏற்கனவே உங்களிடம் உள்ளது)
+        else if (event.state && event.state.step) {
+        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+        document.getElementById('step-' + event.state.step).classList.add('active');
+        }
+        };
         function updateProfileUI() {
             document.getElementById('profile-name').innerText = currentUser;
             document.getElementById('profile-edu').innerText = userDetails.type === 'school' ? 'School' : 'College';
@@ -1193,6 +1237,15 @@ HTML_TEMPLATE = """
             input.value = "";
             filterHistory("");
             input.focus();
+        }
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('open');
+            
+            if(sb.classList.contains('open')) {
+                // மெனு திறக்கும்போது ஒரு ஹிஸ்டரி ஸ்டேட்டை சேர்க்கிறது (Mobile Back Support)
+                history.pushState({menu: 'open'}, null, "");
+            }
         }
         
         // 7. INITIALIZE APP
