@@ -282,7 +282,20 @@ HTML_TEMPLATE = """
     #chat-box { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
     .msg-bubble { padding: 12px 16px; font-size: 18px; line-height: 1.8; max-width: 100%; width: fit-content; }
     .ai-content { width: 100%; max-width: 100%; font-size: 17px; line-height: 1.8; }
-    .user-content { border-radius: 12px; background: var(--user-msg); color: var(--text); padding: 12px 16px; font-size: 17px; margin-left: auto; max-width: 85%; width: fit-content; }
+    /* இப்போ இருக்கிற .user-content-க்கு பதிலா இதை மாத்துங்க */
+    .user-content { 
+    border-radius: 12px; 
+    background: var(--user-msg); 
+    color: var(--text); 
+    padding: 12px 16px; 
+    font-size: 17px; 
+    max-width: 85%; 
+    width: fit-content; 
+    word-wrap: break-word; 
+    /* 👇 கேள்விகளை வலது பக்கம் தள்ளும் */
+    margin-left: auto; 
+    display: block;
+    }
     .msg-actions { display: flex; gap: 15px; margin-top: 8px; opacity: 1; font-size: 13px; padding: 0 5px; color: var(--text-muted); }
     .action-icon { cursor: pointer; display: flex; align-items: center; gap: 5px; }
     pre { background: #1e1e1e !important; border-radius: 12px; padding: 15px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
@@ -314,6 +327,30 @@ HTML_TEMPLATE = """
     .wizard-container { width: 90%; max-width: 450px; text-align: center; }
     .step-content { display: none; }
     .step-content.active { display: block; }
+      #clear-search {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        /* 👇 இது முக்கியம்: JS-ல் display:block வரும்போது இது உடையலாம், அதனால் !important */
+        display: flex !important; 
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 14px;
+        height: 100%;
+        z-index: 10;
+    }
+
+    /* --- 2. USER MESSAGE RIGHT SIDE FIX --- */
+    .user-msg {
+        align-self: flex-end; /* வலது பக்கம் தள்ளும் */
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end; /* உள்ளடக்கத்தை வலது ஓரத்தில் வைக்கும் */
+    }
 </style>
 </head>
 <body>
@@ -971,24 +1008,27 @@ HTML_TEMPLATE = """
             toggleSidebar();
         }
 
-        // FIXED SEARCH & CLEAR LOGIC
         function filterHistory(query) {
-            const items = document.querySelectorAll('.history-item');
-            const clearBtn = document.getElementById('clear-search');
-            clearBtn.style.display = query.length > 0 ? 'block' : 'none';
-    
-            items.forEach(item => {
-                const title = item.querySelector('span').innerText.toLowerCase();
-                item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
-            });
+        const items = document.querySelectorAll('.history-item');
+        const clearBtn = document.getElementById('clear-search');
+        
+        // 👇 டைப் பண்ணா மட்டும் X பட்டன் தெரியும்
+        if (clearBtn) {
+            clearBtn.style.display = query.length > 0 ? 'flex' : 'none';
         }
 
-        function clearSearch() {
-            const input = document.getElementById('hist-search');
-            input.value = "";
-            filterHistory("");
-            input.focus();
-        }
+        items.forEach(item => {
+            const title = item.querySelector('span').innerText.toLowerCase();
+            item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
+        });
+    }
+    
+    function clearSearch() {
+        const input = document.getElementById('hist-search');
+        input.value = "";
+        filterHistory("");
+        input.focus();
+    }
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
             sb.classList.toggle('open');
@@ -998,7 +1038,28 @@ HTML_TEMPLATE = """
                 history.pushState({menu: 'open'}, null, "");
             }
         }
-        
+        // --- ALL PAGES ENTER KEY SUPPORT ---
+
+            // 1. Onboarding Name Input
+        document.getElementById('name-input')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') nextStep(3);
+        });
+ 
+         // 2. School/College Subject Inputs
+        document.getElementById('school-subject')?.addEventListener('keydown', function(e) {
+         if (e.key === 'Enter') finishSetup();
+        });
+        document.getElementById('college-subject')?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') finishSetup();
+        });
+
+        // 3. Chat Page Message Input (Send on Enter)
+         document.getElementById('msg-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // தடுக்கிறது புதிய வரியை
+        send();
+    }
+});
         // 7. INITIALIZE APP
         checkLogin();
     </script>
