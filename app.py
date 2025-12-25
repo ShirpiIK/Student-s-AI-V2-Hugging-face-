@@ -490,27 +490,27 @@ HTML_TEMPLATE = """
     -ms-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-}
-input, textarea, .msg-bubble, .ai-content, .user-content {
+    }
+    input, textarea, .msg-bubble, .ai-content, .user-content {
     -webkit-user-select: text;
     user-select: text;
-}
+    }
 
-/* --- 2. CUSTOM MODAL STYLE --- */
-#custom-modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    display: none; align-items: center; justify-content: center; z-index: 9999;
-}
-.modal-content {
-    background: var(--card); border: 1px solid var(--border);
-    padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
-}
-.modal-input {
-    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text); margin: 15px 0; outline: none;
-}
-.modal-btns { display: flex; gap: 10px; margin-top: 10px; }
-.m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+     /* --- 2. CUSTOM MODAL STYLE --- */
+    #custom-modal {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+        display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal-content {
+         background: var(--card); border: 1px solid var(--border);
+         padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
+    }
+    .modal-input {
+        width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+        background: var(--bg); color: var(--text); margin: 15px 0; outline: none;
+    }
+    .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+    .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
 
     
     </style>
