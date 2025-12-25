@@ -484,7 +484,37 @@ HTML_TEMPLATE = """
     }
     .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
     .send-btn:active { transform: scale(0.9); }
+    /* --- 1. BLOCK TEXT SELECTION (Paste before </style>) --- */
+      * {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+input, textarea, .msg-bubble, .ai-content, .user-content {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* --- 2. CUSTOM MODAL STYLE --- */
+#custom-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center; z-index: 9999;
+}
+.modal-content {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
+}
+.modal-input {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); margin: 15px 0; outline: none;
+}
+.modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+.m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+
+    
     </style>
+    
 </head>
 <body>
 
@@ -1059,22 +1089,44 @@ HTML_TEMPLATE = """
             document.getElementById('chat-box').innerHTML = "";
             d.messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content));
         }
+        function showModal(title, isInput, callback) {
+    const modal = document.getElementById('custom-modal') || createModalElement();
+    document.getElementById('m-title').innerText = title;
+    const inp = document.getElementById('m-inp');
+    inp.style.display = isInput ? 'block' : 'none';
+    inp.value = "";
+    
+    modal.style.display = 'flex';
+    window.modalCallback = (confirm) => {
+        modal.style.display = 'none';
+        if(confirm) callback(isInput ? inp.value : true);
+    };
+}
+
+function createModalElement() {
+    const div = document.createElement('div');
+    div.id = 'custom-modal';
+    div.innerHTML = `<div class="modal-content"><h3 id="m-title"></h3><input id="m-inp" class="modal-input"><div class="modal-btns"><button class="m-btn" style="background:#333;color:#fff" onclick="modalCallback(false)">Cancel</button><button class="m-btn" style="background:#fff;color:#000" onclick="modalCallback(true)">Confirm</button></div></div>`;
+    document.body.appendChild(div);
+    return div;
+}
 
         async function renameChat(cid) {
-            const newTitle = prompt("Enter new name:");
-            if(newTitle) {
-                await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newTitle})});
-                loadHistory();
-            }
+    showModal("Rename Chat", true, async (newTitle) => {
+        if(newTitle) {
+            await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newTitle})});
+            loadHistory();
         }
+    });
+}
 
         async function deleteChat(cid) {
-            if(confirm("Delete this chat?")) {
-                await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
-                loadHistory();
-                if(currentChatId === cid) document.getElementById('chat-box').innerHTML = "";
-            }
-        }
+    showModal("Delete this chat?", false, async () => {
+        await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
+        loadHistory();
+        if(currentChatId === cid) document.getElementById('chat-box').innerHTML = "";
+    });
+}
         
         function newChat() {
             currentChatId = null;
@@ -1151,9 +1203,9 @@ def chat():
         user_db[u][cid]["title"] = " ".join(msg.split()[:4])
         new_title = True
         
-    save_db(user_db)
+    # chat() function-ன் இறுதியில் இதைச் சேர்க்கவும்
+    save_db(user_db) # <--- இதுதான் ஹிஸ்டரியைச் சேமிக்கும்
     return jsonify({"response": reply, "new_title": new_title})
-
 @app.route('/manifest.json')
 def manifest():
     data = {
