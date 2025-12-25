@@ -137,474 +137,183 @@ HTML_TEMPLATE = """
     </script>
 
     <style>
-        /* --- VARIABLES & THEMES --- */
-        :root {
-            --bg: #09090b; 
-            --card: #18181b; 
-            --user-msg: #27272a; 
-            --text: #e4e4e7;
-            --text-muted: #a1a1aa;
-            --accent: #fff; 
-            --border: #27272a; 
-            --hover: #27272a;
-        }
-        
-        /* LIGHT MODE OVERRIDES */
-        body.light-mode {
-            --bg: #ffffff; 
-            --card: #f4f4f5; 
-            --user-msg: #e4e4e7; 
-            --text: #09090b;
-            --text-muted: #52525b;
-            --accent: #000; 
-            --border: #e4e4e7; 
-            --hover: #f4f4f5;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body, html { 
-            margin: 0; padding: 0; height: 100dvh; width: 100%; max-width: 100%;
-            background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; 
-            overflow: hidden; font-size: 16px;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        /* --- APP STRUCTURE --- */
-        #app-container { 
-            display: flex; flex-direction: column; height: 100dvh; width: 100%; 
-            position: relative; overflow-x: hidden; padding-top: 60px;
-        }
-
-        /* --- HEADER --- */
-        header {
-            height: 60px; padding: 0 15px; 
-            background: var(--bg);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; 
-            z-index: 50; padding-top: env(safe-area-inset-top);
-            position: absolute; top: 0; left: 0; right: 0;
-            transition: background 0.3s ease;
-        }
-        .menu-btn { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); transition: background 0.2s; }
-        .menu-btn:active { background: var(--hover); }
-        .app-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
-
-        /* --- FONT FIX: Allows Icons to Show --- */
-        body, html, input, textarea, button, select { 
-           font-family: 'Outfit', sans-serif; 
-        }
+        /* ----- VARIABLES & THEMES --- */
+    :root {
+        --bg: #09090b; 
+        --card: #18181b; 
+        --user-msg: #27272a; 
+        --text: #e4e4e7;
+        --text-muted: #a1a1aa;
+        --accent: #fff; 
+        --border: #27272a; 
+        --hover: #27272a;
+    }
     
-         /* ஐகான்களைத் தொடாதே! */
-        i, .fas, .fab, .far {
-              font-family: "Font Awesome 6 Free" !important;
-              font-weight: 900;
-        }
-        /* --- SIDEBAR --- */
-        #sidebar {
-              position: fixed; 
-              top: 0; 
-              left: 0; 
-              width: 100%; 
-              height: 100%; 
-              z-index: 1000;
-              visibility: hidden; /* ஆரம்பத்தில் தெரியாது */
-              transition: visibility 0.4s;
-        }
-
-        #sidebar.open { 
-              visibility: visible;
-        }
-
-        .sidebar-content {
-              width: 280px; 
-              height: 100%; 
-              background: var(--bg);
-              border-right: 1px solid var(--border);
-              /* 👇 இதுதான் ஸ்மூத் அனிமேஷன் (Slide in) */
-              transform: translateX(-100%); 
-              transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #sidebar.open .sidebar-content {
-              transform: translateX(0);
-        }
-        /* --- SIDEBAR ICONS & FONT FIX --- */
-       .sidebar-content i {
-            width: 20px;
-            text-align: center;
-            margin-right: 10px;
-            font-size: 16px;
-        }
-
-        #hist-search {
-           width: 100%; 
-           padding: 8px 35px 8px 12px; /* உயரத்தைக் குறைக்க padding குறைக்கப்பட்டுள்ளது */
-           border-radius: 8px; 
-           border: 1px solid var(--border); 
-           background: var(--card); 
-           color: var(--text); 
-           outline: none;
-           font-size: 14px; /* எழுத்து அளவு குறைப்பு */
-        }
-        /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
-        .sidebar-overlay-gap { 
-           flex: 1; 
-           background: rgba(0,0,0,0);
-           transition: background 0.4s ease;
-        }
-
-        #sidebar.open .sidebar-overlay-gap {
-        background: rgba(0,0,0,0.5); /* மெனு திறக்கும்போது மெதுவா கருப்பாகும் */
-        }
-        /* --- MENU HEADER & X BUTTON FIX --- */
-        /* --- MENU CLOSE BUTTON DESIGN --- */
-       .sidebar-header { 
-           display: flex; 
-           justify-content: space-between; 
-           align-items: center; 
-           margin-bottom: 20px;
-        }
-        .sidebar-header .menu-btn {
-             width: 32px; 
-             height: 32px; 
-             background: var(--user-msg); /* வட்டம் தெரிய இது முக்கியம் */
-            border-radius: 50%; 
-             display: flex; 
-             align-items: center; 
-            justify-content: center; 
-             font-size: 14px;
-             cursor: pointer;
-            border: none;
-            flex-shrink: 0; /* வட்டம் சுருங்காமல் இருக்க */
-        }
-
-       .sidebar-content .menu-btn {
-           width: 32px;
-           height: 32px;
-           background: var(--user-msg); /* லேசான சாம்பல் நிற வட்டம் */
-           border-radius: 50%;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-           font-size: 14px;
-           cursor: pointer;
-           transition: 0.2s;
-       }
-
-       .sidebar-content .menu-btn:active {
-           transform: scale(0.9);
-       }
-        .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
-        
-        .new-chat-btn { 
-            width: 100%; padding: 12px; background: var(--text); color: var(--bg); 
-            border: none; border-radius: 10px; font-weight: 600; cursor: pointer; 
-            margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        
-        .history-label { color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        #history-list { flex: 1; overflow-y: auto; padding-right: 5px; }
-        
-        .history-item { 
-            padding: 12px; margin-bottom: 8px; background: transparent; 
-            border-radius: 8px; cursor: pointer; color: var(--text); 
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; transition: background 0.2s;
-        }
-        .history-item:hover { background: var(--card); }
-        .history-actions { display: flex; gap: 10px; opacity: 0; transition: opacity 0.2s; }
-        .history-item:hover .history-actions { opacity: 1; }
-        .hist-icon { color: var(--text-muted); font-size: 12px; padding: 4px; }
-        .hist-icon:hover { color: var(--text); }
-
-        .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px; }
-        .footer-link { display: flex; align-items: center; gap: 10px; padding: 12px; color: var(--text); cursor: pointer; border-radius: 8px; font-weight: 500; }
-        .footer-link:hover { background: var(--card); }
-
-        /* --- CHAT AREA --- */
-        #chat-box { 
-        flex: 1; overflow-y: auto; 
-        padding: 20px 15px; 
-        padding-bottom: 40px; /* Reduced from 100px to 40px */
-        display: flex; flex-direction: column; gap: 20px; 
-        scroll-behavior: smooth;
+    body.light-mode {
+        --bg: #ffffff; 
+        --card: #f4f4f5; 
+        --user-msg: #e4e4e7; 
+        --text: #09090b;
+        --text-muted: #52525b;
+        --accent: #000; 
+        --border: #e4e4e7; 
+        --hover: #f4f4f5;
     }
-        
-        .msg { width: 100%; display: flex; flex-direction: column; opacity: 0; animation: fadeIn 0.4s forwards; }
-        @keyframes fadeIn { to { opacity: 1; } }
-        
-        .user-msg { align-items: flex-end; }
-        /* --- FIXED: USER BUBBLE PROFESSIONAL STYLE --- */
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
-
-        /* AI Message Formatting */
-      .ai-content {
-        width: 100%;
-        max-width: 100%;
-        font-size: 17px;
-        line-height: 1.8;
+    body, html { 
+        margin: 0; padding: 0; height: 100dvh; width: 100%; 
+        background: var(--bg); color: var(--text); 
+        overflow: hidden; font-size: 16px;
     }
-       .ai-content strong { color: var(--text); font-weight: 700; }
-        /* Chat Actions (Icons below message) */
-        .msg-actions { 
-        display: flex; gap: 15px; margin-top: 8px; 
-        opacity: 1; /* 👇 FIX: Always visible (removed hover) */
-        font-size: 13px; padding: 0 5px; color: var(--text-muted);
-        transition: color 0.2s;
+
+    /* FONT FIX */
+    body, html, input, textarea, button, select { font-family: 'Outfit', sans-serif !important; }
+    i, .fas, .fab, .far { font-family: "Font Awesome 6 Free" !important; font-weight: 900; }
+
+    /* --- SIDEBAR STRUCTURE --- */
+    #sidebar {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        z-index: 3000; visibility: hidden; transition: visibility 0.4s;
+        display: flex;
     }
-        .msg:hover .msg-actions { opacity: 1; }
-        .action-icon { 
-        cursor: pointer; display: flex; align-items: center; gap: 5px; 
+
+    #sidebar.open { visibility: visible; }
+
+    .sidebar-content {
+        width: 280px; height: 100%; background: var(--bg);
+        border-right: 1px solid var(--border);
+        transform: translateX(-100%); 
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; flex-direction: column; padding: 20px;
+        box-shadow: 10px 0 30px rgba(0,0,0,0.5);
     }
-    .action-icon:hover { color: var(--text); }
-        /* Code Blocks */
-        pre { background: #1e1e1e !important; border-radius: 12px; padding: 15px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
-        code { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
-        
-        /* Input Area */
-        .input-wrapper { 
-            background: var(--bg); padding: 10px 15px; border-top: 1px solid var(--border); 
-            flex-shrink: 0; z-index: 60; padding-bottom: max(15px, env(safe-area-inset-bottom)); 
-        }
-        textarea { 
-            flex: 1; background: transparent; border: none; color: var(--text); 
-            font-size: 16px; max-height: 120px; padding: 12px 0; resize: none; outline: none; 
-            font-family: 'Outfit', sans-serif; 
-        }
-        /* --- SETTINGS PAGE (OVERLAY) --- */
-        #settings-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 2000; display: flex; flex-direction: column;
-            transform: translateX(100%); transition: transform 0.3s ease;
-            overflow-y: auto;
-        }
-        #settings-overlay.active { transform: translateX(0); }
 
-        .settings-header {
-            padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
-            display: flex; align-items: center; gap: 15px;
-        }
-        .back-btn { font-size: 20px; color: var(--text); cursor: pointer; padding: 5px; }
-        
-        .settings-search {
-            width: 90%; max-width: 600px; margin: 0 auto 20px auto;
-            background: var(--card); border: 1px solid var(--border);
-            padding: 12px 20px; border-radius: 12px; color: var(--text);
-            display: flex; align-items: center; gap: 10px;
-        }
-        .settings-search input { background: transparent; border: none; color: var(--text); width: 100%; outline: none; font-size: 16px; }
+    #sidebar.open .sidebar-content { transform: translateX(0); }
 
-        .settings-content {
-            width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px 40px 20px;
-        }
+    .sidebar-overlay-gap { 
+        flex: 1; background: rgba(0,0,0,0); transition: background 0.4s ease;
+    }
+    #sidebar.open .sidebar-overlay-gap { background: rgba(0,0,0,0.5); }
 
-        .section-title { color: var(--text-muted); font-size: 13px; font-weight: 600; margin: 20px 0 10px 0; text-transform: uppercase; }
-        
-        /* Profile Section */
-        .profile-card {
-            background: var(--card); border-radius: 16px; padding: 20px;
-            display: flex; flex-direction: column; align-items: center; margin-bottom: 30px;
-            border: 1px solid var(--border);
-        }
-        .profile-pic-wrapper {
-            position: relative; width: 100px; height: 100px; margin-bottom: 20px;
-        }
-        .profile-pic {
-            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
-            border: 2px solid var(--border); background: #111;
-        }
-        .edit-pic-btn {
-            position: absolute; bottom: 0; right: 0; background: var(--text); color: var(--bg);
-            width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 14px;
-        }
-        
-        .profile-details { width: 100%; }
-        .detail-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 0; border-bottom: 1px solid var(--border);
-            font-size: 15px;
-        }
-        .detail-row:last-child { border-bottom: none; }
-        .detail-label { color: var(--text-muted); }
-        .detail-value { color: var(--text); font-weight: 600; text-align: right; max-width: 60%; }
-        
-        /* Editable Subject */
-        .editable-subject { border-bottom: 1px dashed var(--text-muted); cursor: pointer; }
-        .subject-edit-input { 
-            background: var(--bg); color: var(--text); border: 1px solid var(--text); 
-            padding: 5px; border-radius: 5px; width: 100%; text-align: right; 
-        }
+    /* --- 1. SEARCH BAR FIX (SMALLER) --- */
+    #hist-search {
+        width: 100%; height: 40px !important; /* Fixed Height */
+        padding: 0 35px 0 15px !important; 
+        border-radius: 10px !important; 
+        border: 1px solid var(--border) !important; 
+        background: var(--card) !important; 
+        color: var(--text) !important; 
+        outline: none; font-size: 14px !important;
+        margin-bottom: 20px;
+    }
 
-        /* Themes */
-        .theme-list { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
-        .theme-option {
-            padding: 15px 20px; display: flex; align-items: center; gap: 15px;
-            cursor: pointer; border-bottom: 1px solid var(--border); color: var(--text);
-        }
-        .theme-option:last-child { border-bottom: none; }
-        .theme-icon { width: 24px; text-align: center; }
+    /* --- 2. HEADER & X BUTTON FIX (CENTERED) --- */
+    .sidebar-header { 
+        display: flex; justify-content: space-between; 
+        align-items: center; margin-bottom: 20px; padding: 0 2px;
+    }
 
-        .logout-row { 
-            margin-top: 10px; color: #ef4444; font-weight: 600; cursor: pointer; 
-            padding: 15px 0; text-align: center;
-        }
+    .user-info-text { font-size: 18px; font-weight: 700; margin-left: 5px; }
 
-        /* --- ONBOARDING OVERLAY (UNCHANGED LOGIC - FIXED CSS) --- */
-        #onboarding-overlay { 
-            position: fixed; top: 0; left: 0; width: 100vw; 
-            height: 100vh; height: 100lvh;
-            z-index: 3000; 
-            display: flex; align-items: center; justify-content: center;
-            transition: opacity 0.6s ease; opacity: 1; pointer-events: auto;
-            background-color: #050505; overflow: hidden; 
-        }
-        #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
+    .sidebar-header .menu-btn {
+        width: 32px !important; height: 32px !important; 
+        background: var(--user-msg) !important; 
+        border-radius: 50% !important; 
+        display: flex !important; align-items: center !important; justify-content: center !important; 
+        cursor: pointer; border: none !important; padding: 0 !important;
+    }
+    /* X Icon Adjustment */
+    .sidebar-header .menu-btn i { 
+        font-size: 14px !important; line-height: 1 !important; display: block; 
+    }
 
-        #onboarding-overlay::before, #onboarding-overlay::after {
-            content: ""; position: absolute; width: 60vw; height: 60vw;
-            border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.6;
-        }
-        #onboarding-overlay::before {
-            top: -20%; left: -20%;
-            background: radial-gradient(circle at center, #d946ef, #7e22ce); 
-            animation: moveTopLeft 18s infinite alternate ease-in-out;
-        }
-        #onboarding-overlay::after {
-            bottom: -20%; right: -20%;
-            background: radial-gradient(circle at center, #2dd4bf, #0f766e);
-            animation: moveBottomRight 15s infinite alternate ease-in-out;
-        }
-        @keyframes moveTopLeft { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(20%, 20%) scale(1.2); } }
-        @keyframes moveBottomRight { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-20%, -20%) scale(1.3); } }
+    /* --- 3. NEW CHAT BUTTON FIX (SMALLER) --- */
+    .new-chat-btn { 
+        width: 100%; height: 42px !important; /* Reduced Height */
+        background: var(--text); color: var(--bg); 
+        border: none; border-radius: 10px; font-weight: 600; cursor: pointer; 
+        margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        font-size: 14px !important; padding: 0 !important;
+    }
 
-        /* Wizard Styles */
-        .wizard-container { width: 90%; max-width: 450px; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3001; }
-        .step-content { display: none; animation: fadeIn 0.4s ease; }
-        .step-content.active { display: block; }
-        .intro-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 10px; }
-        .intro-desc { color: #a1a1aa; font-size: 16px; margin-bottom: 40px; line-height: 1.5; }
-        .btn-primary { background: #fff; color: #000; border: none; padding: 16px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; transition: transform 0.2s; }
-        .btn-primary:active { transform: scale(0.98); }
-        .input-field { width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; text-align: center; outline: none; margin-bottom: 25px; font-size: 18px; font-family: 'Outfit', sans-serif; }
-        .toggle-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        .toggle-btn { flex: 1; padding: 12px; border: 1px solid #333; border-radius: 10px; background: #111; color: #71717a; cursor: pointer; font-weight: 600; }
-        .toggle-btn.selected { background: #fff; color: #000; border-color: #fff; }
-        .dropdown-select { width: 100%; padding: 15px; margin-bottom: 15px; background: #111; border: 1px solid #333; border-radius: 12px; color: #fff; font-size: 16px; outline: none; appearance: none; }
-        .hidden-opt { display: none; }
-        .input-error { border: 2px solid #ef4444 !important; background: #2a0b0b !important; }
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 30%, 70% { transform: translate3d(-4px, 0, 0); } 50% { transform: translate3d(4px, 0, 0); } }
+    .history-label { 
+        color: var(--text-muted); font-size: 12px; font-weight: 600; 
+        margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; 
+    }
 
-        /* --- FIX: FONT SIZE & FULL WIDTH --- */
+    #history-list { flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; }
     
-    /* 1. மெசேஜ் பாக்ஸ் செட்டிங்ஸ் */
-    .msg-bubble { 
-        padding: 12px 16px; 
-        
-        /* 👇 எழுத்து அளவு பெரிதாக்கப்பட்டது */
-        font-size: 18px !important; 
-        line-height: 1.8 !important; 
-        
-        /* 👇 வலது பக்கம் இடம் வீணாவதை தடுக்க (Full Width) */
-        max-width: 100% !important; 
-        width: fit-content;
+    .history-item { 
+        padding: 12px; margin-bottom: 8px; background: transparent; 
+        border-radius: 8px; cursor: pointer; color: var(--text); 
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 14px; transition: background 0.2s;
+    }
+    .history-item:hover { background: var(--card); }
+    .history-actions { display: flex; gap: 10px; opacity: 0; transition: opacity 0.2s; }
+    .history-item:hover .history-actions { opacity: 1; }
+    .hist-icon { color: var(--text-muted); font-size: 12px; padding: 4px; }
+    .hist-icon:hover { color: var(--text); }
+
+    /* --- 4. FOOTER FIX (SETTINGS AT BOTTOM) --- */
+    .sidebar-footer { 
+        margin-top: auto !important; /* Pushes to bottom */
+        border-top: 1px solid var(--border); 
+        padding-top: 15px; 
     }
 
-    /* 2. AI Text செட்டிங்ஸ் */
-    .ai-content { 
-        font-size: 18px !important; 
-        line-height: 1.8 !important;
+    .footer-link { 
+        display: flex; align-items: center; gap: 10px; 
+        padding: 12px; color: var(--text); cursor: pointer; 
+        border-radius: 8px; font-weight: 500; 
     }
-    /* --- PROFESSIONAL CHAT STYLES --- */
+    .footer-link:hover { background: var(--card); }
 
-    /* 1. Automatic Curve User Bubble */
-    /* --- USER MESSAGE BOX: CURVED SQUARE DESIGN --- */
-    .user-content {
-        /* Square Shape with Curved Edges */
-        border-radius: 12px; /* சதுர வடிவம் மற்றும் வளைந்த விளிம்புகள் */
-        background: var(--user-msg); 
-        color: var(--text);
-        padding: 12px 16px; 
-        
-        /* Font Settings */
-        font-size: 17px; 
-        line-height: 1.6;
-        
-        /* 👇 Positioning & Auto-Sizing */
-        position: relative;
-        width: fit-content;      /* டெக்ஸ்ட் அளவிற்கு ஏற்ப மாறும் */
-        max-width: 85%;          /* 85% மேல் போகாது */
-        min-width: 50px;         /* மிகச் சிறிய வார்த்தைக்கும் வடிவம் மாறாது */
-        word-wrap: break-word;   /* நீண்ட வார்த்தைகளை உடைக்கும் */
-        margin-left: auto;       /* வலது பக்கம் ஒட்டி நிற்கும் */
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* அழகான நிழல் */
-        border: 1px solid rgba(255,255,255,0.05); /* மெல்லிய பார்டர் */
+    /* --- CHAT AREA & OTHER STYLES (UNCHANGED) --- */
+    #app-container { display: flex; flex-direction: column; height: 100dvh; padding-top: 60px; }
+    header {
+        height: 60px; padding: 0 15px; background: var(--bg); border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between; position: absolute; top: 0; left: 0; right: 0; z-index: 50;
     }
+    .app-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    
+    #chat-box { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
+    .msg-bubble { padding: 12px 16px; font-size: 18px; line-height: 1.8; max-width: 100%; width: fit-content; }
+    .ai-content { width: 100%; max-width: 100%; font-size: 17px; line-height: 1.8; }
+    .user-content { border-radius: 12px; background: var(--user-msg); color: var(--text); padding: 12px 16px; font-size: 17px; margin-left: auto; max-width: 85%; width: fit-content; }
+    .msg-actions { display: flex; gap: 15px; margin-top: 8px; opacity: 1; font-size: 13px; padding: 0 5px; color: var(--text-muted); }
+    .action-icon { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    pre { background: #1e1e1e !important; border-radius: 12px; padding: 15px; overflow-x: auto; margin: 15px 0; border: 1px solid #333; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
 
-    /* 2. Stylish Input Bar (Glassmorphism) */
-    .input-container { 
-        background: rgba(20, 20, 20, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid #333; 
-        border-radius: 40px; 
-        padding: 8px 10px; 
-        display: flex; align-items: flex-end; gap: 12px;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    .input-container:focus-within { border-color: #666; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-
-    /* 3. Stylish + Button (Rotating) */
-    .plus-btn {
-        width: 44px; height: 44px; border-radius: 50%;
-        background: #27272a; color: #aaa; 
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; flex-shrink: 0; font-size: 20px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid #333;
-    }
-    .plus-btn:hover { background: #fff; color: #000; transform: rotate(90deg); }
-
-    /* 4. Stylish Send Button (Bouncing) */
-    .send-btn { 
-        width: 44px; height: 44px; border-radius: 50%;
-        background: #fff; color: #000; 
-        display: flex; align-items: center; justify-content: center; 
-        cursor: pointer; flex-shrink: 0; font-size: 18px;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        margin-bottom: 0px;
-    }
-    .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
-    .send-btn:active { transform: scale(0.9); }
-    /* ... ஏற்கனவே இருக்கும் டிசைன் கோடுகள் ... */
-
-    /* 👇 புதிய கோடை இங்கே மட்டும் பேஸ்ட் பண்ணுங்க */
-    * {
-        -webkit-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        -webkit-touch-callout: none;
-    }
-    input, textarea, .msg-bubble, .ai-content, .user-content {
-        -webkit-user-select: text;
-        user-select: text;
-    }
-
-    #custom-modal {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-        display: none; align-items: center; justify-content: center; z-index: 9999;
-    }
-    .modal-content {
-        background: var(--card); border: 1px solid var(--border);
-        padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
-    }
-    .modal-input {
-        width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-        background: var(--bg); color: var(--text); margin: 15px 0; outline: none;
-    }
-    .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
+    .input-wrapper { background: var(--bg); padding: 10px 15px; border-top: 1px solid var(--border); }
+    .input-container { background: rgba(20,20,20,0.95); border: 1px solid #333; border-radius: 40px; padding: 8px 10px; display: flex; align-items: flex-end; gap: 12px; }
+    textarea { flex: 1; background: transparent; border: none; color: var(--text); font-size: 16px; padding: 12px 0; resize: none; outline: none; }
+    .send-btn, .plus-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .send-btn { background: #fff; color: #000; }
+    .plus-btn { background: #27272a; color: #aaa; border: 1px solid #333; }
+    
+    /* MODAL */
+    #custom-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 9999; }
+    .modal-content { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+    .modal-input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin: 15px 0; outline: none; }
     .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+    
+    /* SETTINGS & ONBOARDING */
+    #settings-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; }
+    #settings-overlay.active { transform: translateX(0); }
+    .settings-header { padding: 20px; display: flex; align-items: center; gap: 15px; }
+    .settings-search { width: 90%; margin: 0 auto 20px; background: var(--card); padding: 12px 20px; border-radius: 12px; display: flex; gap: 10px; }
+    .settings-search input { background: transparent; border: none; width: 100%; outline: none; color: var(--text); }
+    .settings-content { padding: 0 20px; }
+    
+    #onboarding-overlay { position: fixed; inset: 0; background: #050505; z-index: 3000; display: flex; align-items: center; justify-content: center; }
+    #onboarding-overlay.hidden { display: none; }
+    .wizard-container { width: 90%; max-width: 450px; text-align: center; }
+    .step-content { display: none; }
+    .step-content.active { display: block; }
 </style>
 </head>
 <body>
