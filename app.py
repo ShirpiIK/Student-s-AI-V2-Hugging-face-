@@ -244,14 +244,14 @@ HTML_TEMPLATE = """
         /* --- FIXED: USER BUBBLE PROFESSIONAL STYLE --- */
     
 
-    /* AI Message Formatting */
-    .ai-content {
+        /* AI Message Formatting */
+      .ai-content {
         width: 100%;
         max-width: 100%;
         font-size: 17px;
         line-height: 1.8;
     }
-    .ai-content strong { color: var(--text); font-weight: 700; }
+       .ai-content strong { color: var(--text); font-weight: 700; }
         /* Chat Actions (Icons below message) */
         .msg-actions { 
         display: flex; gap: 15px; margin-top: 8px; 
@@ -484,26 +484,27 @@ HTML_TEMPLATE = """
     }
     .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
     .send-btn:active { transform: scale(0.9); }
-    /* --- 1. BLOCK TEXT SELECTION (Paste before </style>) --- */
-       {
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
+    /* ... ஏற்கனவே இருக்கும் டிசைன் கோடுகள் ... */
+
+    /* 👇 புதிய கோடை இங்கே மட்டும் பேஸ்ட் பண்ணுங்க */
+    * {
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
     }
     input, textarea, .msg-bubble, .ai-content, .user-content {
-    -webkit-user-select: text;
-    user-select: text;
+        -webkit-user-select: text;
+        user-select: text;
     }
 
-     /* --- 2. CUSTOM MODAL STYLE --- */
     #custom-modal {
         position: fixed; inset: 0; background: rgba(0,0,0,0.85);
         display: none; align-items: center; justify-content: center; z-index: 9999;
     }
     .modal-content {
-         background: var(--card); border: 1px solid var(--border);
-         padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
+        background: var(--card); border: 1px solid var(--border);
+        padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
     }
     .modal-input {
         width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
@@ -511,10 +512,7 @@ HTML_TEMPLATE = """
     }
     .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
     .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
-
-    
-    </style>
-    
+</style>
 </head>
 <body>
 
