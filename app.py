@@ -216,6 +216,9 @@ HTML_TEMPLATE = """
             width: 280px; height: 100%; background: var(--bg);
             display: flex; flex-direction: column; padding: 20px;
             border-right: 1px solid var(--border);
+            transform: translateX(-100%);
+            /* 👇 இதுதான் அந்த Smooth Magic */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         /* --- SIDEBAR ICONS & FONT FIX --- */
        .sidebar-content i {
@@ -319,6 +322,8 @@ HTML_TEMPLATE = """
         /* 👇 இந்த இரண்டு வரிகள் தான் பிரச்சனையைத் தீர்க்கும் */
         overflow-x: hidden !important; /* வலது பக்கம் ஸ்க்ரோல் ஆவதைத் தடுக்கும் */
         overscroll-behavior: none;     /* பக்கம் ரப்பர் மாதிரி இழுபடுவதைத் தடுக்கும் */
+        transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
     
         #settings-overlay.active { transform: translateX(0); }
@@ -579,6 +584,11 @@ HTML_TEMPLATE = """
     padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
     display: flex; align-items: center; gap: 15px;
     border-bottom: 1px solid var(--border); margin-bottom: 20px;
+    #sidebar.open .sidebar-content,
+    #settings-overlay.active, 
+    .settings-sub-page.active {
+    transform: translateX(0);
+}
 }
 </style>
 </head>
@@ -1298,6 +1308,105 @@ HTML_TEMPLATE = """
         function closeSubPage(pageId) {
             document.getElementById(pageId).classList.remove('active');
         }
+        /* =========================================
+   🚀 GLOBAL NAVIGATION & INPUT SUPPORT
+   ========================================= */
+
+// 1. MOBILE BACK BUTTON HANDLE (History Management)
+window.onpopstate = function(event) {
+    // A. சப்-பேஜ் திறந்திருந்தால் (Student Details / Themes)
+    const activeSubPage = document.querySelector('.settings-sub-page.active');
+    if (activeSubPage) {
+        activeSubPage.classList.remove('active');
+        return; // இங்கே நிறுத்தவும், ஆப் வெளியே போகாது
+    }
+
+    // B. செட்டிங்ஸ் திறந்திருந்தால்
+    const settings = document.getElementById('settings-overlay');
+    if (settings && settings.classList.contains('active')) {
+        settings.classList.remove('active');
+        return;
+    }
+
+    // C. மெனு திறந்திருந்தால்
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+        toggleSidebar(); // மெனுவை மூடும்
+        return;
+    }
+
+    // D. ஆன்-போர்டிங் (Onboarding) ஸ்டெப்ஸ் பின்னோக்கி செல்ல
+    if (event.state && event.state.step) {
+        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+        document.getElementById('step-' + event.state.step).classList.add('active');
+    }
+};
+
+// 2. OPEN FUNCTIONS WITH HISTORY PUSH
+// (இதை பழைய function-க்கு பதில் மாற்றுங்கள்)
+
+function openSettings() {
+    document.getElementById('settings-overlay').classList.add('active');
+    history.pushState({view: 'settings'}, null, ""); // ஹிஸ்டரி சேர்ப்பு
+    
+    // மெனு திறந்திருந்தால் மூடிவிடு
+    const sb = document.getElementById('sidebar');
+    if(sb.classList.contains('open')) toggleSidebar();
+}
+
+function openSubPage(pageId) {
+    document.getElementById(pageId).classList.add('active');
+    history.pushState({view: 'subpage'}, null, ""); // சப்-பேஜ் ஹிஸ்டரி
+}
+
+function closeSettings() {
+    // Back பட்டன் அழுத்தினால் தானாக மூடும், இருந்தாலும் Manual Close-க்கு:
+    if(history.state && history.state.view === 'settings') history.back();
+    else document.getElementById('settings-overlay').classList.remove('active');
+}
+
+function closeSubPage(pageId) {
+    if(history.state && history.state.view === 'subpage') history.back();
+    else document.getElementById(pageId).classList.remove('active');
+}
+
+// 3. UNIVERSAL ENTER KEY SUPPORT
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // A. Chat Message Input
+    const msgInput = document.getElementById('msg-input');
+    if(msgInput) {
+        msgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+            }
+        });
+    }
+
+    // B. Onboarding: Name Input (Step 2)
+    const nameInput = document.getElementById('name-input');
+    if(nameInput) {
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') nextStep(3);
+        });
+    }
+
+    // C. Onboarding: Subject Inputs (Step 3)
+    const schoolSub = document.getElementById('school-subject');
+    const collegeSub = document.getElementById('college-subject');
+
+    if(schoolSub) {
+        schoolSub.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') finishSetup();
+        });
+    }
+    if(collegeSub) {
+        collegeSub.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') finishSetup();
+        });
+    }
+    });
         // 7. INITIALIZE APP
         checkLogin();
     </script>
