@@ -584,12 +584,13 @@ HTML_TEMPLATE = """
     padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
     display: flex; align-items: center; gap: 15px;
     border-bottom: 1px solid var(--border); margin-bottom: 20px;
+    }
     #sidebar.open .sidebar-content,
     #settings-overlay.active, 
     .settings-sub-page.active {
     transform: translateX(0);
 }
-}
+
 </style>
 </head>
 <body>
