@@ -600,12 +600,13 @@ HTML_TEMPLATE = """
         <div class="settings-content">
             <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <i class="fas fa-user-grad" style="color:var(--text);"></i>
+                    <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-user-graduate" style="color:var(--text); font-size:16px;"></i>
+                    </div>
                     <span>Student Details</span>
                 </div>
                 <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
             </div>
-
             <div class="settings-option-btn" onclick="openSubPage('subpage-themes')">
                 <div style="display:flex; align-items:center; gap:15px;">
                     <i class="fas fa-palette" style="color:var(--text);"></i>
@@ -1062,8 +1063,25 @@ HTML_TEMPLATE = """
         }
 
         // 5. CHAT HANDLING LOGIC
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-
+        /* --- TOGGLE SIDEBAR (FIX: HIDE CHAT INPUT) --- */
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const chatInput = document.querySelector('.input-wrapper'); // Chat Bar Element
+            
+            sb.classList.toggle('open');
+            
+            if(sb.classList.contains('open')) {
+                // மெனு திறக்கும்போது:
+                // 1. ஹிஸ்டரி சேர்க்கிறோம் (Back button support)
+                history.pushState({menu: 'open'}, null, "");
+                
+                // 2. 👇 Chat Bar-ஐ மறைக்கிறோம் (Keyboard issue fix)
+                if(chatInput) chatInput.style.display = 'none';
+            } else {
+                // மெனு மூடும்போது Chat Bar மீண்டும் வரும்
+                if(chatInput) chatInput.style.display = 'block';
+            }
+        }
         function editMessage(text) {
             const inputEl = document.getElementById('msg-input');
             inputEl.value = text;
