@@ -190,16 +190,29 @@ HTML_TEMPLATE = """
         .menu-btn:active { background: var(--hover); }
         .app-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
 
+        body, html, * { 
+             font-family: 'Outfit', sans-serif !important; /* ஆப் முழுவதும் ஒரே சீரான ஃபான்ட் */
+        }
         /* --- SIDEBAR --- */
         #sidebar {
-            position: fixed; top: 0; left: 0; width: 280px; height: 100%; 
-            background: var(--bg); z-index: 100; display: flex; flex-direction: column; padding: 20px;
-            padding-top: calc(60px + env(safe-area-inset-top));
-            border-right: 1px solid var(--border);
-            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0); /* ஆரம்பத்தில் வெளிப்படையாக இருக்கும் */
+            z-index: 100; transform: translateX(-100%); 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
         }
-        #sidebar.open { transform: translateX(0); }
-        
+
+         #sidebar.open { transform: translateX(0); background: rgba(0,0,0,0.5); }
+
+        /* உண்மையான மெனு பகுதி */
+        .sidebar-content {
+            width: 280px; height: 100%; background: var(--bg);
+            display: flex; flex-direction: column; padding: 20px;
+            border-right: 1px solid var(--border);
+        }
+
+        /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
+        .sidebar-overlay-gap { flex: 1; cursor: pointer; }
         .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
         
@@ -621,10 +634,23 @@ HTML_TEMPLATE = """
     </div>
 
     <div id="sidebar">
-        <div class="sidebar-header">
-            <span class="user-info-text" id="display-name">User</span>
-            <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
-        </div>
+        <div class="sidebar-content">
+    <div style="position:relative; margin-bottom:15px;">
+        <input type="text" id="hist-search" placeholder="Search history..." 
+               style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
+               oninput="filterHistory(this.value)">
+        <i class="fas fa-times" id="clear-search" 
+           style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"
+           onclick="clearSearch()"></i>
+    </div>
+    
+    <div class="sidebar-header">
+        <span class="user-info-text" id="display-name">User</span>
+        <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
+    </div>
+    </div>
+    <div class="sidebar-overlay-gap" onclick="toggleSidebar()"></div> ```
+        
         <button class="new-chat-btn" onclick="newChat()"><i class="fas fa-plus"></i> New Chat</button>
         <div class="history-label">Chat History</div>
         <div id="history-list"></div>
@@ -1131,7 +1157,25 @@ function createModalElement() {
             document.getElementById('chat-box').innerHTML = `<div class="msg ai-msg"><div class="ai-content"><h1>Hi ${currentUser},</h1><p>Start a new topic!</p></div></div>`;
             toggleSidebar();
         }
+        ```javascript
+        // Search & Clear Logic
+        function filterHistory(query) {
+            const items = document.querySelectorAll('.history-item');
+            const clearBtn = document.getElementById('clear-search');
+            clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+    
+        items.forEach(item => {
+        const title = item.querySelector('span').innerText.toLowerCase();
+        item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
+    });
+    }
 
+        function clearSearch() {
+            const input = document.getElementById('hist-search');
+            input.value = "";
+            filterHistory("");
+            input.focus();
+    }
         // 7. INITIALIZE APP
         checkLogin();
     </script>
