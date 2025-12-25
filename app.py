@@ -644,23 +644,34 @@ HTML_TEMPLATE = """
            onclick="clearSearch()"></i>
     </div>
     
-    <div class="sidebar-header">
-        <span class="user-info-text" id="display-name">User</span>
-        <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
-    </div>
-    </div>
-    <div class="sidebar-overlay-gap" onclick="toggleSidebar()"></div> ```
-        
-        <button class="new-chat-btn" onclick="newChat()"><i class="fas fa-plus"></i> New Chat</button>
-        <div class="history-label">Chat History</div>
-        <div id="history-list"></div>
-        
-        <div class="sidebar-footer">
-            <div class="footer-link" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</div>
-            <div class="footer-link"><i class="fas fa-question-circle"></i> Help</div>
-        </div>
-    </div>
+    <div id="sidebar">
+        <div class="sidebar-content">
+            <div style="position:relative; margin-bottom:15px;">
+                <input type="text" id="hist-search" placeholder="Search history..." 
+                       style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
+                       oninput="filterHistory(this.value)">
+                <i class="fas fa-times" id="clear-search" 
+                   style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"
+                   onclick="clearSearch()"></i>
+            </div>
+            
+            <div class="sidebar-header">
+                <span class="user-info-text" id="display-name">User</span>
+                <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-times"></i></div>
+            </div>
 
+            <button class="new-chat-btn" onclick="newChat()"><i class="fas fa-plus"></i> New Chat</button>
+            <div class="history-label">Chat History</div>
+            <div id="history-list"></div>
+            
+            <div class="sidebar-footer">
+                <div class="footer-link" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</div>
+                <div class="footer-link"><i class="fas fa-question-circle"></i> Help</div>
+            </div>
+        </div>
+        <div class="sidebar-overlay-gap" onclick="toggleSidebar()"></div> 
+    </div>
+    
     <div id="app-container">
         <header>
             <div class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></div>
@@ -1157,7 +1168,7 @@ function createModalElement() {
             document.getElementById('chat-box').innerHTML = `<div class="msg ai-msg"><div class="ai-content"><h1>Hi ${currentUser},</h1><p>Start a new topic!</p></div></div>`;
             toggleSidebar();
         }
-        ```javascript
+
         // Search & Clear Logic
         function filterHistory(query) {
             const items = document.querySelectorAll('.history-item');
