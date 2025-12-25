@@ -1125,43 +1125,43 @@ HTML_TEMPLATE = """
             d.messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content));
         }
         function showModal(title, isInput, callback) {
-    const modal = document.getElementById('custom-modal') || createModalElement();
-    document.getElementById('m-title').innerText = title;
-    const inp = document.getElementById('m-inp');
-    inp.style.display = isInput ? 'block' : 'none';
-    inp.value = "";
-    
-    modal.style.display = 'flex';
-    window.modalCallback = (confirm) => {
+            const modal = document.getElementById('custom-modal') || createModalElement();
+            document.getElementById('m-title').innerText = title;
+            const inp = document.getElementById('m-inp');
+            inp.style.display = isInput ? 'block' : 'none';
+            inp.value = "";
+     
+        modal.style.display = 'flex';
+        window.modalCallback = (confirm) => {
         modal.style.display = 'none';
         if(confirm) callback(isInput ? inp.value : true);
-    };
-}
+        };
+        }
 
-function createModalElement() {
-    const div = document.createElement('div');
-    div.id = 'custom-modal';
-    div.innerHTML = `<div class="modal-content"><h3 id="m-title"></h3><input id="m-inp" class="modal-input"><div class="modal-btns"><button class="m-btn" style="background:#333;color:#fff" onclick="modalCallback(false)">Cancel</button><button class="m-btn" style="background:#fff;color:#000" onclick="modalCallback(true)">Confirm</button></div></div>`;
-    document.body.appendChild(div);
-    return div;
-}
+        function createModalElement() {
+        const div = document.createElement('div');
+        div.id = 'custom-modal';
+        div.innerHTML = `<div class="modal-content"><h3 id="m-title"></h3><input id="m-inp" class="modal-input"><div class="modal-btns"><button class="m-btn" style="background:#333;color:#fff" onclick="modalCallback(false)">Cancel</button><button class="m-btn" style="background:#fff;color:#000" onclick="modalCallback(true)">Confirm</button></div></div>`;
+        document.body.appendChild(div);
+        return div;
+        }
 
         async function renameChat(cid) {
-    showModal("Rename Chat", true, async (newTitle) => {
+             showModal("Rename Chat", true, async (newTitle) => {
         if(newTitle) {
             await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newTitle})});
             loadHistory();
         }
-    });
-}
+        });
+         }
 
         async function deleteChat(cid) {
-    showModal("Delete this chat?", false, async () => {
+        showModal("Delete this chat?", false, async () => {
         await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
         loadHistory();
         if(currentChatId === cid) document.getElementById('chat-box').innerHTML = "";
-    });
-}
+        });
+        }
         
         function newChat() {
             currentChatId = null;
@@ -1178,15 +1178,15 @@ function createModalElement() {
         items.forEach(item => {
         const title = item.querySelector('span').innerText.toLowerCase();
         item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
-    });
-    }
+        });
+        }
 
         function clearSearch() {
             const input = document.getElementById('hist-search');
             input.value = "";
             filterHistory("");
             input.focus();
-    }
+        }
         // 7. INITIALIZE APP
         checkLogin();
     </script>
