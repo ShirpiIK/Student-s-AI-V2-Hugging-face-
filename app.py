@@ -880,29 +880,28 @@ HTML_TEMPLATE = """
 
         /* --- TYPEWRITER EFFECT FUNCTION --- */
         /* --- FAST TYPEWRITER EFFECT --- */
+        /* --- FAST TYPEWRITER WITH SMOOTH AUTO-SCROLL --- */
         function typeWriter(element, text, callback) {
             let i = 0;
             element.innerHTML = ""; 
-            
-            // 👇 வேகம்: இதை 5 அல்லது 1-க்கு மாற்றினால் ஜெட் வேகத்தில் வரும்!
             let speed = 5; 
 
             function type() {
                 if (i < text.length) {
-                    // 👇 தந்திரம்: ஒரே நேரத்தில் 4 எழுத்துக்களைச் சேர்க்கிறோம் (Chunking)
-                    // இது டைப்பிங்கை மிகவும் ஸ்மூத் மற்றும் ஃபாஸ்ட் ஆக்கும்.
                     let chunk = text.substring(i, i + 4); 
                     element.innerHTML += chunk;
                     i += 4;
                     
-                    // Auto Scroll
+                    // 👇 இதுதான் முக்கியம்: பதில் வர வர மெதுவாக கீழே நகர்த்தும்
                     const chatBox = document.getElementById('chat-box');
-                    chatBox.scrollTo(0, chatBox.scrollHeight);
+                    chatBox.scrollTop = chatBox.scrollHeight; 
                     
                     setTimeout(type, speed);
                 } else {
-                    // முடித்ததும் Markdown ஸ்டைல் அப்ளை செய்
                     element.innerHTML = marked.parse(text);
+                    // பதில் முடிந்ததும் மீண்டும் ஒருமுறை கீழே நகர்த்தவும்
+                    const chatBox = document.getElementById('chat-box');
+                    chatBox.scrollTop = chatBox.scrollHeight;
                     if (callback) callback();
                 }
             }
@@ -1107,8 +1106,10 @@ HTML_TEMPLATE = """
                 aiDiv.appendChild(bubble);
                 
                 // 👇 முக்கிய மாற்றம்: addMsg-ஐ மீண்டும் அழைக்காமல் நேரடியாக typeWriter-ஐ பயன்படுத்துகிறோம்
+                // ... Backend Call முடிந்து பதில் வந்த பிறகு ...
+                
                 typeWriter(bubble, data.response, () => {
-                    // அனிமேஷன் முடிந்த பிறகு பட்டன்களைக் காட்டு
+                    // 👇 டைப்பிங் முடிந்த பிறகு பட்டன்களைக் காட்டு
                     const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
                         <div class="msg-actions">
@@ -1117,16 +1118,19 @@ HTML_TEMPLATE = """
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
                     aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-                    document.getElementById('chat-box').scrollTo(0, document.getElementById('chat-box').scrollHeight);
+                    
+                    // 👇 அனிமேஷன் முடிந்த பிறகு 'Generating' நிலையை நிறுத்து
+                    isGenerating = false; 
+                    
+                    const chatBox = document.getElementById('chat-box');
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 });
-                // --- ANIMATION END ---
 
             } catch (e) {
-                document.getElementById(msgId).innerHTML = "Error sending message.";
-            } finally {
-                isGenerating = false;
+                document.getElementById(msgId).innerHTML = "Error.";
+                isGenerating = false; // Error வந்தாலும் நிறுத்து
             }
-        }   
+            // ❌ இங்கிருந்த 'finally { isGenerating = false; }' ஐ நீக்கிவிடவும்.
             
         // Init App
         checkLogin();
