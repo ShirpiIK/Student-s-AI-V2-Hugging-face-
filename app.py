@@ -485,7 +485,7 @@ HTML_TEMPLATE = """
     .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.4); }
     .send-btn:active { transform: scale(0.9); }
     /* --- 1. BLOCK TEXT SELECTION (Paste before </style>) --- */
-      * {
+       {
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
