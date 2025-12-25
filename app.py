@@ -426,23 +426,27 @@ HTML_TEMPLATE = """
     /* --- PROFESSIONAL CHAT STYLES --- */
 
     /* 1. Automatic Curve User Bubble */
+    /* --- USER MESSAGE BOX: CURVED SQUARE DESIGN --- */
     .user-content {
-        border-radius: 24px 24px 4px 24px; /* தனித்துவமான வளைவு */
-        background: linear-gradient(135deg, #27272a 0%, #1f1f22 100%); 
-        color: #fff;
-        padding: 14px 20px; 
+        /* Square Shape with Curved Edges */
+        border-radius: 12px; /* சதுர வடிவம் மற்றும் வளைந்த விளிம்புகள் */
+        background: var(--user-msg); 
+        color: var(--text);
+        padding: 12px 16px; 
+        
+        /* Font Settings */
         font-size: 17px; 
         line-height: 1.6;
         
-        /* Positioning & Sizing */
+        /* 👇 Positioning & Auto-Sizing */
         position: relative;
-        width: fit-content;      
-        max-width: 85%;          
-        min-width: 50px;         
-        word-wrap: break-word;   
+        width: fit-content;      /* டெக்ஸ்ட் அளவிற்கு ஏற்ப மாறும் */
+        max-width: 85%;          /* 85% மேல் போகாது */
+        min-width: 50px;         /* மிகச் சிறிய வார்த்தைக்கும் வடிவம் மாறாது */
+        word-wrap: break-word;   /* நீண்ட வார்த்தைகளை உடைக்கும் */
         margin-left: auto;       /* வலது பக்கம் ஒட்டி நிற்கும் */
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-        border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* அழகான நிழல் */
+        border: 1px solid rgba(255,255,255,0.05); /* மெல்லிய பார்டர் */
     }
 
     /* 2. Stylish Input Bar (Glassmorphism) */
