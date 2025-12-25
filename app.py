@@ -210,7 +210,17 @@ HTML_TEMPLATE = """
             display: flex; flex-direction: column; padding: 20px;
             border-right: 1px solid var(--border);
         }
+        /* --- SIDEBAR ICONS & FONT FIX --- */
+       .sidebar-content i {
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+            font-size: 16px;
+        }
 
+    #hist-search {
+        font-family: 'Outfit', sans-serif !important;
+    }
         /* வலது பக்கம் இருக்கும் காலி இடம் (Gap) */
         .sidebar-overlay-gap { flex: 1; cursor: pointer; }
         .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
