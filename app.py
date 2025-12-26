@@ -1,3 +1,5 @@
+import PyPDF2  # PDF படிக்க
+import re      # Suggestions பிரிக்க
 import os
 import uuid
 import time
@@ -35,16 +37,31 @@ user_db = load_db()
 current_key_index = 0
 app = Flask(__name__)
 
-# --- 🧠 SYSTEM INSTRUCTION ---
-SYSTEM_INSTRUCTION = """
+# --- 🧠 DYNAMIC SYSTEM INSTRUCTION ---
+def get_system_instruction(medium="English"):
+    base_instruction = """
 ROLE: You are "Student's AI", a professional academic tutor.
 RULES:
-1. **MATH:** Use LaTeX for formulas ($$ ... $$).
-2. **DIAGRAMS:** Use Mermaid.js (```mermaid ... ```).
-3. **LANGUAGE:** English by default. Use Tamil/Tanglish ONLY if requested.
-4. **FORMAT:** Markdown. Bold key terms.
-5. **CODE:** Use Python/Java/C++ blocks. Explain logic briefly.
+1. **SOURCE:** Answer ONLY based on the provided 'Context Book'. If the answer is not in the book, say "I couldn't find this in your textbook."
+2. **FORMAT:** Use Markdown. Bold key terms.
+3. **MATH:** Use LaTeX for formulas ($$ ... $$).
+4. **SUGGESTIONS:** At the very end of your response, strictly suggest 2 related follow-up topics/questions from the same Unit/Chapter formatted exactly like this:
+   `<<SUGGEST: Question 1 | Question 2>>`
 """
+    
+    # 👇 TAMIL MEDIUM LOGIC
+    if medium == "Tamil":
+        base_instruction += """
+5. **LANGUAGE:** The user has selected TAMIL Medium.
+   - You MUST reply completely in **TAMIL SCRIPT (தமிழ்)**.
+   - Translate all concepts to Tamil.
+   - You can keep technical English terms in brackets, e.g., விசை (Force).
+   - Do NOT reply in English unless asked to Translate.
+"""
+    else:
+        base_instruction += "\n5. **LANGUAGE:** English by default."
+        
+    return base_instruction
 
 # --- 🧬 MODEL & FILE HANDLING ---
 def get_working_model(key):
@@ -59,7 +76,33 @@ def get_working_model(key):
         if chat_models: return chat_models[0].name
     except: return None
     return None
-
+# --- 📚 LIBRARY LOGIC ---
+def get_book_text(user_details):
+    # Folder Structure: books/school/10th/maths.pdf
+    try:
+        base_path = "books"
+        if user_details.get("type") == "school":
+            std = user_details.get("standard", "").lower() # e.g., "10th"
+            sub = user_details.get("subject", "").lower()  # e.g., "maths"
+            path = os.path.join(base_path, "school", std, f"{sub}.pdf")
+        else:
+            # College Logic (Example)
+            dept = user_details.get("dept", "").lower()
+            sub = user_details.get("subject", "").lower()
+            path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
+            
+        if os.path.exists(path):
+            text = ""
+            with open(path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                # Read only first 50 pages for speed (Optimization) or full book
+                for page in reader.pages[:50]: 
+                    text += page.extract_text() + "\n"
+            return text
+        else:
+            return None # Book not found
+    except: return None
+        
 def process_image(image_data):
     try:
         if "base64," in image_data:
@@ -677,6 +720,16 @@ input[type="search"]::-webkit-search-results-decoration {
     body.light-mode .ad-banner-small { background: #e4e4e7; border-color: #ccc; color: #888; }
     /* Pro Mode வந்தால் மறைக்க */
     .ad-banner-small.hidden { display: none !important; }
+
+    /* SUGGESTION CHIPS */
+    .suggestion-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .suggestion-chip {
+        background: transparent; border: 1px solid var(--border);
+        color: var(--text-muted); padding: 8px 15px; border-radius: 20px;
+        font-size: 13px; cursor: pointer; transition: all 0.2s;
+    }
+    .suggestion-chip:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+
 </style>
 </head>
 <body>
@@ -1044,17 +1097,46 @@ input[type="search"]::-webkit-search-results-decoration {
             setTheme(theme);
         }
 
-        function showApp() {
+        // 👇 பழைய showApp ஃபங்ஷனை அழித்துவிட்டு இதை போடவும் 👇
+        async function showApp() {
+            // 1. Basic UI Updates (பெயர் மற்றும் ஹிஸ்டரி லோட் செய்தல்)
             document.getElementById("display-name").innerText = currentUser;
             updateProfileUI();
+            loadHistory();
+
+            // 2. Welcome Message & Suggestions Logic
             const introDiv = document.getElementById("chat-box");
             if(introDiv.innerHTML === "") {
-                const sub = userDetails.subject || 'your subjects';
-                introDiv.innerHTML = `<div class="msg ai-msg"><div class="ai-content"><h1>Hi ${currentUser},</h1><p>Ready to study <b>${sub}</b>?</p></div></div>`;
-            }
-            loadHistory();
-        }
+                // Welcome Message
+                const subName = userDetails.subject || 'subjects';
+                let welcomeMsg = `<h1>Hi ${currentUser},</h1><p>Ready to study <b>${subName}</b>?</p>`;
+                
+                // 👇 Initial Suggestions Logic (Mockup based on subject)
+                const sub = (userDetails.subject || "").toLowerCase();
+                let starters = [];
+                
+                // Subject-க்கு ஏற்ற கேள்விகள் (நீங்க அப்புறம் இதை மாத்திக்கலாம்)
+                if(sub.includes('math')) starters = ["Algebra Basics", "Trigonometry Formulas"];
+                else if(sub.includes('phy')) starters = ["Newton's Laws", "Thermodynamics"];
+                else if(sub.includes('chem')) starters = ["Periodic Table", "Chemical Bonding"];
+                else if(sub.includes('bio')) starters = ["Cell Structure", "Genetics"];
+                else if(sub.includes('tamil') || userDetails.medium === 'Tamil') starters = ["Unit 1 Introduction", "Basic Definitions"];
+                else starters = ["Unit 1 Introduction", "Basic Definitions"]; // Default
 
+                // Create Chips HTML
+                let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:10px;">`;
+                starters.forEach(s => {
+                    // கிளிக் பண்ணா நேரா மெசேஜ் டைப் ஆகி சென்ட் ஆகிடும்
+                    chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
+                });
+                chipsHtml += `</div>`;
+
+                // Chat Box உள்ளே செட் பண்ணுதல்
+                introDiv.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;">${welcomeMsg}</div>${chipsHtml}</div>`;
+            }
+        }
+        // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
+        
         function openSettings() {
             document.getElementById('settings-overlay').classList.add('active');
             if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
@@ -1317,39 +1399,90 @@ input[type="search"]::-webkit-search-results-decoration {
             chatBox.scrollTo(0, chatBox.scrollHeight);
             isGenerating = true;
 
+            // ... (மேலே உள்ள வரிகள் அப்படியே இருக்கட்டும்) ...
+            
             try {
                 if (!currentChatId) {
                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
+
+                // 👇👇👇 இங்கே தான் மாற்ற வேண்டும் (PASTE THIS HERE) 👇👇👇
                 const res = await fetch('/chat', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: txt, image: fileData, username: currentUser, chat_id: currentChatId })
+                    body: JSON.stringify({ 
+                        message: txt, 
+                        image: fileData,       // பழைய Image/PDF சப்போர்ட் போகாம இருக்க இதை சேருங்க
+                        username: currentUser, 
+                        chat_id: currentChatId,
+                        user_details: userDetails // ✅ இதுதான் நாம புதுசா சேர்த்தது (Medium இதுல இருக்கு)
+                    })
                 });
+                // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
+
                 const data = await res.json();
                 
+                // ... (கீழே உள்ள வரிகள் அப்படியே இருக்கட்டும்) ...
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
+                // 👇 பழைய typeWriter பிளாக்கை அழித்துவிட்டு இதை போடவும் 👇
                 typeWriter(bubble, data.response, () => {
-                    const safeText = data.response.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+                    
+                    // 1. Separate Suggestions logic
+                    let fullText = data.response;
+                    let suggestions = [];
+                    let cleanText = fullText; // Default to full text if no tag found
+
+                    // Regex to find <<SUGGEST: ... >>
+                    const match = fullText.match(/<<SUGGEST:(.*?)>>/);
+                    if (match) {
+                        // Remove tag from display text
+                        cleanText = fullText.replace(match[0], "");
+                        bubble.innerHTML = marked.parse(cleanText); // Re-render clean text
+                        
+                        // Extract topics
+                        suggestions = match[1].split('|').map(s => s.trim());
+                    }
+
+                    // 2. Add Chips to UI
+                    if (suggestions.length > 0) {
+                        const chipsDiv = document.createElement('div');
+                        chipsDiv.className = 'suggestion-container';
+                        suggestions.forEach(topic => {
+                            const chip = document.createElement('div');
+                            chip.className = 'suggestion-chip';
+                            chip.innerText = topic;
+                            chip.onclick = () => { 
+                                document.getElementById('msg-input').value = topic; 
+                                send(); 
+                            };
+                            chipsDiv.appendChild(chip);
+                        });
+                        // Append chips to the AI message container
+                        const aiDiv = document.getElementById(msgId);
+                        if(aiDiv) aiDiv.appendChild(chipsDiv);
+                    }
+
+                    // 3. Add Action Buttons (Copy, Regen, Share) - OLD ACTIONS CODE
+                    const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
                         <div class="msg-actions">
                             <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                             <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
-                    aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    
+                    const aiDiv = document.getElementById(msgId);
+                    if(aiDiv) aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    
                     isGenerating = false; 
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
-            } catch (e) {
-                document.getElementById(msgId).innerHTML = "Error.";
-                isGenerating = false;
-            }
+                // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
         }
             
         // 6. HISTORY & CHAT MANAGEMENT
@@ -1752,24 +1885,43 @@ def get_chat():
 def chat():
     d = request.json
     u, cid, msg = d.get("username"), d.get("chat_id"), d.get("message")
-    img_data = d.get("image")
-    file_text = d.get("file_text")
+    
+    # 👇 Frontend-ல் இருந்து வரும் விபரங்கள்
+    u_details = d.get("user_details", {}) 
+    medium = u_details.get("medium", "English") # தமிழ் என்றால் "Tamil" வரும்
+    
+    # 1. Load Book Content (RAG)
+    book_text = get_book_text(u_details)
+    
+    # 2. Context Prompt (புக்கை AI-க்கு கொடுத்தல்)
+    prompt = msg
+    if book_text:
+        prompt = f"Context Book Content:\n{book_text}\n\nUser Question: {msg}"
+    else:
+        # புக் இல்லனா பொதுவான பதில், ஆனால் எச்சரிக்கையுடன்
+        prompt = f"Note: No textbook found for this subject. Answer generally.\n\nUser Question: {msg}"
 
     if u not in user_db: user_db[u] = {}
     if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
 
+    # 3. Instruction based on Medium
+    sys_inst = get_system_instruction(medium)
+    
+    # 4. Generate Answer
+    # (Note: generate_with_retry ஃபங்ஷனில் system_instruction அனுப்பும் வசதி வேண்டும். 
+    # அல்லது global SYSTEM_INSTRUCTION-ஐ தற்காலிகமாக மாற்றலாம், ஆனால் அது thread-safe இல்லை.
+    # அதனால், generate_with_retry-ஐ கீழே மாற்றித் தருகிறேன்).
+    
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
-    reply = generate_with_retry(msg, img_data, file_text, user_db[u][cid]["messages"][:-1])
+    
+    # Call AI
+    reply = generate_with_retry(prompt, system_instruction=sys_inst, history_messages=user_db[u][cid]["messages"][:-1])
+    
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
     
-    new_title = False
-    if len(user_db[u][cid]["messages"]) <= 2:
-        user_db[u][cid]["title"] = " ".join(msg.split()[:4])
-        new_title = True
-        
-    # chat() function-ன் இறுதியில் இதைச் சேர்க்கவும்
-    save_db(user_db) # <--- இதுதான் ஹிஸ்டரியைச் சேமிக்கும்
-    return jsonify({"response": reply, "new_title": new_title})
+    save_db(user_db)
+    return jsonify({"response": reply})
+    
 @app.route('/manifest.json')
 def manifest():
     data = {
