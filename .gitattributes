@@ -42,3 +42,4 @@ Class_10_Mathematics_Tamil_Medium-2025_Edition-www.tntextbooks.in.pdf filter=lfs
 Class_10_Social_Science_Tamil_Medium-2025_Edition-www.tntextbooks.in.pdf filter=lfs diff=lfs merge=lfs -text
 books/school/10th/english.pdf filter=lfs diff=lfs merge=lfs -text
 books/school/10th/maths.pdf filter=lfs diff=lfs merge=lfs -text
+books/school/10th/social[[:space:]]science.pdf filter=lfs diff=lfs merge=lfs -text
