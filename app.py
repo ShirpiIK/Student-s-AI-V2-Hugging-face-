@@ -752,10 +752,16 @@ input[type="search"]::-webkit-search-results-decoration {
                             <span class="detail-value" id="profile-std">AI & DS</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">Subject</span>
-                            <span class="detail-value editable-subject" id="profile-sub" onclick="editSubject(this)">Maths</span>
-                        </div>
-                        <div class="logout-row" onclick="handleLogout()">Log Out</div>
+                        <span class="detail-label">Subject</span>
+                        <span class="detail-value editable-subject" id="profile-sub" onclick="editSubject(this)">Maths</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Medium</span>
+                        <span class="detail-value" id="profile-med">English</span>
+                    </div>
+
+                    <div class="logout-row" onclick="handleLogout()">Log Out</div>
                     </div>
                 </div>
             </div>
@@ -819,7 +825,7 @@ input[type="search"]::-webkit-search-results-decoration {
                         <option value="6th">6th</option><option value="7th">7th</option><option value="8th">8th</option>
                         <option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option>
                     </select>
-                    <input type="text" id="school-subject" class="input-field" placeholder="Enter Subject (e.g. Maths)" autocomplete="off" onkeydown="if(event.key==='Enter') finishSetup()">
+                    <input type="text" id="school-subject" class="input-field" placeholder="Enter Subject (e.g. Maths)" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
                 </div>
                 <div id="college-opts" class="hidden-opt">
                     <select id="college-dept" class="dropdown-select">
@@ -831,8 +837,20 @@ input[type="search"]::-webkit-search-results-decoration {
                         <option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option>
                     </select>
                     <select id="college-sem" class="dropdown-select"><option value="" disabled selected>Select Semester</option></select>
-                    <input type="text" id="college-subject" class="input-field" placeholder="Enter Subject" autocomplete="off" onkeydown="if(event.key==='Enter') finishSetup()">
+                    <input type="text" id="college-subject" class="input-field" placeholder="Enter Subject" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
                 </div>
+                <button class="btn-primary" onclick="nextStep(4)">Next</button>
+            </div>
+
+            <div id="step-4" class="step-content">
+                <h2 class="intro-title" style="font-size: 26px;">Choose Medium</h2>
+                <p class="intro-desc" style="margin-bottom:20px;">Which language do you study in?</p>
+                
+                <div class="toggle-group">
+                    <div class="toggle-btn selected" id="btn-english" onclick="toggleMedium('English')">English</div>
+                    <div class="toggle-btn" id="btn-tamil" onclick="toggleMedium('Tamil')">Tamil</div>
+                </div>
+
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
         </div>
@@ -927,7 +945,7 @@ input[type="search"]::-webkit-search-results-decoration {
     <script>
         // 1. GLOBAL VARIABLES
         let currentUser = null;
-        let userDetails = { type: 'school' };
+        let userDetails = { type: 'school', medium: 'English' }; // Default Medium added
         let currentChatId = null;
         let isGenerating = false;
 
@@ -955,6 +973,11 @@ input[type="search"]::-webkit-search-results-decoration {
             document.getElementById('btn-college').classList.toggle('selected', type === 'college');
             document.getElementById('school-opts').style.display = type === 'school' ? 'block' : 'none';
             document.getElementById('college-opts').style.display = type === 'college' ? 'block' : 'none';
+        }
+        function toggleMedium(medium) {
+            userDetails.medium = medium;
+            document.getElementById('btn-english').classList.toggle('selected', medium === 'English');
+            document.getElementById('btn-tamil').classList.toggle('selected', medium === 'Tamil');
         }
 
         function updateSemesters() {
@@ -1034,6 +1057,7 @@ input[type="search"]::-webkit-search-results-decoration {
             document.getElementById('profile-edu').innerText = userDetails.type === 'school' ? 'School' : 'College';
             document.getElementById('profile-std').innerText = userDetails.type === 'school' ? userDetails.standard : userDetails.dept;
             document.getElementById('profile-sub').innerText = userDetails.subject;
+            document.getElementById('profile-med').innerText = userDetails.medium || 'English';
             const pic = localStorage.getItem('profile_pic');
             if(pic) {
                 document.getElementById('settings-pic').src = pic;
