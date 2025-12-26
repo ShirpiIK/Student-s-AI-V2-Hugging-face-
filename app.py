@@ -111,7 +111,8 @@ def process_image(image_data):
         return Image.open(io.BytesIO(image_bytes))
     except: return None
 
-def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[]):
+# 👇 REPLACED generate_with_retry FUNCTION 👇
+def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
     global current_key_index
     if not API_KEYS: return "🚨 API Keys Missing."
 
@@ -137,7 +138,11 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
 
         try:
             genai.configure(api_key=key)
-            model = genai.GenerativeModel(model_name=model_name, system_instruction=SYSTEM_INSTRUCTION)
+            
+            # 👇 இங்கே தான் மாற்றம்: system_instruction வருகிறதா என பார்க்கிறோம்
+            final_instruction = system_instruction if system_instruction else "You are a helpful tutor."
+            
+            model = genai.GenerativeModel(model_name=model_name, system_instruction=final_instruction)
             
             if image_data or file_text:
                 response = model.generate_content(current_parts)
@@ -150,7 +155,7 @@ def generate_with_retry(prompt, image_data=None, file_text=None, history_message
             time.sleep(1)
 
     return "⚠️ System Busy. Please try again."
-
+    
 # --- UI TEMPLATE (UPDATED: PROFESSIONAL UI V2) ---
 
 HTML_TEMPLATE = """
