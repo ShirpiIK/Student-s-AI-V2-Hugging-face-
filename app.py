@@ -1018,31 +1018,7 @@ input[type="search"]::-webkit-search-results-decoration {
         let isGenerating = false;
         let abortController = null; // 🛑 புதுசா சேருங்க
 
-        // 👇 பட்டனை மாத்துற ஃபங்ஷன்
-        function toggleBtn(state) {
-            const btn = document.querySelector('.send-btn');
-            if (state === 'sending') {
-                btn.innerHTML = '<i class="fas fa-stop"></i>'; // Stop Icon
-                btn.onclick = stopGeneration;
-                btn.classList.add('stop-mode'); // Optional CSS styling
-            } else {
-                btn.innerHTML = '<i class="fas fa-arrow-up"></i>'; // Send Icon
-                btn.onclick = send;
-                btn.classList.remove('stop-mode');
-            }
-        }
-
-        // 👇 ஸ்டாப் பண்ற ஃபங்ஷன்
-        function stopGeneration() {
-            if (abortController) abortController.abort(); // Server Request-ஐ கட் பண்ணும்
-            isGenerating = false; // Typing-ஐ நிறுத்தும்
-            toggleBtn('idle'); // பட்டனை பழையபடி மாத்தும்
-            
-            // "Thinking..." அல்லது பாதியில் நிற்கும் பதிலை "Stopped" என காட்டலாம்
-            const thinkingMsg = document.querySelector('.msg-bubble:contains("Thinking...")'); // jQuery logic (just logic here)
-            // ஆனா நாம typeWriter-ல ஹேண்டில் பண்ணிக்கலாம்.
-        }
-
+        
         // 2. ONBOARDING & LOGIN LOGIC
         function nextStep(targetStep) {
             if (targetStep === 3) { 
@@ -1116,6 +1092,27 @@ input[type="search"]::-webkit-search-results-decoration {
             el.classList.add('input-error', 'shake');
             setTimeout(() => el.classList.remove('shake'), 500);
             el.addEventListener('input', () => el.classList.remove('input-error'), {once:true});
+        }
+        // 👇 STOP BUTTON LOGIC
+        function toggleBtn(state) {
+            const btn = document.querySelector('.send-btn');
+            if (state === 'sending') {
+                btn.innerHTML = '<i class="fas fa-stop"></i>'; // Square Icon
+                btn.onclick = stopGeneration;
+            } else {
+                btn.innerHTML = '<i class="fas fa-arrow-up"></i>'; // Arrow Icon
+                btn.onclick = send;
+            }
+        }
+
+        function stopGeneration() {
+            if (abortController) abortController.abort(); // 1. Cut Network
+            isGenerating = false; // 2. Stop Typing Flag
+            toggleBtn('idle'); // 3. Reset Button
+            
+            // Optional: Show "Stopped" message
+            const thinkingMsg = document.querySelector('.msg-bubble:contains("Thinking...")');
+            if(thinkingMsg) thinkingMsg.innerHTML = "Stopped.";
         }
 
         // 3. APP CORE & SETTINGS LOGIC
@@ -1271,53 +1268,64 @@ input[type="search"]::-webkit-search-results-decoration {
         /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
         /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
         
-        /* --- CHATGPT STYLE ANIMATION (NO SHAKE & PERFECT SCROLL) --- */
-        function typeWriter(element, text, callback) {
-            const chatBox = document.getElementById('chat-box');
-            let i = 0;
-            
-            // 1. பதிலை முதலிலேயே Markdown ஆக மாற்றி ஒரு மறைமுக இடத்தில் (Hidden Div) வைக்கிறோம்
-            // இது பெட்டி அதிருவதை (Shake) தடுக்கும்.
-            element.innerHTML = marked.parse(text);
-            const finalHTML = element.innerHTML;
-            element.innerHTML = ""; // அனிமேஷனுக்காக மீண்டும் காலியாக்குகிறோம்
-
-            // 2. டயக்ராம் இருந்தால் அது தெரியாமல் இருக்க பெட்டியின் உயரத்தை லாக் செய்கிறோம்
-            element.style.minHeight = "20px";
-
-            function type() {
-                if (!isGenerating) return; // 🛑 இந்த வரியைச் சேர்த்தா போதும்! ஸ்டாப் பண்ணா டைப்பிங் நின்னுடும்.
+        // 👇 UPDATED TYPEWRITER (With Stop Check)
+    typeWriter = function(element, text, callback) {
+        const chatBox = document.getElementById('chat-box');
+        let i = 0;
         
-                if (i < finalHTML.length) {
-                    // HTML Tags-ஐ கண்டறிந்தால் அதை முழுமையாக ஒரே நேரத்தில் சேர்க்க வேண்டும்
-                    if (finalHTML.charAt(i) === '<') {
-                        let tagEnd = finalHTML.indexOf('>', i);
-                        i = tagEnd + 1;
-                    } else {
-                        i += 3; // வேகத்திற்காக 3 எழுத்துகளாக பிரிக்கிறோம்
-                    }
-                    
-                    element.innerHTML = finalHTML.substring(0, i);
-                    
-                    // 👇 இதுதான் வார்த்தை மேலே வருவதை (Auto-scroll) உறுதி செய்யும்
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    
-                    requestAnimationFrame(type); // சீரான அனிமேஷனுக்கு setTimeout-க்கு பதில் இது சிறந்தது
-                } else {
-                    element.innerHTML = finalHTML; // இறுதியில் முழுமையாக உறுதி செய்
-                    
-                    // Mermaid டயக்ராம் இருந்தால் மட்டும் லோடு செய்
-                    if (window.mermaid && text.includes("```mermaid")) {
-                        mermaid.run({ nodes: [element] });
-                    }
-                    
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    if (callback) callback();
-                }
-            }
-            type();
-        }
+        element.innerHTML = marked.parse(text);
+        const finalHTML = element.innerHTML;
+        element.innerHTML = "";
+        element.style.minHeight = "20px";
 
+        function type() {
+            // 👇👇👇 முக்கிய மாற்றம்: Stop கிளிக் பண்ணா டைப்பிங் நிற்கும் 👇👇👇
+            if (!isGenerating) return; 
+            // 👆👆👆 THIS LINE STOPS THE TYPING 👆👆👆
+
+            if (i < finalHTML.length) {
+                if (finalHTML.charAt(i) === '<') {
+                    let tagEnd = finalHTML.indexOf('>', i);
+                    i = tagEnd + 1;
+                } else {
+                    i += 3;
+                }
+                element.innerHTML = finalHTML.substring(0, i);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                requestAnimationFrame(type);
+            } else {
+                element.innerHTML = finalHTML;
+                
+                // Colors & Copy Btn
+                element.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                element.querySelectorAll('pre').forEach(pre => {
+                    if (pre.querySelector('.code-copy-btn')) return;
+                    pre.style.position = 'relative';
+                    const btn = document.createElement('button');
+                    btn.className = 'code-copy-btn';
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
+                    btn.onclick = () => {
+                        navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
+                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                        });
+                    };
+                    pre.appendChild(btn);
+                });
+
+                if (window.mermaid && text.includes("```mermaid")) {
+                    mermaid.run({ nodes: [element] });
+                }
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+                if (callback) callback();
+            }
+        }
+        type();
+    };
         
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
