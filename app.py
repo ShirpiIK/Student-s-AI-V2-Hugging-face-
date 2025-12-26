@@ -1093,7 +1093,7 @@ input[type="search"]::-webkit-search-results-decoration {
         
         /* --- CHATGPT STYLE ANIMATION (NO SHAKE & PERFECT SCROLL) --- */
         // 👇 புதிய typeWriter (Color & Copy Button வேலை செய்யும்)
-function typeWriter(element, text, callback) {
+    function typeWriter(element, text, callback) {
     const chatBox = document.getElementById('chat-box');
     let i = 0;
     element.innerHTML = marked.parse(text);
