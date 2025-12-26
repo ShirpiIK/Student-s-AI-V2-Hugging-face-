@@ -619,44 +619,36 @@ input[type="search"]::-webkit-search-results-button,
 input[type="search"]::-webkit-search-results-decoration {
     -webkit-appearance: none;
 }
-    /* 1. எல்லா நகரும் பகுதிகளையும் தனி GPU லேயராக மாற்றுதல் */
-    .sidebar-content, 
-    #settings-overlay, 
-    .settings-sub-page {
-        will-change: transform;               /* பிரவுசரை அலர்ட் பண்ணும் (Lag Fix) */
-        -webkit-backface-visibility: hidden;  /* Flicker ஆவதை தடுக்கும் */
-        backface-visibility: hidden;
-        transform-style: preserve-3d;         
-        perspective: 1000px;                  /* 3D எஃபெக்ட் ஆன் பண்ணும் */
+    /* 1. Sub-header (தனியாக பிரிக்கப்பட்டது) */
+    .sub-header {
+        padding: 20px; 
+        padding-top: calc(20px + env(safe-area-inset-top));
+        display: flex; align-items: center; gap: 15px;
+        border-bottom: 1px solid var(--border); margin-bottom: 20px;
     }
 
-    /* 2. பழைய 2D-க்கு பதில் 3D Transform (இது மொபைலில் செம்ம பாஸ்ட்) */
-    .sidebar-content {
-        transform: translate3d(-100%, 0, 0) !important;
-    }
-
-    #settings-overlay, 
-    .settings-sub-page {
-        transform: translate3d(100%, 0, 0) !important;
-    }
-
-    /* 3. திறக்கும்போது (Active State) */
-    #sidebar.open .sidebar-content, 
+    /* 2. Active States (வெளியே கொண்டு வரப்பட்டது - இதுதான் FIX) */
+    #sidebar.open .sidebar-content,
     #settings-overlay.active, 
     .settings-sub-page.active {
         transform: translate3d(0, 0, 0) !important;
     }
 
-    /* 4. அனிமேஷன் நேரத்தை கச்சிதமாக்குதல் (Perfect Timing) */
+    /* 3. FORCE GPU (3D) FOR BUTTERY SMOOTH ANIMATION */
     .sidebar-content, 
     #settings-overlay, 
     .settings-sub-page {
-        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important; 
+        transform: translate3d(100%, 0, 0) !important; /* Default Hidden Position */
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+        will-change: transform;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        perspective: 1000px;
     }
-    
-    /* 5. Shadow Lag Fix (அனிமேஷன் போது ஹெவி ஷேடோ வேண்டாம்) */
-    .sidebar-content, #settings-overlay {
-        box-shadow: 0 0 20px rgba(0,0,0,0.2) !important; /* லைட்டான ஷேடோ */
+
+    /* Sidebar மட்டும் இடது பக்கம் மறைய */
+    .sidebar-content {
+        transform: translate3d(-100%, 0, 0) !important;
     }
 </style>
 </head>
