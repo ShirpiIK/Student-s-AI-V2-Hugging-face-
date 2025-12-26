@@ -619,36 +619,50 @@ input[type="search"]::-webkit-search-results-button,
 input[type="search"]::-webkit-search-results-decoration {
     -webkit-appearance: none;
 }
-    /* 1. Sub-header (தனியாக பிரிக்கப்பட்டது) */
+    
+    /* 1. CONTAINER-ஐ நகர விடாமல் தடுத்தல் (Fixing Double Animation) */
+    #sidebar {
+        transform: none !important; /* இது நகராது */
+        transition: visibility 0s linear 0.4s, background-color 0.4s ease !important;
+        display: flex !important;
+        visibility: hidden;
+        background-color: rgba(0,0,0,0);
+    }
+    #sidebar.open {
+        visibility: visible !important;
+        background-color: rgba(0,0,0,0.6) !important;
+        transition-delay: 0s !important;
+    }
+
+    /* 2. CONTENT-ஐ மட்டும் GPU-வில் நகர வைப்பது (Butter Smooth) */
+    .sidebar-content {
+        transform: translate3d(-100%, 0, 0) !important; /* இடது பக்கம் மறைந்திருக்கும் */
+        width: 280px !important;
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+        will-change: transform;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+    }
+
+    /* 3. SETTINGS PAGES (வலது பக்கம் இருந்து வர) */
+    #settings-overlay, .settings-sub-page {
+        transform: translate3d(100%, 0, 0) !important; /* வலது பக்கம் மறைந்திருக்கும் */
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+        will-change: transform;
+    }
+
+    /* 4. ACTIVE STATES (இயக்கம்) */
+    #sidebar.open .sidebar-content,
+    #settings-overlay.active,
+    .settings-sub-page.active {
+        transform: translate3d(0, 0, 0) !important;
+    }
+
+    /* 5. நாம் அழித்த .sub-header க்கான சரியான கோட் */
     .sub-header {
         padding: 20px; 
         padding-top: calc(20px + env(safe-area-inset-top));
         display: flex; align-items: center; gap: 15px;
         border-bottom: 1px solid var(--border); margin-bottom: 20px;
-    }
-
-    /* 2. Active States (வெளியே கொண்டு வரப்பட்டது - இதுதான் FIX) */
-    #sidebar.open .sidebar-content,
-    #settings-overlay.active, 
-    .settings-sub-page.active {
-        transform: translate3d(0, 0, 0) !important;
-    }
-
-    /* 3. FORCE GPU (3D) FOR BUTTERY SMOOTH ANIMATION */
-    .sidebar-content, 
-    #settings-overlay, 
-    .settings-sub-page {
-        transform: translate3d(100%, 0, 0) !important; /* Default Hidden Position */
-        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
-        will-change: transform;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-        perspective: 1000px;
-    }
-
-    /* Sidebar மட்டும் இடது பக்கம் மறைய */
-    .sidebar-content {
-        transform: translate3d(-100%, 0, 0) !important;
     }
 </style>
 </head>
