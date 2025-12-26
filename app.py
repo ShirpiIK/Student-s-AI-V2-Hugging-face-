@@ -1766,7 +1766,7 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 2. Override typeWriter to add Copy Button & Colors
+    // 2. Override typeWriter to add Copy Button & Colors & STOP LOGIC
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1777,6 +1777,10 @@ input[type="search"]::-webkit-search-results-decoration {
         element.style.minHeight = "20px";
 
         function type() {
+            // 👇👇👇 இதோ அந்த முக்கியமான வரி! இது இருந்தால் தான் Stop ஆகும் 👇👇👇
+            if (!isGenerating) return; 
+            // 👆👆👆 THIS LINE STOPS THE TYPING 👆👆👆
+
             if (i < finalHTML.length) {
                 if (finalHTML.charAt(i) === '<') {
                     let tagEnd = finalHTML.indexOf('>', i);
@@ -1797,23 +1801,18 @@ input[type="search"]::-webkit-search-results-decoration {
 
                 // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
                 element.querySelectorAll('pre').forEach(pre => {
-                    // ஏற்கனவே பட்டன் இருக்கான்னு செக் பண்ணு
                     if (pre.querySelector('.code-copy-btn')) return;
-
-                    pre.style.position = 'relative'; // பட்டன் உள்ளே இருக்க இது அவசியம்
-
+                    pre.style.position = 'relative';
                     const btn = document.createElement('button');
                     btn.className = 'code-copy-btn';
                     btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    // பட்டன் டிசைன் (CSS)
                     btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
                     
-                    // பட்டன் கிளிக் செய்தால் காப்பி ஆக
                     btn.onclick = () => {
                         const codeText = pre.querySelector('code').innerText;
                         navigator.clipboard.writeText(codeText).then(() => {
                             btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            btn.style.color = '#4ade80'; // Green Color
+                            btn.style.color = '#4ade80';
                             btn.style.borderColor = '#4ade80';
                             setTimeout(() => { 
                                 btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
