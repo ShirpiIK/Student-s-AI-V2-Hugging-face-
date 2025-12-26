@@ -683,125 +683,117 @@ input[type="search"]::-webkit-search-results-decoration {
 
     <div id="settings-overlay">
     
-    <div id="settings-main-view">
-        <div class="settings-header">
-            <div class="back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i></div>
-            <h2 style="margin:0; font-size:20px; color:var(--text);">Settings</h2>
-        <div class="settings-content">
-    </div>
+        <div id="settings-main-view" style="height:100%; display:flex; flex-direction:column;">
+            
+            <div class="settings-header" style="flex-shrink:0;">
+                <div class="back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i></div>
+                <h2 style="margin:0; font-size:20px; color:var(--text);">Settings</h2>
+            </div>
 
-    <div style="padding: 20px;">
-    <div class="ad-banner-small" id="settings-ad">Settings Ad Space (320x60)</div>
-    </div>
-        </div>
+            <div class="settings-search" style="position:relative; flex-shrink:0;">
+                <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                <input type="search" id="setting-search-input" name="setting_search_field" placeholder="Search settings..." autocomplete="off" spellcheck="false"
+                   style="width:100%; padding-left:30px; background:transparent; border:none; color:var(--text); outline:none;"
+                   oninput="filterSettings(this.value)"
+                   onkeydown="if(event.key==='Enter') this.blur()">
+                <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
+                   style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
+            </div>
 
-        <div class="settings-search" style="position:relative;">
-    <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
-    
-    <input type="search" id="setting-search-input" name="setting_search_field" placeholder="Search settings..." autocomplete="off" spellcheck="false"
-       style="width:100%; padding-left:30px; background:transparent; border:none; color:var(--text); outline:none;"
-       oninput="filterSettings(this.value)"
-       onkeydown="if(event.key==='Enter') this.blur()">
-    <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
-       style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
-</div>
-
-        <div class="settings-content">
-            <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                        <i class="fas fa-user-graduate" style="color:var(--text); font-size:16px;"></i>
+            <div class="settings-content" style="flex:1; overflow-y:auto; padding:0 20px;">
+                <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-user-graduate" style="color:var(--text); font-size:16px;"></i>
+                        </div>
+                        <span>Student Details</span>
                     </div>
-                    <span>Student Details</span>
-                </div>
-                <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
-            </div>
-            <div class="settings-option-btn" onclick="openSubPage('subpage-themes')">
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <i class="fas fa-palette" style="color:var(--text);"></i>
-                    <span>Themes</span>
-                </div>
-                <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
-            </div>
-        </div>
-    </div>
-
-    <div id="subpage-profile" class="settings-sub-page">
-        <div class="sub-header">
-            <div class="back-btn" onclick="closeSubPage('subpage-profile')"><i class="fas fa-arrow-left"></i></div>
-            <h2 style="margin:0; font-size:20px; color:var(--text);">Student Details</h2>
-        </div>
-        
-        <div class="settings-content">
-            <div class="profile-card">
-                <div class="profile-pic-wrapper">
-                    <img id="settings-pic" src="https://ui-avatars.com/api/?name=User&background=random" class="profile-pic">
-                    <label for="pic-upload" class="edit-pic-btn"><i class="fas fa-camera"></i></label>
-                    <input type="file" id="pic-upload" hidden accept="image/*" onchange="uploadProfilePic(this)">
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
                 
-                <div class="profile-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Name</span>
-                        <span class="detail-value" id="profile-name">User</span>
+                <div class="settings-option-btn" onclick="openSubPage('subpage-themes')">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-palette" style="color:var(--text);"></i>
+                        <span>Themes</span>
                     </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Education</span>
-                        <span class="detail-value" id="profile-edu">College</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Standard/Dept</span>
-                        <span class="detail-value" id="profile-std">AI & DS</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Subject</span>
-                        <span class="detail-value editable-subject" id="profile-sub" onclick="editSubject(this)">Maths</span>
-                    </div>
-                    <div class="logout-row" onclick="handleLogout()">Log Out</div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
-                <div id="subpage-profile" class="settings-sub-page">
-                <div class="settings-content"> <div class="profile-card">
-               </div> <div class="ad-banner-small" id="profile-ad">Profile Ad Space (320x60)</div>
-
-              </div> 
             </div>
-                
+            
+            <div style="padding:15px 20px; flex-shrink:0; border-top:1px solid var(--border); background:var(--bg);">
+                <div class="ad-banner-small" id="settings-ad">Settings Ad Space (320x60)</div>
             </div>
-            </div>
-    </div>
-
-    <div id="subpage-themes" class="settings-sub-page">
-        <div class="sub-header">
-            <div class="back-btn" onclick="closeSubPage('subpage-themes')"><i class="fas fa-arrow-left"></i></div>
-            <h2 style="margin:0; font-size:20px; color:var(--text);">Themes</h2>
         </div>
 
-        <div class="settings-content">
-            <div class="theme-list">
-                <div class="theme-option" onclick="setTheme('light')">
-                    <div class="theme-icon"><i class="fas fa-sun"></i></div>
-                    <span>Light Mode</span>
-                </div>
-                <div class="theme-option" onclick="setTheme('dark')">
-                    <div class="theme-icon"><i class="fas fa-moon"></i></div>
-                    <span>Dark Mode</span>
-                </div>
-                <div class="theme-option" onclick="setTheme('system')">
-                    <div class="theme-icon"><i class="fas fa-desktop"></i></div>
-                    <span>System Default</span>
+        <div id="subpage-profile" class="settings-sub-page" style="height:100%; display:flex; flex-direction:column;">
+            <div class="sub-header" style="flex-shrink:0;">
+                <div class="back-btn" onclick="closeSubPage('subpage-profile')"><i class="fas fa-arrow-left"></i></div>
+                <h2 style="margin:0; font-size:20px; color:var(--text);">Student Details</h2>
+            </div>
+            
+            <div class="settings-content" style="flex:1; overflow-y:auto; padding:20px;">
+                <div class="profile-card">
+                    <div class="profile-pic-wrapper">
+                        <img id="settings-pic" src="https://ui-avatars.com/api/?name=User&background=random" class="profile-pic">
+                        <label for="pic-upload" class="edit-pic-btn"><i class="fas fa-camera"></i></label>
+                        <input type="file" id="pic-upload" hidden accept="image/*" onchange="uploadProfilePic(this)">
+                    </div>
+                    <div class="profile-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Name</span>
+                            <span class="detail-value" id="profile-name">User</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Education</span>
+                            <span class="detail-value" id="profile-edu">College</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Standard/Dept</span>
+                            <span class="detail-value" id="profile-std">AI & DS</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Subject</span>
+                            <span class="detail-value editable-subject" id="profile-sub" onclick="editSubject(this)">Maths</span>
+                        </div>
+                        <div class="logout-row" onclick="handleLogout()">Log Out</div>
+                    </div>
                 </div>
             </div>
-            <div id="subpage-themes" class="settings-sub-page">
-            <div class="settings-content"> <div class="theme-list">
-            </div> <div class="ad-banner-small" id="theme-ad">Theme Ad Space (320x60)</div>
 
-            </div> 
-           </div>
+            <div style="padding:15px 20px; flex-shrink:0; border-top:1px solid var(--border); background:var(--bg);">
+                <div class="ad-banner-small" id="profile-ad">Profile Ad Space (320x60)</div>
+            </div>
         </div>
+
+        <div id="subpage-themes" class="settings-sub-page" style="height:100%; display:flex; flex-direction:column;">
+            <div class="sub-header" style="flex-shrink:0;">
+                <div class="back-btn" onclick="closeSubPage('subpage-themes')"><i class="fas fa-arrow-left"></i></div>
+                <h2 style="margin:0; font-size:20px; color:var(--text);">Themes</h2>
+            </div>
+
+            <div class="settings-content" style="flex:1; overflow-y:auto; padding:20px;">
+                <div class="theme-list">
+                    <div class="theme-option" onclick="setTheme('light')">
+                        <div class="theme-icon"><i class="fas fa-sun"></i></div>
+                        <span>Light Mode</span>
+                    </div>
+                    <div class="theme-option" onclick="setTheme('dark')">
+                        <div class="theme-icon"><i class="fas fa-moon"></i></div>
+                        <span>Dark Mode</span>
+                    </div>
+                    <div class="theme-option" onclick="setTheme('system')">
+                        <div class="theme-icon"><i class="fas fa-desktop"></i></div>
+                        <span>System Default</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding:15px 20px; flex-shrink:0; border-top:1px solid var(--border); background:var(--bg);">
+                <div class="ad-banner-small" id="theme-ad">Theme Ad Space (320x60)</div>
+            </div>
+        </div>
+
     </div>
-
-</div>
-
     <div id="onboarding-overlay">
         <div class="wizard-container">
             <div id="step-1" class="step-content active">
