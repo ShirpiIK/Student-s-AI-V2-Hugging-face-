@@ -75,11 +75,11 @@ def get_working_model(key):
         if chat_models: return chat_models[0].name
     except: return None
     return None
-# --- 📚 LIBRARY LOGIC ---
-# 👇 REPLACED get_book_text FUNCTION (With Page Numbers) 👇
+# 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
 def get_book_text(user_details):
     try:
         base_path = "books"
+        # 1. Path Construction logic (Same as before)
         if user_details.get("type") == "school":
             std = user_details.get("standard", "").lower()
             sub = user_details.get("subject", "").lower()
@@ -93,25 +93,33 @@ def get_book_text(user_details):
             text = ""
             with open(path, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
-                # 👇 இங்கே தான் மாற்றம்: enumerate பயன்படுத்தி Page Number எடுக்கிறோம்
-                for i, page in enumerate(reader.pages[:50]): 
+                
+                # 👇 மாற்றம்: ஒவ்வொரு பக்கத்திலும் அச்சிடப்பட்ட நம்பரைத் தேடுதல்
+                for i, page in enumerate(reader.pages[:50]): # Limit for speed
                     content = page.extract_text()
                     if content:
-                        # ஒவ்வொரு பக்கத்திற்கும் ஒரு "தலைப்பு" போடுகிறோம்
-                        text += f"\n--- [Page {i+1}] ---\n{content}\n"
+                        lines = content.strip().split('\n')
+                        page_label = f"PDF Page {i+1}" # Default (கிடைக்கலைனா இது வரும்)
+
+                        # Logic: கடைசி வரியிலோ அல்லது முதல் வரியிலோ நம்பர் மட்டும் இருக்கான்னு பார்த்தல்
+                        if lines:
+                            last_line = lines[-1].strip()
+                            first_line = lines[0].strip()
+                            
+                            # 1. Check Footer (கீழே)
+                            if last_line.isdigit():
+                                page_label = f"Page {last_line}"
+                            # 2. Check Header (மேலே) - Footer இல்லனா இதை பார்
+                            elif first_line.isdigit():
+                                page_label = f"Page {first_line}"
+                        
+                        # AI-க்கு அனுப்பும் டெக்ஸ்டில் இந்த லேபிளைச் சேர்த்தல்
+                        text += f"\n--- [{page_label}] ---\n{content}\n"
             return text
         else:
             return None
     except: return None
         
-def process_image(image_data):
-    try:
-        if "base64," in image_data:
-            image_data = image_data.split("base64,")[1]
-        image_bytes = base64.b64decode(image_data)
-        return Image.open(io.BytesIO(image_bytes))
-    except: return None
-
 # 👇 REPLACED generate_with_retry FUNCTION 👇
 def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
     global current_key_index
