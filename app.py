@@ -1111,14 +1111,28 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        function stopGeneration() {
-            if (abortController) abortController.abort(); // 1. Cut Network
-            isGenerating = false; // 2. Stop Typing Flag
-            toggleBtn('idle'); // 3. Reset Button
+        // 👇 UPDATED STOP FUNCTION (Syncs with DB)
+        async function stopGeneration() {
+            if (abortController) abortController.abort();
+            isGenerating = false; 
+            toggleBtn('idle');
             
-            // Optional: Show "Stopped" message
+            // "Stopped" message UI
             const thinkingMsg = document.querySelector('.msg-bubble:contains("Thinking...")');
             if(thinkingMsg) thinkingMsg.innerHTML = "Stopped.";
+
+            // 👇 Magic Line: Tell Backend to truncate the message
+            if (currentChatId && window.typeProgress < 1) {
+                await fetch('/truncate_response', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: currentUser,
+                        chat_id: currentChatId,
+                        ratio: window.typeProgress || 0.1 // Default small ratio if unknown
+                    })
+                });
+            }
         }
 
         // 3. APP CORE & SETTINGS LOGIC
@@ -1772,10 +1786,11 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 2. Override typeWriter to add Copy Button & Colors & STOP LOGIC
+    // 👇 UPDATED TYPEWRITER (Tracks Progress)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
+        window.typeProgress = 0; // Reset Progress
         
         element.innerHTML = marked.parse(text);
         const finalHTML = element.innerHTML;
@@ -1783,9 +1798,10 @@ input[type="search"]::-webkit-search-results-decoration {
         element.style.minHeight = "20px";
 
         function type() {
-            // 👇👇👇 இதோ அந்த முக்கியமான வரி! இது இருந்தால் தான் Stop ஆகும் 👇👇👇
             if (!isGenerating) return; 
-            // 👆👆👆 THIS LINE STOPS THE TYPING 👆👆👆
+
+            // 👇 Update Progress (0.0 to 1.0)
+            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
 
             if (i < finalHTML.length) {
                 if (finalHTML.charAt(i) === '<') {
@@ -1799,41 +1815,27 @@ input[type="search"]::-webkit-search-results-decoration {
                 requestAnimationFrame(type);
             } else {
                 element.innerHTML = finalHTML;
+                window.typeProgress = 1; // Completed
                 
-                // --- A. APPLY COLORS ---
-                element.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
-
-                // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
+                // Colors & Copy Logic...
+                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
                     pre.style.position = 'relative';
                     const btn = document.createElement('button');
                     btn.className = 'code-copy-btn';
                     btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
-                    
+                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
                     btn.onclick = () => {
-                        const codeText = pre.querySelector('code').innerText;
-                        navigator.clipboard.writeText(codeText).then(() => {
+                        navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
                             btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            btn.style.color = '#4ade80';
-                            btn.style.borderColor = '#4ade80';
-                            setTimeout(() => { 
-                                btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
-                                btn.style.color = '#a1a1aa';
-                                btn.style.borderColor = 'rgba(255,255,255,0.2)';
-                            }, 2000);
+                            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
                         });
                     };
                     pre.appendChild(btn);
                 });
 
-                // --- C. MERMAID DIAGRAMS ---
-                if (window.mermaid && text.includes("```mermaid")) {
-                    mermaid.run({ nodes: [element] });
-                }
+                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 
                 chatBox.scrollTop = chatBox.scrollHeight;
                 if (callback) callback();
@@ -2001,6 +2003,24 @@ def manifest():
         ]
     }
     return Response(json.dumps(data), mimetype='application/json')
-
+# 👇 ADD THIS NEW ROUTE AT THE END (Before if __name__ == '__main__':) 👇
+@app.route("/truncate_response", methods=["POST"])
+def truncate_response():
+    try:
+        d = request.json
+        u, cid, ratio = d.get("username"), d.get("chat_id"), d.get("ratio")
+        if u in user_db and cid in user_db[u]:
+            msgs = user_db[u][cid]["messages"]
+            # கடைசி மெசேஜ் AI உடையதா இருந்தால் மட்டும் கட் செய்யவும்
+            if msgs and msgs[-1]["role"] == "model":
+                full_text = msgs[-1]["content"]
+                # கட் பண்ண வேண்டிய இடத்தை கணக்கிடுதல்
+                cut_idx = int(len(full_text) * float(ratio))
+                # பாதியில் நிறுத்தியதற்கான மார்க்கர்
+                msgs[-1]["content"] = full_text[:cut_idx] + " ... [Stopped]"
+                save_db(user_db)
+        return jsonify({"status": "updated"})
+    except: return jsonify({"status": "error"})
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
