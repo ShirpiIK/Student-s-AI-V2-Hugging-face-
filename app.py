@@ -802,23 +802,27 @@ input[type="search"]::-webkit-search-results-decoration {
     </div>
     <div id="onboarding-overlay">
         <div class="wizard-container">
+            
             <div id="step-1" class="step-content active">
                 <div style="margin-bottom: 20px;"><i class="fas fa-graduation-cap" style="font-size: 60px; color: #fff;"></i></div>
                 <h1 class="intro-title">Welcome to<br>Student's AI</h1>
                 <p class="intro-desc">Your personal AI tutor designed to simplify learning, solve doubts, and help you excel.</p>
                 <button class="btn-primary" onclick="nextStep(2)">Get Started</button>
             </div>
+
             <div id="step-2" class="step-content">
                 <h2 class="intro-title" style="font-size: 26px;">What's your name?</h2>
                 <input type="text" id="name-input" class="input-field" placeholder="Enter your Name" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(3)">
                 <button class="btn-primary" onclick="nextStep(3)">Next</button>
             </div>
+
             <div id="step-3" class="step-content">
                 <h2 class="intro-title" style="font-size: 26px;">Student Details</h2>
                 <div class="toggle-group">
                     <div class="toggle-btn selected" id="btn-school" onclick="toggleType('school')">School</div>
                     <div class="toggle-btn" id="btn-college" onclick="toggleType('college')">College</div>
                 </div>
+                
                 <div id="school-opts">
                     <select id="school-std" class="dropdown-select">
                         <option value="" disabled selected>Select Standard</option>
@@ -827,7 +831,8 @@ input[type="search"]::-webkit-search-results-decoration {
                     </select>
                     <input type="text" id="school-subject" class="input-field" placeholder="Enter Subject (e.g. Maths)" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
                 </div>
-                <div id="college-opts" class="hidden-opt">
+                
+                <div id="college-opts" class="hidden-opt" style="display:none;">
                     <select id="college-dept" class="dropdown-select">
                         <option value="" disabled selected>Select Department</option>
                         <option value="CSE">CSE</option><option value="AI & DS">AI & DS</option><option value="IT">IT</option>
@@ -839,12 +844,13 @@ input[type="search"]::-webkit-search-results-decoration {
                     <select id="college-sem" class="dropdown-select"><option value="" disabled selected>Select Semester</option></select>
                     <input type="text" id="college-subject" class="input-field" placeholder="Enter Subject" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
                 </div>
+
                 <button class="btn-primary" onclick="nextStep(4)">Next</button>
             </div>
 
             <div id="step-4" class="step-content">
                 <h2 class="intro-title" style="font-size: 26px;">Choose Medium</h2>
-                <p class="intro-desc" style="margin-bottom:20px;">Which language do you study in?</p>
+                <p class="intro-desc" style="margin-bottom:20px; color:#aaa;">Which language do you study in?</p>
                 
                 <div class="toggle-group">
                     <div class="toggle-btn selected" id="btn-english" onclick="toggleMedium('English')">English</div>
@@ -853,6 +859,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
                 <button class="btn-primary" onclick="finishSetup()">Start Learning</button>
             </div>
+
         </div>
     </div>
 
