@@ -1518,7 +1518,7 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 2. Override typeWriter to add Copy Button & Colors
+    // 2. Override typeWriter (Colors + Copy Button)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1542,30 +1542,25 @@ input[type="search"]::-webkit-search-results-decoration {
             } else {
                 element.innerHTML = finalHTML;
                 
-                // --- A. APPLY COLORS ---
+                // Colors
                 element.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
 
-                // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
+                // Copy Button
                 element.querySelectorAll('pre').forEach(pre => {
-                    // ஏற்கனவே பட்டன் இருக்கான்னு செக் பண்ணு
                     if (pre.querySelector('.code-copy-btn')) return;
-
-                    pre.style.position = 'relative'; // பட்டன் உள்ளே இருக்க இது அவசியம்
-
+                    pre.style.position = 'relative';
                     const btn = document.createElement('button');
                     btn.className = 'code-copy-btn';
                     btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    // பட்டன் டிசைன் (CSS)
                     btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
                     
-                    // பட்டன் கிளிக் செய்தால் காப்பி ஆக
                     btn.onclick = () => {
                         const codeText = pre.querySelector('code').innerText;
                         navigator.clipboard.writeText(codeText).then(() => {
                             btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            btn.style.color = '#4ade80'; // Green Color
+                            btn.style.color = '#4ade80'; 
                             btn.style.borderColor = '#4ade80';
                             setTimeout(() => { 
                                 btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
@@ -1577,17 +1572,63 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // --- C. MERMAID DIAGRAMS ---
                 if (window.mermaid && text.includes("```mermaid")) {
                     mermaid.run({ nodes: [element] });
                 }
-                
                 chatBox.scrollTop = chatBox.scrollHeight;
                 if (callback) callback();
             }
         }
         type();
     };
+
+    // 3. KEYBOARD FIX (SMART ENTER LOGIC)
+    document.addEventListener("DOMContentLoaded", function() {
+        // Remove Autocomplete
+        document.querySelectorAll('input').forEach(el => {
+            el.setAttribute('autocomplete', 'off');
+            el.setAttribute('spellcheck', 'false');
+        });
+
+        // Smart Enter Logic
+        const inputs = [
+            document.getElementById('msg-input'),
+            document.getElementById('hist-search'),
+            document.getElementById('setting-search-input'),
+            document.getElementById('name-input'),
+            document.getElementById('school-subject'),
+            document.getElementById('college-subject')
+        ];
+
+        inputs.forEach(input => {
+            if(input) {
+                const newEl = input.cloneNode(true);
+                input.parentNode.replaceChild(newEl, input);
+                
+                newEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        if(!e.shiftKey) {
+                            if(this.id === 'msg-input') { 
+                                // 👇 இதுதான் புது மாற்றம் (The Fix)
+                                // பேஸ்ட் பண்ண கோட் அல்லது பெரிய டெக்ஸ்ட் இருந்தால் Send ஆகாது, New Line வரும்.
+                                if(this.value.length > 50 || this.value.includes('\n')) {
+                                    return; 
+                                }
+                                e.preventDefault(); send(); 
+                            }
+                            else if(this.id === 'name-input') nextStep(3);
+                            else if(this.id.includes('subject')) finishSetup();
+                            
+                            this.blur(); // Hide Keyboard
+                        }
+                    }
+                });
+                
+                if(newEl.id === 'hist-search') newEl.oninput = function(){ filterHistory(this.value) };
+                if(newEl.id === 'setting-search-input') newEl.oninput = function(){ filterSettings(this.value) };
+            }
+        });
+    });
 </script>
 
 <style>
