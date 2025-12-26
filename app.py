@@ -1512,83 +1512,126 @@ input[type="search"]::-webkit-search-results-decoration {
         checkLogin();
     </script>
     <script>
-    // 1. Add Highlight.js for Colors
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
-    document.head.appendChild(link);
+        // 1. ADD COLOR THEME
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+        document.head.appendChild(cssLink);
 
-    // 2. Override typeWriter to add Copy Button & Colors
-    typeWriter = function(element, text, callback) {
-        const chatBox = document.getElementById('chat-box');
-        let i = 0;
-        
-        element.innerHTML = marked.parse(text);
-        const finalHTML = element.innerHTML;
-        element.innerHTML = "";
-        element.style.minHeight = "20px";
+        let isPasting = false; // Paste நடக்கிறதான்னு பார்க்க ஒரு கொடி
 
-        function type() {
-            if (i < finalHTML.length) {
-                if (finalHTML.charAt(i) === '<') {
-                    let tagEnd = finalHTML.indexOf('>', i);
-                    i = tagEnd + 1;
+        // 2. TYPEWRITER WITH COLORS & COPY BUTTON
+        function typeWriter(element, text, callback) {
+            const chatBox = document.getElementById('chat-box');
+            let i = 0;
+            element.innerHTML = marked.parse(text);
+            const finalHTML = element.innerHTML;
+            element.innerHTML = "";
+            element.style.minHeight = "20px";
+
+            function type() {
+                if (i < finalHTML.length) {
+                    if (finalHTML.charAt(i) === '<') {
+                        let tagEnd = finalHTML.indexOf('>', i);
+                        i = tagEnd + 1;
+                    } else { i += 3; }
+                    element.innerHTML = finalHTML.substring(0, i);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    requestAnimationFrame(type);
                 } else {
-                    i += 3;
-                }
-                element.innerHTML = finalHTML.substring(0, i);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                requestAnimationFrame(type);
-            } else {
-                element.innerHTML = finalHTML;
-                
-                // --- A. APPLY COLORS ---
-                element.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
-
-                // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
-                element.querySelectorAll('pre').forEach(pre => {
-                    // ஏற்கனவே பட்டன் இருக்கான்னு செக் பண்ணு
-                    if (pre.querySelector('.code-copy-btn')) return;
-
-                    pre.style.position = 'relative'; // பட்டன் உள்ளே இருக்க இது அவசியம்
-
-                    const btn = document.createElement('button');
-                    btn.className = 'code-copy-btn';
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    // பட்டன் டிசைன் (CSS)
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
+                    element.innerHTML = finalHTML;
+                    if (window.hljs) element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                     
-                    // பட்டன் கிளிக் செய்தால் காப்பி ஆக
-                    btn.onclick = () => {
-                        const codeText = pre.querySelector('code').innerText;
-                        navigator.clipboard.writeText(codeText).then(() => {
-                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            btn.style.color = '#4ade80'; // Green Color
-                            btn.style.borderColor = '#4ade80';
-                            setTimeout(() => { 
-                                btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
-                                btn.style.color = '#a1a1aa';
-                                btn.style.borderColor = 'rgba(255,255,255,0.2)';
-                            }, 2000);
-                        });
-                    };
-                    pre.appendChild(btn);
+                    element.querySelectorAll('pre').forEach(pre => {
+                        if (pre.querySelector('.code-copy-btn')) return;
+                        pre.style.position = 'relative';
+                        const btn = document.createElement('button');
+                        btn.className = 'code-copy-btn';
+                        btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#aaa; border:1px solid #444; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:12px;";
+                        btn.onclick = () => {
+                            const code = pre.querySelector('code');
+                            navigator.clipboard.writeText(code ? code.innerText : pre.innerText).then(() => {
+                                btn.innerHTML = '<i class="fas fa-check"></i>';
+                                setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                            });
+                        };
+                        pre.appendChild(btn);
+                    });
+
+                    if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    if (callback) callback();
+                }
+            }
+            type();
+        }
+
+        // 3. KEYBOARD FIX (PASTE LOCK & AUTO SEND FIX)
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('input').forEach(e => { e.setAttribute('autocomplete','off'); e.setAttribute('spellcheck','false'); });
+            
+            const mi = document.getElementById('msg-input');
+            if(mi) {
+                const nmi = mi.cloneNode(true);
+                mi.parentNode.replaceChild(nmi, mi);
+
+                // A. PASTE EVENT LISTENER (இதுதான் முக்கியம்!)
+                nmi.addEventListener('paste', function(e) {
+                    isPasting = true; // "நான் பேஸ்ட் பண்றேன்"னு சொல்லுது
+                    
+                    // 1 வினாடி கழித்து நார்மல் நிலைக்கு வரும்
+                    setTimeout(() => { isPasting = false; }, 1000);
                 });
 
-                // --- C. MERMAID DIAGRAMS ---
-                if (window.mermaid && text.includes("```mermaid")) {
-                    mermaid.run({ nodes: [element] });
-                }
-                
-                chatBox.scrollTop = chatBox.scrollHeight;
-                if (callback) callback();
+                // B. KEYDOWN LISTENER
+                nmi.addEventListener('keydown', function(e) {
+                    if(e.key === 'Enter') {
+                        if(!e.shiftKey) {
+                            // 1. Paste Lock: இப்போதான் பேஸ்ட் பண்ணாருன்னா, என்டரை மதிக்காதே!
+                            if (isPasting) {
+                                return; 
+                            }
+
+                            // 2. Code Checks: கோட் இருந்தால் Send பண்ணாதே
+                            const val = this.value;
+                            const hasCode = /[=;{}[\]<>]/.test(val) || /^(def|class|import|print|var|let|const|if|for)/.test(val.trim());
+                            
+                            // 3. Newline & Length Check (Bug Fixed here: '\n' not '\\n')
+                            if(val.includes('\n') || hasCode || val.length > 50) {
+                                return; 
+                            }
+
+                            e.preventDefault(); 
+                            send(); 
+                            this.blur();
+                        }
+                    }
+                });
+
+                nmi.addEventListener('input', function() { this.style.height='auto'; this.style.height=this.scrollHeight+'px'; });
             }
-        }
-        type();
-    };
-</script>
+
+            ['name-input','school-subject','college-subject'].forEach(id => {
+               const el = document.getElementById(id);
+               if(el) el.addEventListener('keydown', e => { if(e.key==='Enter') { 
+                   if(id==='name-input') nextStep(3); else finishSetup();
+                   el.blur(); 
+               }});
+            });
+        });
+
+        // UTILS & INIT
+        function toggleAttachMenu() { const m=document.getElementById('attach-menu'); m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none'; }
+        function handleFile(i) { if(i.files[0]){ const r=new FileReader(); r.onload=e=>{window.currentFile=e.target.result; document.getElementById('preview-img').src=e.target.result; document.getElementById('preview-box').style.display='block'; document.getElementById('attach-menu').style.display='none';}; r.readAsDataURL(i.files[0]); } }
+        function clearFile() { window.currentFile=null; document.getElementById('preview-box').style.display='none'; document.querySelectorAll('input[type="file"]').forEach(e=>e.value=""); }
+        function uploadProfilePic(i) { if(i.files[0]){ const r = new FileReader(); r.onload=e=>{localStorage.setItem('profile_pic',e.target.result);updateProfileUI();}; r.readAsDataURL(i.files[0]); } }
+        function filterHistory(q) { document.querySelectorAll('.history-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(q.toLowerCase()) ? 'block' : 'none'); }
+        function filterSettings(q) { document.querySelectorAll('.settings-option-btn').forEach(b => b.style.display = b.innerText.toLowerCase().includes(q.toLowerCase())?'flex':'none'); }
+
+        checkLogin();
+    </script>
+                    
 
 <style>
     /* பழைய பிழையான .sub-header ஐ சரிசெய்தல் */
