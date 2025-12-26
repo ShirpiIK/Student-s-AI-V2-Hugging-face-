@@ -1111,17 +1111,19 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        // 👇 UPDATED STOP FUNCTION (Syncs with DB)
+        // 👇 UPDATED STOP FUNCTION (Instant Visual Feedback)
         async function stopGeneration() {
             if (abortController) abortController.abort();
             isGenerating = false; 
             toggleBtn('idle');
             
-            // "Stopped" message UI
-            const thinkingMsg = document.querySelector('.msg-bubble:contains("Thinking...")');
-            if(thinkingMsg) thinkingMsg.innerHTML = "Stopped.";
+            // 👇 உடனே ஸ்கிரீன்ல "Stopped" னு காட்ட இந்த வரியை சேர்க்கிறோம்
+            const lastAiMsg = document.querySelector('.ai-msg:last-child .msg-bubble');
+            if (lastAiMsg && !lastAiMsg.innerHTML.includes("Stopped")) {
+                lastAiMsg.innerHTML += ' <span style="color:orange; font-weight:bold; font-size:14px;">... [Stopped]</span>';
+            }
 
-            // 👇 Magic Line: Tell Backend to truncate the message
+            // Backend Sync
             if (currentChatId && window.typeProgress < 1) {
                 await fetch('/truncate_response', {
                     method: 'POST',
@@ -1129,7 +1131,7 @@ input[type="search"]::-webkit-search-results-decoration {
                     body: JSON.stringify({
                         username: currentUser,
                         chat_id: currentChatId,
-                        ratio: window.typeProgress || 0.1 // Default small ratio if unknown
+                        ratio: window.typeProgress || 0.1 
                     })
                 });
             }
@@ -1786,7 +1788,7 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 👇 UPDATED TYPEWRITER (Progress Tracking + Stop Logic + Colors + Copy)
+    // 👇 UPDATED TYPEWRITER (Calculates Progress correctly)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1798,11 +1800,11 @@ input[type="search"]::-webkit-search-results-decoration {
         element.style.minHeight = "20px";
 
         function type() {
-            // 🛑 1. STOP CHECK (இது இருந்தால் தான் Stop ஆகும்)
             if (!isGenerating) return; 
 
-            // 📊 2. PROGRESS TRACKING (இது இருந்தால் தான் DB-ல் Cut ஆகும்)
+            // 👇👇👇 இந்த வரி இருந்தால் தான் "Stopped" வேலை செய்யும் 👇👇👇
             if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
+            // 👆👆👆 CRITICAL LINE FOR STOP LOGIC 👆👆👆
 
             if (i < finalHTML.length) {
                 if (finalHTML.charAt(i) === '<') {
@@ -1818,7 +1820,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1; // Completed
                 
-                // --- Colors & Copy Logic ---
+                // Colors & Copy Logic
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -1844,6 +1846,7 @@ input[type="search"]::-webkit-search-results-decoration {
         }
         type();
     };
+        
             
 </script>
 
