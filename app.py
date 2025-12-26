@@ -1381,7 +1381,7 @@ input[type="search"]::-webkit-search-results-decoration {
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 2. FIXED SEND FUNCTION --- */
+        /* --- 2. FIXED SEND FUNCTION (FULL & CORRECT) --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1404,56 +1404,45 @@ input[type="search"]::-webkit-search-results-decoration {
             chatBox.scrollTo(0, chatBox.scrollHeight);
             isGenerating = true;
 
-            // ... (மேலே உள்ள வரிகள் அப்படியே இருக்கட்டும்) ...
-            
             try {
                 if (!currentChatId) {
                     const r = await fetch('/new_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
 
-                // 👇👇👇 இங்கே தான் மாற்ற வேண்டும் (PASTE THIS HERE) 👇👇👇
                 const res = await fetch('/chat', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
                         message: txt, 
-                        image: fileData,       // பழைய Image/PDF சப்போர்ட் போகாம இருக்க இதை சேருங்க
+                        image: fileData, 
                         username: currentUser, 
                         chat_id: currentChatId,
-                        user_details: userDetails // ✅ இதுதான் நாம புதுசா சேர்த்தது (Medium இதுல இருக்கு)
+                        user_details: userDetails 
                     })
                 });
-                // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
 
                 const data = await res.json();
                 
-                // ... (கீழே உள்ள வரிகள் அப்படியே இருக்கட்டும்) ...
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // 👇 பழைய typeWriter பிளாக்கை அழித்துவிட்டு இதை போடவும் 👇
                 typeWriter(bubble, data.response, () => {
-                    
-                    // 1. Separate Suggestions logic
                     let fullText = data.response;
                     let suggestions = [];
-                    let cleanText = fullText; // Default to full text if no tag found
+                    let cleanText = fullText;
 
-                    // Regex to find <<SUGGEST: ... >>
+                    // Suggestions Logic
                     const match = fullText.match(/<<SUGGEST:(.*?)>>/);
                     if (match) {
-                        // Remove tag from display text
                         cleanText = fullText.replace(match[0], "");
-                        bubble.innerHTML = marked.parse(cleanText); // Re-render clean text
-                        
-                        // Extract topics
+                        bubble.innerHTML = marked.parse(cleanText); 
                         suggestions = match[1].split('|').map(s => s.trim());
                     }
 
-                    // 2. Add Chips to UI
+                    // Chips UI
                     if (suggestions.length > 0) {
                         const chipsDiv = document.createElement('div');
                         chipsDiv.className = 'suggestion-container';
@@ -1467,12 +1456,11 @@ input[type="search"]::-webkit-search-results-decoration {
                             };
                             chipsDiv.appendChild(chip);
                         });
-                        // Append chips to the AI message container
-                        const aiDiv = document.getElementById(msgId);
-                        if(aiDiv) aiDiv.appendChild(chipsDiv);
+                        const currentAiDiv = document.getElementById(msgId);
+                        if(currentAiDiv) currentAiDiv.appendChild(chipsDiv);
                     }
 
-                    // 3. Add Action Buttons (Copy, Regen, Share) - OLD ACTIONS CODE
+                    // Action Buttons (Copy, Regen, Share)
                     const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
                         <div class="msg-actions">
@@ -1481,13 +1469,17 @@ input[type="search"]::-webkit-search-results-decoration {
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
                     
-                    const aiDiv = document.getElementById(msgId);
-                    if(aiDiv) aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    const currentAiDiv = document.getElementById(msgId);
+                    if(currentAiDiv) currentAiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     
                     isGenerating = false; 
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
-                // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
+
+            } catch (e) {
+                document.getElementById(msgId).innerHTML = "Error.";
+                isGenerating = false;
+            }
         }
             
         // 6. HISTORY & CHAT MANAGEMENT
