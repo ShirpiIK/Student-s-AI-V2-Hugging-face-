@@ -1016,6 +1016,32 @@ input[type="search"]::-webkit-search-results-decoration {
         let userDetails = { type: 'school', medium: 'English' }; // Default Medium added
         let currentChatId = null;
         let isGenerating = false;
+        let abortController = null; // 🛑 புதுசா சேருங்க
+
+        // 👇 பட்டனை மாத்துற ஃபங்ஷன்
+        function toggleBtn(state) {
+            const btn = document.querySelector('.send-btn');
+            if (state === 'sending') {
+                btn.innerHTML = '<i class="fas fa-stop"></i>'; // Stop Icon
+                btn.onclick = stopGeneration;
+                btn.classList.add('stop-mode'); // Optional CSS styling
+            } else {
+                btn.innerHTML = '<i class="fas fa-arrow-up"></i>'; // Send Icon
+                btn.onclick = send;
+                btn.classList.remove('stop-mode');
+            }
+        }
+
+        // 👇 ஸ்டாப் பண்ற ஃபங்ஷன்
+        function stopGeneration() {
+            if (abortController) abortController.abort(); // Server Request-ஐ கட் பண்ணும்
+            isGenerating = false; // Typing-ஐ நிறுத்தும்
+            toggleBtn('idle'); // பட்டனை பழையபடி மாத்தும்
+            
+            // "Thinking..." அல்லது பாதியில் நிற்கும் பதிலை "Stopped" என காட்டலாம்
+            const thinkingMsg = document.querySelector('.msg-bubble:contains("Thinking...")'); // jQuery logic (just logic here)
+            // ஆனா நாம typeWriter-ல ஹேண்டில் பண்ணிக்கலாம்.
+        }
 
         // 2. ONBOARDING & LOGIN LOGIC
         function nextStep(targetStep) {
@@ -1260,6 +1286,8 @@ input[type="search"]::-webkit-search-results-decoration {
             element.style.minHeight = "20px";
 
             function type() {
+                if (!isGenerating) return; // 🛑 இந்த வரியைச் சேர்த்தா போதும்! ஸ்டாப் பண்ணா டைப்பிங் நின்னுடும்.
+        
                 if (i < finalHTML.length) {
                     // HTML Tags-ஐ கண்டறிந்தால் அதை முழுமையாக ஒரே நேரத்தில் சேர்க்க வேண்டும்
                     if (finalHTML.charAt(i) === '<') {
@@ -1384,7 +1412,7 @@ input[type="search"]::-webkit-search-results-decoration {
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 2. FIXED SEND FUNCTION (FULL & CORRECT) --- */
+        /* --- UPDATED SEND FUNCTION WITH STOP BUTTON --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1392,20 +1420,27 @@ input[type="search"]::-webkit-search-results-decoration {
             const fileData = window.currentFile;
             if (!txt && !fileData) return;
 
+            // UI Reset
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
+            // User Message Add
             addMsg('user', txt, fileData);
 
+            // Create AI Bubble
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
                 `<div id="${msgId}" class="msg ai-msg"><div class="msg-bubble" style="color:var(--text-muted);">Thinking...</div></div>`
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
+
+            // 👇 START GENERATION & TOGGLE BUTTON
             isGenerating = true;
+            toggleBtn('sending'); // பட்டனை Stop ஆக மாற்று
+            abortController = new AbortController(); // கன்ட்ரோலர் ரெடி
 
             try {
                 if (!currentChatId) {
@@ -1413,8 +1448,11 @@ input[type="search"]::-webkit-search-results-decoration {
                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
 
+                // 👇 Signal அனுப்புகிறோம் (Stop பண்ண வசதியாக)
                 const res = await fetch('/chat', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    signal: abortController.signal, // 👈 முக்கியம்
                     body: JSON.stringify({ 
                         message: txt, 
                         image: fileData, 
@@ -1432,20 +1470,24 @@ input[type="search"]::-webkit-search-results-decoration {
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
+                // Response வந்ததும் டைப் பண்றோம்
                 typeWriter(bubble, data.response, () => {
+                    // டைப்பிங் முடிஞ்சதும் பட்டனை மாத்து
+                    if(isGenerating) {
+                        isGenerating = false;
+                        toggleBtn('idle'); 
+                    }
+                    
+                    // Chips Logic (Old code...)
                     let fullText = data.response;
                     let suggestions = [];
                     let cleanText = fullText;
-
-                    // Suggestions Logic
                     const match = fullText.match(/<<SUGGEST:(.*?)>>/);
                     if (match) {
                         cleanText = fullText.replace(match[0], "");
-                        bubble.innerHTML = marked.parse(cleanText); 
+                        bubble.innerHTML = marked.parse(cleanText);
                         suggestions = match[1].split('|').map(s => s.trim());
                     }
-
-                    // Chips UI
                     if (suggestions.length > 0) {
                         const chipsDiv = document.createElement('div');
                         chipsDiv.className = 'suggestion-container';
@@ -1453,17 +1495,13 @@ input[type="search"]::-webkit-search-results-decoration {
                             const chip = document.createElement('div');
                             chip.className = 'suggestion-chip';
                             chip.innerText = topic;
-                            chip.onclick = () => { 
-                                document.getElementById('msg-input').value = topic; 
-                                send(); 
-                            };
+                            chip.onclick = () => { document.getElementById('msg-input').value = topic; send(); };
                             chipsDiv.appendChild(chip);
                         });
-                        const currentAiDiv = document.getElementById(msgId);
-                        if(currentAiDiv) currentAiDiv.appendChild(chipsDiv);
+                        if(aiDiv) aiDiv.appendChild(chipsDiv);
                     }
-
-                    // Action Buttons (Copy, Regen, Share)
+                    
+                    // Actions (Copy/Share)
                     const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
                     const actionsHtml = `
                         <div class="msg-actions">
@@ -1471,19 +1509,23 @@ input[type="search"]::-webkit-search-results-decoration {
                             <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                             <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                         </div>`;
+                    if(aiDiv) aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
                     
-                    const currentAiDiv = document.getElementById(msgId);
-                    if(currentAiDiv) currentAiDiv.insertAdjacentHTML('beforeend', actionsHtml);
-                    
-                    isGenerating = false; 
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
 
             } catch (e) {
-                document.getElementById(msgId).innerHTML = "Error.";
+                // 👇 STOP பண்ணும்போது இங்கே வரும்
+                if (e.name === 'AbortError') {
+                    document.getElementById(msgId).innerHTML = '<div class="msg-bubble" style="color:orange;">⏹️ Stopped.</div>';
+                } else {
+                    document.getElementById(msgId).innerHTML = '<div class="msg-bubble" style="color:red;">Error.</div>';
+                }
                 isGenerating = false;
+                toggleBtn('idle'); // Reset Button
             }
         }
+                    
             
         // 6. HISTORY & CHAT MANAGEMENT
         async function loadHistory() {
