@@ -59,8 +59,11 @@ RULES:
    - Do NOT reply in English unless asked to Translate.
 """
     else:
-        base_instruction += "\n5. **LANGUAGE:** English by default."
-        
+        base_instruction += """
+5. **LANGUAGE:** English by default.
+   - If the 'Context Book' is in a different language (e.g., Tamil), YOU MUST TRANSLATE the relevant content to English before answering.
+   - Do not output Tamil text for English medium students.
+"""
     return base_instruction
 
 # --- 🧬 MODEL & FILE HANDLING ---
