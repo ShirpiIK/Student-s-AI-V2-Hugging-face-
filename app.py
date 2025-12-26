@@ -126,6 +126,7 @@ HTML_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>window.MathJax = { tex: { inlineMath: [['$', '$']] }, svg: { fontCache: 'global' } };</script>
@@ -1091,50 +1092,55 @@ input[type="search"]::-webkit-search-results-decoration {
         /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
         
         /* --- CHATGPT STYLE ANIMATION (NO SHAKE & PERFECT SCROLL) --- */
-        function typeWriter(element, text, callback) {
-            const chatBox = document.getElementById('chat-box');
-            let i = 0;
+        // 👇 புதிய typeWriter (Color & Copy Button வேலை செய்யும்)
+function typeWriter(element, text, callback) {
+    const chatBox = document.getElementById('chat-box');
+    let i = 0;
+    element.innerHTML = marked.parse(text);
+    const finalHTML = element.innerHTML;
+    element.innerHTML = "";
+    element.style.minHeight = "20px";
+
+    function type() {
+        if (i < finalHTML.length) {
+            if (finalHTML.charAt(i) === '<') {
+                let tagEnd = finalHTML.indexOf('>', i);
+                i = tagEnd + 1;
+            } else { i += 3; }
+            element.innerHTML = finalHTML.substring(0, i);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            requestAnimationFrame(type);
+        } else {
+            element.innerHTML = finalHTML;
             
-            // 1. பதிலை முதலிலேயே Markdown ஆக மாற்றி ஒரு மறைமுக இடத்தில் (Hidden Div) வைக்கிறோம்
-            // இது பெட்டி அதிருவதை (Shake) தடுக்கும்.
-            element.innerHTML = marked.parse(text);
-            const finalHTML = element.innerHTML;
-            element.innerHTML = ""; // அனிமேஷனுக்காக மீண்டும் காலியாக்குகிறோம்
+            // 1. கலர் வரவைக்க (Syntax Highlight)
+            if (window.hljs) element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+            
+            // 2. காப்பி பட்டன் சேர்க்க (Copy Button)
+            element.querySelectorAll('pre').forEach(pre => {
+                if (pre.querySelector('.code-copy-btn')) return;
+                pre.style.position = 'relative';
+                const btn = document.createElement('button');
+                btn.className = 'code-copy-btn';
+                btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#aaa; border:1px solid #444; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:12px;";
+                btn.onclick = () => {
+                    const code = pre.querySelector('code');
+                    navigator.clipboard.writeText(code ? code.innerText : pre.innerText).then(() => {
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                        setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                    });
+                };
+                pre.appendChild(btn);
+            });
 
-            // 2. டயக்ராம் இருந்தால் அது தெரியாமல் இருக்க பெட்டியின் உயரத்தை லாக் செய்கிறோம்
-            element.style.minHeight = "20px";
-
-            function type() {
-                if (i < finalHTML.length) {
-                    // HTML Tags-ஐ கண்டறிந்தால் அதை முழுமையாக ஒரே நேரத்தில் சேர்க்க வேண்டும்
-                    if (finalHTML.charAt(i) === '<') {
-                        let tagEnd = finalHTML.indexOf('>', i);
-                        i = tagEnd + 1;
-                    } else {
-                        i += 3; // வேகத்திற்காக 3 எழுத்துகளாக பிரிக்கிறோம்
-                    }
-                    
-                    element.innerHTML = finalHTML.substring(0, i);
-                    
-                    // 👇 இதுதான் வார்த்தை மேலே வருவதை (Auto-scroll) உறுதி செய்யும்
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    
-                    requestAnimationFrame(type); // சீரான அனிமேஷனுக்கு setTimeout-க்கு பதில் இது சிறந்தது
-                } else {
-                    element.innerHTML = finalHTML; // இறுதியில் முழுமையாக உறுதி செய்
-                    
-                    // Mermaid டயக்ராம் இருந்தால் மட்டும் லோடு செய்
-                    if (window.mermaid && text.includes("```mermaid")) {
-                        mermaid.run({ nodes: [element] });
-                    }
-                    
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                    if (callback) callback();
-                }
-            }
-            type();
+            if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
+            chatBox.scrollTop = chatBox.scrollHeight;
+            if (callback) callback();
         }
-
+    }
+    type();
+    }
         
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
@@ -1454,14 +1460,32 @@ input[type="search"]::-webkit-search-results-decoration {
     document.addEventListener("DOMContentLoaded", function() {
     
     // 1. Chat Input: Send & Hide Keyboard
+    // ... உள்ளே ...
+    
+    // 👇 புதிய Enter Key லாஜிக் (பெரிய கோட் இருந்தால் Send ஆகாது)
     const msgInput = document.getElementById('msg-input');
     if(msgInput) {
-        msgInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-                this.blur(); // 👇 இதுதான் கீபோர்டை கீழே தள்ளும்!
+        // பழைய Event Listener-ஐ நீக்க Clone செய்கிறோம்
+        const newMsgInput = msgInput.cloneNode(true);
+        msgInput.parentNode.replaceChild(newMsgInput, msgInput);
+
+        newMsgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if(!e.shiftKey) {
+                    // 50 எழுத்துக்கு மேல இருந்தா அல்லது புது வரி இருந்தா Send ஆகாது
+                    if(this.value.length > 50 || this.value.includes('\n')) {
+                        return; 
+                    }
+                    e.preventDefault(); 
+                    send(); 
+                    this.blur(); 
+                }
             }
+        });
+        // உயரம் தானாக மாற
+        newMsgInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
         });
     }
 
