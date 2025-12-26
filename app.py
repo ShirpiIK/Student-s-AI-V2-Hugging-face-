@@ -1512,18 +1512,17 @@ input[type="search"]::-webkit-search-results-decoration {
         checkLogin();
     </script>
     <script>
-    // 1. ADD COLOR THEME (Highlight.js CSS)
-    const cssLink = document.createElement('link');
-    cssLink.rel = 'stylesheet';
-    cssLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
-    document.head.appendChild(cssLink);
+    // 1. Add Highlight.js for Colors
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+    document.head.appendChild(link);
 
-    // 2. OVERRIDE TYPEWRITER (Fixes Color & Adds Copy Button)
+    // 2. Override typeWriter to add Copy Button & Colors
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
         
-        // Text-ஐ Markdown ஆக மாற்றுதல்
         element.innerHTML = marked.parse(text);
         const finalHTML = element.innerHTML;
         element.innerHTML = "";
@@ -1543,34 +1542,30 @@ input[type="search"]::-webkit-search-results-decoration {
             } else {
                 element.innerHTML = finalHTML;
                 
-                // --- A. APPLY COLORS (Syntax Highlight) ---
-                if (window.hljs) {
-                    element.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightElement(block);
-                    });
-                }
+                // --- A. APPLY COLORS ---
+                element.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
 
-                // --- B. ADD COPY BUTTON ---
+                // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
                 element.querySelectorAll('pre').forEach(pre => {
                     // ஏற்கனவே பட்டன் இருக்கான்னு செக் பண்ணு
                     if (pre.querySelector('.code-copy-btn')) return;
 
-                    pre.style.position = 'relative'; 
-                    
+                    pre.style.position = 'relative'; // பட்டன் உள்ளே இருக்க இது அவசியம்
+
                     const btn = document.createElement('button');
                     btn.className = 'code-copy-btn';
                     btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    // பட்டன் டிசைன்
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s; z-index:10;";
+                    // பட்டன் டிசைன் (CSS)
+                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
                     
-                    // Copy Logic
+                    // பட்டன் கிளிக் செய்தால் காப்பி ஆக
                     btn.onclick = () => {
-                        const code = pre.querySelector('code');
-                        const codeText = code ? code.innerText : pre.innerText;
-                        
+                        const codeText = pre.querySelector('code').innerText;
                         navigator.clipboard.writeText(codeText).then(() => {
                             btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            btn.style.color = '#4ade80';
+                            btn.style.color = '#4ade80'; // Green Color
                             btn.style.borderColor = '#4ade80';
                             setTimeout(() => { 
                                 btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
@@ -1593,43 +1588,6 @@ input[type="search"]::-webkit-search-results-decoration {
         }
         type();
     };
-
-    // 3. KEYBOARD FIX (Smart Enter - No Auto Send for Long Code)
-    document.addEventListener("DOMContentLoaded", function() {
-        // Remove Autocomplete Suggestions
-        document.querySelectorAll('input').forEach(el => {
-            el.setAttribute('autocomplete', 'off');
-            el.setAttribute('spellcheck', 'false');
-        });
-
-        // Smart Enter Logic
-        const msgInput = document.getElementById('msg-input');
-        if(msgInput) {
-            // பழைய Event Listener-ஐ நீக்க Clone செய்கிறோம்
-            const newMsgInput = msgInput.cloneNode(true);
-            msgInput.parentNode.replaceChild(newMsgInput, msgInput);
-
-            newMsgInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    if(!e.shiftKey) {
-                        // 👇 இதுதான் முக்கியம்: 
-                        // டெக்ஸ்ட் பெருசா இருந்தாலோ (Code Paste), புது வரி இருந்தாலோ Send ஆகாது.
-                        if(this.value.length > 50 || this.value.includes('\n')) {
-                            return; // New Line வரும், Send ஆகாது
-                        }
-                        e.preventDefault(); 
-                        send(); 
-                        this.blur(); // கீபோர்டு மறையும்
-                    }
-                }
-            });
-            // Input event for auto-height
-            newMsgInput.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
-            });
-        }
-    });
 </script>
 
 <style>
