@@ -1512,13 +1512,13 @@ input[type="search"]::-webkit-search-results-decoration {
         checkLogin();
     </script>
     <script>
-    // A. Add Highlight.js CSS (Dark Theme) - இதுதான் கலர் வர வைக்கும்
+    // 1. Add Highlight.js for Colors
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // B. Override typeWriter to Apply Colors
+    // 2. Override typeWriter to add Copy Button & Colors
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1542,11 +1542,42 @@ input[type="search"]::-webkit-search-results-decoration {
             } else {
                 element.innerHTML = finalHTML;
                 
-                // 👇 THIS FIXES THE COLOR ISSUE 👇
+                // --- A. APPLY COLORS ---
                 element.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
 
+                // --- B. ADD COPY BUTTON INSIDE CODE BOX ---
+                element.querySelectorAll('pre').forEach(pre => {
+                    // ஏற்கனவே பட்டன் இருக்கான்னு செக் பண்ணு
+                    if (pre.querySelector('.code-copy-btn')) return;
+
+                    pre.style.position = 'relative'; // பட்டன் உள்ளே இருக்க இது அவசியம்
+
+                    const btn = document.createElement('button');
+                    btn.className = 'code-copy-btn';
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                    // பட்டன் டிசைன் (CSS)
+                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;";
+                    
+                    // பட்டன் கிளிக் செய்தால் காப்பி ஆக
+                    btn.onclick = () => {
+                        const codeText = pre.querySelector('code').innerText;
+                        navigator.clipboard.writeText(codeText).then(() => {
+                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                            btn.style.color = '#4ade80'; // Green Color
+                            btn.style.borderColor = '#4ade80';
+                            setTimeout(() => { 
+                                btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; 
+                                btn.style.color = '#a1a1aa';
+                                btn.style.borderColor = 'rgba(255,255,255,0.2)';
+                            }, 2000);
+                        });
+                    };
+                    pre.appendChild(btn);
+                });
+
+                // --- C. MERMAID DIAGRAMS ---
                 if (window.mermaid && text.includes("```mermaid")) {
                     mermaid.run({ nodes: [element] });
                 }
