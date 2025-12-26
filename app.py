@@ -1541,13 +1541,13 @@ input[type="search"]::-webkit-search-results-decoration {
         });
     }
     
-    // 3. Subject Inputs
+    // 3. Subject Inputs (UPDATED: Goes to Step 4)
     ['school-subject', 'college-subject'].forEach(id => {
         const el = document.getElementById(id);
         if(el) {
             el.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
-                    finishSetup();
+                    nextStep(4); // ✅ இப்போ Enter தட்டினால் Medium Page போகும்!
                     this.blur();
                 }
             });
