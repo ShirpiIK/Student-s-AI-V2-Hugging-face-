@@ -1629,7 +1629,7 @@ input[type="search"]::-webkit-search-results-decoration {
         function filterHistory(q) { document.querySelectorAll('.history-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(q.toLowerCase()) ? 'block' : 'none'); }
         function filterSettings(q) { document.querySelectorAll('.settings-option-btn').forEach(b => b.style.display = b.innerText.toLowerCase().includes(q.toLowerCase())?'flex':'none'); }
 
-        checkLogin();
+        /*checkLogin();*/
     </script>
                     
 
