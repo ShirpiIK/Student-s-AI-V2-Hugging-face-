@@ -612,6 +612,13 @@ HTML_TEMPLATE = """
 .sidebar-content {
     transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Buttery Smooth */
 }
+/* Hide browser's default X button for search inputs */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+}
 
 </style>
 </head>
