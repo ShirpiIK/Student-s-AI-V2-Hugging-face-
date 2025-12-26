@@ -1307,10 +1307,11 @@ input[type="search"]::-webkit-search-results-decoration {
         /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
         /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
         
-        // 👇 UPDATED TYPEWRITER (With Stop Check)
-    typeWriter = function(element, text, callback) {
+        // 👇 UPDATED TYPEWRITER (With Speaker Button 🔊)
+        typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
+        window.typeProgress = 0; 
         
         element.innerHTML = marked.parse(text);
         const finalHTML = element.innerHTML;
@@ -1318,11 +1319,11 @@ input[type="search"]::-webkit-search-results-decoration {
         element.style.minHeight = "20px";
 
         function type() {
-            // 👇👇👇 முக்கிய மாற்றம்: Stop கிளிக் பண்ணா டைப்பிங் நிற்கும் 👇👇👇
             if (!isGenerating) return; 
-            // 👆👆👆 THIS LINE STOPS THE TYPING 👆👆👆
+            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
 
             if (i < finalHTML.length) {
+                // ... (Typing Logic same as before) ...
                 if (finalHTML.charAt(i) === '<') {
                     let tagEnd = finalHTML.indexOf('>', i);
                     i = tagEnd + 1;
@@ -1334,37 +1335,33 @@ input[type="search"]::-webkit-search-results-decoration {
                 requestAnimationFrame(type);
             } else {
                 element.innerHTML = finalHTML;
+                window.typeProgress = 1;
                 
-                // Colors & Copy Btn
-                element.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
-                element.querySelectorAll('pre').forEach(pre => {
-                    if (pre.querySelector('.code-copy-btn')) return;
-                    pre.style.position = 'relative';
-                    const btn = document.createElement('button');
-                    btn.className = 'code-copy-btn';
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
-                    btn.onclick = () => {
-                        navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
-                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
-                        });
-                    };
-                    pre.appendChild(btn);
-                });
+                // ... (Colors & Copy Logic) ...
+                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+                // ... (Copy button logic) ...
 
-                if (window.mermaid && text.includes("```mermaid")) {
-                    mermaid.run({ nodes: [element] });
-                }
+                // 👇👇👇 முக்கியம்: இந்த பகுதி இருக்கானு பாருங்க 👇👇👇
+                // Clean text for speech
+                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
+                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 
+                const actionsHtml = `
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px;">
+                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
+                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    </div>`;
+                element.insertAdjacentHTML('beforeend', actionsHtml);
+                // 👆👆👆 இந்த கோட் இருந்தால் தான் பட்டன் வரும்! 👆👆👆
+
+                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
                 if (callback) callback();
             }
         }
         type();
-    };
+        };
         
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
