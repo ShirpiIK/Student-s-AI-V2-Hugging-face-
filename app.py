@@ -56,6 +56,9 @@ RULES:
 6. **LANGUAGE:** Tamil Medium selected.
    - Reply in **TAMIL SCRIPT (தமிழ்)**.
    - Cite the page number in English (e.g., `📖 **ஆதாரம்:** பக்கம் 12`).
+7. **QUIZ MODE:** If user asks for "Quiz" or "Test", generate 5 Multiple Choice Questions (MCQ) based on the context. 
+   - Format: Question, Options (A,B,C,D). 
+   - Do NOT reveal answers immediately. Wait for user to reply.
 """
     else:
         base_instruction += "\n6. **LANGUAGE:** English by default."
@@ -603,6 +606,16 @@ HTML_TEMPLATE = """
     .send-btn:active { transform: scale(0.9); }
     /* ... ஏற்கனவே இருக்கும் டிசைன் கோடுகள் ... */
 
+    /* VOICE MODE STYLES */
+    .mic-btn {
+       background: transparent; border: 1px solid var(--border);
+       color: var(--text-muted); width: 40px; height: 40px;
+       border-radius: 50%; display: flex; align-items: center; justify-content: center;
+       cursor: pointer; transition: all 0.2s; margin-right: 8px;
+     }
+     .mic-btn:hover { background: var(--text); color: var(--bg); }
+     .mic-btn.listening { background: #ef4444; color: white; border-color: #ef4444; animation: pulse 1.5s infinite; }
+     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     /* 👇 புதிய கோடை இங்கே மட்டும் பேஸ்ட் பண்ணுங்க */
     * {
         -webkit-user-select: none;
@@ -1007,6 +1020,10 @@ input[type="search"]::-webkit-search-results-decoration {
             <div class="plus-btn" onclick="toggleAttachMenu()">
                 <i class="fas fa-plus"></i> 
             </div>
+
+            <button class="mic-btn" id="mic-btn" onclick="toggleVoice()">
+                <i class="fas fa-microphone"></i>
+            </button>
             
             <textarea id="msg-input" placeholder="Message..." rows="1" 
                 oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -1442,6 +1459,51 @@ input[type="search"]::-webkit-search-results-decoration {
             box.scrollTo(0, box.scrollHeight);
         }
 
+        /* --- 🎙️ VOICE MODE FUNCTIONS --- */
+        function toggleVoice() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Voice input not supported in this browser. Try Chrome."); return;
+            }
+            const micBtn = document.getElementById('mic-btn');
+            
+            if (window.recognition && window.isListening) {
+                window.recognition.stop();
+                return;
+            }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US'; // தமிழுக்கு 'ta-IN' போடலாம்
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                window.isListening = true;
+                micBtn.classList.add('listening');
+            };
+            recognition.onend = () => {
+                window.isListening = false;
+                micBtn.classList.remove('listening');
+            };
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                const inputEl = document.getElementById('msg-input');
+                inputEl.value += (inputEl.value ? " " : "") + speechResult;
+                inputEl.style.height = 'auto';
+                inputEl.style.height = inputEl.scrollHeight + 'px';
+            };
+            
+            window.recognition = recognition;
+            recognition.start();
+        }
+
+        function speakText(txt) {
+            window.speechSynthesis.cancel(); // பழைய பேச்சை நிறுத்து
+            const utterance = new SpeechSynthesisUtterance(txt);
+            utterance.lang = 'en-US'; // தமிழுக்கு 'ta-IN'
+            utterance.rate = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+        
         /* --- UPDATED SEND FUNCTION WITH STOP BUTTON --- */
         async function send() {
             if (isGenerating) return;
@@ -1788,11 +1850,11 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 👇 UPDATED TYPEWRITER (Calculates Progress correctly)
+    // 👇 UPDATED TYPEWRITER (With Speaker Button 🔊)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
-        window.typeProgress = 0; // Reset Progress
+        window.typeProgress = 0; 
         
         element.innerHTML = marked.parse(text);
         const finalHTML = element.innerHTML;
@@ -1801,10 +1863,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
         function type() {
             if (!isGenerating) return; 
-
-            // 👇👇👇 இந்த வரி இருந்தால் தான் "Stopped" வேலை செய்யும் 👇👇👇
             if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
-            // 👆👆👆 CRITICAL LINE FOR STOP LOGIC 👆👆👆
 
             if (i < finalHTML.length) {
                 if (finalHTML.charAt(i) === '<') {
@@ -1818,7 +1877,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 requestAnimationFrame(type);
             } else {
                 element.innerHTML = finalHTML;
-                window.typeProgress = 1; // Completed
+                window.typeProgress = 1;
                 
                 // Colors & Copy Logic
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
@@ -1838,8 +1897,21 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
+                // 👇👇👇 ADDED SPEAKER BUTTON HERE 👇👇👇
+                // Clean text for speech (Remove markdown symbols)
+                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
+                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 
+                const actionsHtml = `
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px;">
+                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
+                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    </div>`;
+                element.insertAdjacentHTML('beforeend', actionsHtml);
+                // 👆👆👆 END SPEAKER BUTTON 👆👆👆
+
+                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
                 if (callback) callback();
             }
