@@ -618,10 +618,11 @@ HTML_TEMPLATE = """
     <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
     
     <input type="text" id="setting-search-input" placeholder="Search settings..." 
-           style="width:100%; padding:12px 40px; background:transparent; border:none; color:var(--text); outline:none;"
-           oninput="filterSettings(this.value)"
-           onkeydown="if(event.key==='Enter') this.blur()">
-           
+       style="width:100%; padding:12px 40px; background:transparent; border:none; color:var(--text); outline:none;"
+       autocomplete="off"
+       oninput="filterSettings(this.value)"
+       onkeydown="if(event.key==='Enter') this.blur()">
+   
     <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
        style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
 </div>
@@ -761,9 +762,11 @@ HTML_TEMPLATE = """
             <div style="position:relative; margin-top:50px; margin-bottom:20px; flex-shrink:0;">
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none;"></i>
                 
-                <input type="text" id="hist-search" placeholder="Search..." oninput="filterHistory(this.value)" 
-                       style="width:100%; height:45px; padding:0 35px 0 40px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none; font-size:15px;">
-                
+                <input type="text" id="hist-search" placeholder="Search..." 
+                   style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
+                   autocomplete="off" 
+                   oninput="filterHistory(this.value)"
+                   onkeydown="if(event.key==='Enter') this.blur()">
                 <i class="fas fa-times" id="clear-search" onclick="clearSearch()" 
                    style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
             </div>
@@ -1331,8 +1334,8 @@ HTML_TEMPLATE = """
    🚀 GLOBAL NAVIGATION & INPUT SUPPORT
    ========================================= */
 
-// 1. MOBILE BACK BUTTON HANDLE (History Management)
-window.onpopstate = function(event) {
+    // 1. MOBILE BACK BUTTON HANDLE (History Management)
+    window.onpopstate = function(event) {
     // A. சப்-பேஜ் திறந்திருந்தால் (Student Details / Themes)
     const activeSubPage = document.querySelector('.settings-sub-page.active');
     if (activeSubPage) {
@@ -1359,38 +1362,38 @@ window.onpopstate = function(event) {
         document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
         document.getElementById('step-' + event.state.step).classList.add('active');
     }
-};
+    };
 
-// 2. OPEN FUNCTIONS WITH HISTORY PUSH
-// (இதை பழைய function-க்கு பதில் மாற்றுங்கள்)
+     // 2. OPEN FUNCTIONS WITH HISTORY PUSH
+     // (இதை பழைய function-க்கு பதில் மாற்றுங்கள்)
 
-function openSettings() {
+    function openSettings() {
     document.getElementById('settings-overlay').classList.add('active');
     history.pushState({view: 'settings'}, null, ""); // ஹிஸ்டரி சேர்ப்பு
     
     // மெனு திறந்திருந்தால் மூடிவிடு
     const sb = document.getElementById('sidebar');
     if(sb.classList.contains('open')) toggleSidebar();
-}
+    }
 
-function openSubPage(pageId) {
+    function openSubPage(pageId) {
     document.getElementById(pageId).classList.add('active');
     history.pushState({view: 'subpage'}, null, ""); // சப்-பேஜ் ஹிஸ்டரி
-}
+    }
 
-function closeSettings() {
+    function closeSettings() {
     // Back பட்டன் அழுத்தினால் தானாக மூடும், இருந்தாலும் Manual Close-க்கு:
     if(history.state && history.state.view === 'settings') history.back();
     else document.getElementById('settings-overlay').classList.remove('active');
-}
+    }
 
-function closeSubPage(pageId) {
+    function closeSubPage(pageId) {
     if(history.state && history.state.view === 'subpage') history.back();
     else document.getElementById(pageId).classList.remove('active');
-}
+    }
 
-/* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE --- */
-document.addEventListener("DOMContentLoaded", function() {
+    /* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE --- */
+    document.addEventListener("DOMContentLoaded", function() {
     
     // 1. Chat Page (Send & Hide Keyboard)
     const msgInput = document.getElementById('msg-input');
@@ -1435,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
-});
+    });
     // --- SETTINGS SEARCH LOGIC ---
     function filterSettings(query) {
     const btns = document.querySelectorAll('.settings-option-btn');
