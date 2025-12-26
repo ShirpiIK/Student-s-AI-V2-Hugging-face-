@@ -1511,6 +1511,100 @@ input[type="search"]::-webkit-search-results-decoration {
         // 7. INITIALIZE APP
         checkLogin();
     </script>
+    <script>
+    // A. Add Highlight.js CSS (Dark Theme) - இதுதான் கலர் வர வைக்கும்
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+    document.head.appendChild(link);
+
+    // B. Override typeWriter to Apply Colors
+    typeWriter = function(element, text, callback) {
+        const chatBox = document.getElementById('chat-box');
+        let i = 0;
+        
+        element.innerHTML = marked.parse(text);
+        const finalHTML = element.innerHTML;
+        element.innerHTML = "";
+        element.style.minHeight = "20px";
+
+        function type() {
+            if (i < finalHTML.length) {
+                if (finalHTML.charAt(i) === '<') {
+                    let tagEnd = finalHTML.indexOf('>', i);
+                    i = tagEnd + 1;
+                } else {
+                    i += 3;
+                }
+                element.innerHTML = finalHTML.substring(0, i);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                requestAnimationFrame(type);
+            } else {
+                element.innerHTML = finalHTML;
+                
+                // 👇 THIS FIXES THE COLOR ISSUE 👇
+                element.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                if (window.mermaid && text.includes("```mermaid")) {
+                    mermaid.run({ nodes: [element] });
+                }
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+                if (callback) callback();
+            }
+        }
+        type();
+    };
+</script>
+
+<style>
+    /* பழைய பிழையான .sub-header ஐ சரிசெய்தல் */
+    .sub-header {
+        padding: 20px; 
+        padding-top: calc(20px + env(safe-area-inset-top));
+        display: flex; align-items: center; gap: 15px;
+        border-bottom: 1px solid var(--border); margin-bottom: 20px;
+    }
+
+    /* Container-ஐ நகர விடாமல் தடுத்தல் (Fixing Lag) */
+    #sidebar {
+        transform: none !important; 
+        transition: visibility 0s linear 0.4s, background-color 0.4s ease !important;
+        display: flex !important;
+        visibility: hidden;
+        background-color: rgba(0,0,0,0);
+    }
+    #sidebar.open {
+        visibility: visible !important;
+        background-color: rgba(0,0,0,0.6) !important;
+        transition-delay: 0s !important;
+    }
+
+    /* CONTENT-ஐ மட்டும் GPU-வில் நகர வைப்பது (Butter Smooth) */
+    .sidebar-content {
+        transform: translate3d(-100%, 0, 0) !important; /* இடது பக்கம் மறைந்திருக்கும் */
+        width: 280px !important;
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+        will-change: transform;
+        box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+    }
+
+    /* SETTINGS PAGES (வலது பக்கம் இருந்து வர) */
+    #settings-overlay, .settings-sub-page {
+        transform: translate3d(100%, 0, 0) !important;
+        transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) !important;
+        will-change: transform;
+    }
+
+    /* ACTIVE STATES (இயக்கம்) */
+    #sidebar.open .sidebar-content,
+    #settings-overlay.active,
+    .settings-sub-page.active {
+        transform: translate3d(0, 0, 0) !important;
+    }
+</style>
     
 </body>       
 </html>
