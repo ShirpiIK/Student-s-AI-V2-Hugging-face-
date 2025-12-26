@@ -200,26 +200,37 @@ HTML_TEMPLATE = """
               font-family: "Font Awesome 6 Free" !important;
               font-weight: 900;
         }
-        /* --- SIDEBAR --- */
-        #sidebar {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0); /* ஆரம்பத்தில் வெளிப்படையாக இருக்கும் */
-            z-index: 100; transform: translateX(-100%); 
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-        }
+        /* --- SIDEBAR SMOOTH ANIMATION FIX --- */
+    
+    /* 1. Container: பின்னணி ஃபேட் ஆவதற்கு (Fade Effect) */
+    #sidebar {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 3000; display: flex;
+        visibility: hidden; /* ஆரம்பத்தில் மறைந்திருக்கும் */
+        background-color: rgba(0,0,0,0); /* வெளிப்படையானது */
+        transition: visibility 0.4s, background-color 0.4s ease;
+        transform: none !important; /* 👇 இதுதான் முக்கியம்! பழைய transform-ஐ நீக்குகிறது */
+    }
 
-         #sidebar.open { transform: translateX(0); background: rgba(0,0,0,0.5); }
+    /* 2. Open State: பின்னணி கருப்பாவதற்கு */
+    #sidebar.open {
+        visibility: visible;
+        background-color: rgba(0,0,0,0.5);
+    }
 
-        /* உண்மையான மெனு பகுதி */
-        .sidebar-content {
-            width: 280px; height: 100%; background: var(--bg);
-            display: flex; flex-direction: column; padding: 20px;
-            border-right: 1px solid var(--border);
-            transform: translateX(-100%);
-            /* 👇 இதுதான் அந்த Smooth Magic */
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
+    /* 3. Content: மெனு ஸ்லைடு ஆவதற்கு (Slide Effect) */
+    .sidebar-content {
+        width: 280px; height: 100%; background: var(--bg);
+        border-right: 1px solid var(--border);
+        display: flex; flex-direction: column; padding: 20px;
+        transform: translateX(-100%); /* இடது பக்கம் மறைந்திருக்கும் */
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Buttery Smooth Magic */
+    }
+
+    /* 4. Content Open: வெளியே வருவதற்கு */
+    #sidebar.open .sidebar-content {
+        transform: translateX(0);
+    }
         /* --- SIDEBAR ICONS & FONT FIX --- */
        .sidebar-content i {
             width: 20px;
@@ -617,12 +628,11 @@ HTML_TEMPLATE = """
         <div class="settings-search" style="position:relative;">
     <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
     
-    <input type="text" id="setting-search-input" placeholder="Search settings..." 
-       style="width:100%; padding:12px 40px; background:transparent; border:none; color:var(--text); outline:none;"
-       autocomplete="off"
+    <input type="text" id="setting-search-input" placeholder="Search settings..." autocomplete="off"
+       style="width:100%; padding-left:30px; background:transparent; border:none; color:var(--text); outline:none;"
        oninput="filterSettings(this.value)"
        onkeydown="if(event.key==='Enter') this.blur()">
-   
+       
     <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
        style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
 </div>
@@ -762,11 +772,11 @@ HTML_TEMPLATE = """
             <div style="position:relative; margin-top:50px; margin-bottom:20px; flex-shrink:0;">
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none;"></i>
                 
-                <input type="text" id="hist-search" placeholder="Search..." 
-                   style="width:100%; padding:10px 35px 10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none;"
-                   autocomplete="off" 
+                <input type="text" id="hist-search" placeholder="Search..." autocomplete="off"
+                   style="width:100%; height:45px; padding:0 35px 0 40px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none; font-size:15px;"
                    oninput="filterHistory(this.value)"
                    onkeydown="if(event.key==='Enter') this.blur()">
+       
                 <i class="fas fa-times" id="clear-search" onclick="clearSearch()" 
                    style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
             </div>
@@ -1392,17 +1402,17 @@ HTML_TEMPLATE = """
     else document.getElementById(pageId).classList.remove('active');
     }
 
-    /* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE --- */
+    /* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE FIX --- */
     document.addEventListener("DOMContentLoaded", function() {
     
-    // 1. Chat Page (Send & Hide Keyboard)
+    // 1. Chat Input: Send & Hide Keyboard
     const msgInput = document.getElementById('msg-input');
     if(msgInput) {
         msgInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send();
-                this.blur(); // 👇 இதுதான் கீபோர்டை மறைய வைக்கும்
+                this.blur(); // 👇 இதுதான் கீபோர்டை கீழே தள்ளும்!
             }
         });
     }
@@ -1413,32 +1423,24 @@ HTML_TEMPLATE = """
         nameInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 nextStep(3);
-                this.blur(); // Hide Keyboard
+                this.blur();
             }
         });
     }
-
-    // 3. Onboarding Subjects
-    const schoolSub = document.getElementById('school-subject');
-    const collegeSub = document.getElementById('college-subject');
-
-    if(schoolSub) {
-        schoolSub.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                finishSetup();
-                this.blur(); // Hide Keyboard
-            }
-        });
-    }
-    if(collegeSub) {
-        collegeSub.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                finishSetup();
-                this.blur(); // Hide Keyboard
-            }
-        });
-    }
+    
+    // 3. Subject Inputs
+    ['school-subject', 'college-subject'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            el.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    finishSetup();
+                    this.blur();
+                }
+            });
+        }
     });
+});
     // --- SETTINGS SEARCH LOGIC ---
     function filterSettings(query) {
     const btns = document.querySelectorAll('.settings-option-btn');
