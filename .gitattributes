@@ -38,3 +38,4 @@ Class_10_Science_Tamil_Medium-2024_Edition-www.tntextbooks.in.pdf filter=lfs dif
 books/school/10th/science.pdf filter=lfs diff=lfs merge=lfs -text
 Class_10_Tamil_Tamil_Medium-2025_Edition-www.tntextbooks.in.pdf filter=lfs diff=lfs merge=lfs -text
 Class_10_English_English_Medium-2024_Edition-www.tntextbooks.in.pdf filter=lfs diff=lfs merge=lfs -text
+Class_10_Mathematics_Tamil_Medium-2025_Edition-www.tntextbooks.in.pdf filter=lfs diff=lfs merge=lfs -text
