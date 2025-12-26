@@ -628,11 +628,10 @@ HTML_TEMPLATE = """
         <div class="settings-search" style="position:relative;">
     <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
     
-    <input type="text" id="setting-search-input" placeholder="Search settings..." autocomplete="off"
+    <input type="search" id="setting-search-input" name="setting_search_field" placeholder="Search settings..." autocomplete="off" spellcheck="false"
        style="width:100%; padding-left:30px; background:transparent; border:none; color:var(--text); outline:none;"
        oninput="filterSettings(this.value)"
        onkeydown="if(event.key==='Enter') this.blur()">
-       
     <i class="fas fa-times" id="clear-setting-search" onclick="clearSettingsSearch()"
        style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
 </div>
@@ -771,12 +770,10 @@ HTML_TEMPLATE = """
 
             <div style="position:relative; margin-top:50px; margin-bottom:20px; flex-shrink:0;">
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; pointer-events:none;"></i>
-                
-                <input type="text" id="hist-search" placeholder="Search..." autocomplete="off"
-                   style="width:100%; height:45px; padding:0 35px 0 40px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none; font-size:15px;"
-                   oninput="filterHistory(this.value)"
-                   onkeydown="if(event.key==='Enter') this.blur()">
-       
+                <input type="search" id="hist-search" name="search_hist_field" placeholder="Search..." autocomplete="off" spellcheck="false"
+                style="width:100%; height:45px; padding:0 35px 0 40px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--text); outline:none; font-size:15px;"
+                oninput="filterHistory(this.value)"
+                onkeydown="if(event.key==='Enter') this.blur()">
                 <i class="fas fa-times" id="clear-search" onclick="clearSearch()" 
                    style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
             </div>
