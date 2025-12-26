@@ -1786,7 +1786,7 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 👇 UPDATED TYPEWRITER (Tracks Progress)
+    // 👇 UPDATED TYPEWRITER (Progress Tracking + Stop Logic + Colors + Copy)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1798,9 +1798,10 @@ input[type="search"]::-webkit-search-results-decoration {
         element.style.minHeight = "20px";
 
         function type() {
+            // 🛑 1. STOP CHECK (இது இருந்தால் தான் Stop ஆகும்)
             if (!isGenerating) return; 
 
-            // 👇 Update Progress (0.0 to 1.0)
+            // 📊 2. PROGRESS TRACKING (இது இருந்தால் தான் DB-ல் Cut ஆகும்)
             if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
 
             if (i < finalHTML.length) {
@@ -1817,7 +1818,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1; // Completed
                 
-                // Colors & Copy Logic...
+                // --- Colors & Copy Logic ---
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -1843,6 +1844,7 @@ input[type="search"]::-webkit-search-results-decoration {
         }
         type();
     };
+            
 </script>
 
 <style>
