@@ -37,33 +37,29 @@ user_db = load_db()
 current_key_index = 0
 app = Flask(__name__)
 
-# --- 🧠 DYNAMIC SYSTEM INSTRUCTION ---
+# 👇 REPLACED System Instruction (With Citation Rule) 👇
 def get_system_instruction(medium="English"):
     base_instruction = """
 ROLE: You are "Student's AI", a professional academic tutor.
 RULES:
-1. **SOURCE:** Answer ONLY based on the provided 'Context Book'. If the answer is not in the book, say "I couldn't find this in your textbook."
+1. **SOURCE:** Answer ONLY based on the provided 'Context Book'.
 2. **FORMAT:** Use Markdown. Bold key terms.
-3. **MATH:** Use LaTeX for formulas ($$ ... $$).
-4. **SUGGESTIONS:** At the very end of your response, strictly suggest 2 related follow-up topics/questions from the same Unit/Chapter formatted exactly like this:
-   `<<SUGGEST: Question 1 | Question 2>>`
+3. **PAGE CITATION:** At the very end of your answer, YOU MUST strictly state the page number(s) where you found the information. 
+   - Format: `📖 **Source:** Page X` (or Pages X-Y).
+   - If you combine info from multiple pages, list them all.
+4. **MATH:** Use LaTeX for formulas ($$ ... $$).
+5. **SUGGESTIONS:** End with 2 follow-up questions: `<<SUGGEST: Q1 | Q2>>`
 """
     
-    # 👇 TAMIL MEDIUM LOGIC
     if medium == "Tamil":
         base_instruction += """
-5. **LANGUAGE:** The user has selected TAMIL Medium.
-   - You MUST reply completely in **TAMIL SCRIPT (தமிழ்)**.
-   - Translate all concepts to Tamil.
-   - You can keep technical English terms in brackets, e.g., விசை (Force).
-   - Do NOT reply in English unless asked to Translate.
+6. **LANGUAGE:** Tamil Medium selected.
+   - Reply in **TAMIL SCRIPT (தமிழ்)**.
+   - Cite the page number in English (e.g., `📖 **ஆதாரம்:** பக்கம் 12`).
 """
     else:
-        base_instruction += """
-5. **LANGUAGE:** English by default.
-   - If the 'Context Book' is in a different language (e.g., Tamil), YOU MUST TRANSLATE the relevant content to English before answering.
-   - Do not output Tamil text for English medium students.
-"""
+        base_instruction += "\n6. **LANGUAGE:** English by default."
+        
     return base_instruction
 
 # --- 🧬 MODEL & FILE HANDLING ---
@@ -80,16 +76,15 @@ def get_working_model(key):
     except: return None
     return None
 # --- 📚 LIBRARY LOGIC ---
+# 👇 REPLACED get_book_text FUNCTION (With Page Numbers) 👇
 def get_book_text(user_details):
-    # Folder Structure: books/school/10th/maths.pdf
     try:
         base_path = "books"
         if user_details.get("type") == "school":
-            std = user_details.get("standard", "").lower() # e.g., "10th"
-            sub = user_details.get("subject", "").lower()  # e.g., "maths"
+            std = user_details.get("standard", "").lower()
+            sub = user_details.get("subject", "").lower()
             path = os.path.join(base_path, "school", std, f"{sub}.pdf")
         else:
-            # College Logic (Example)
             dept = user_details.get("dept", "").lower()
             sub = user_details.get("subject", "").lower()
             path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
@@ -98,12 +93,15 @@ def get_book_text(user_details):
             text = ""
             with open(path, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
-                # Read only first 50 pages for speed (Optimization) or full book
-                for page in reader.pages[:50]: 
-                    text += page.extract_text() + "\n"
+                # 👇 இங்கே தான் மாற்றம்: enumerate பயன்படுத்தி Page Number எடுக்கிறோம்
+                for i, page in enumerate(reader.pages[:50]): 
+                    content = page.extract_text()
+                    if content:
+                        # ஒவ்வொரு பக்கத்திற்கும் ஒரு "தலைப்பு" போடுகிறோம்
+                        text += f"\n--- [Page {i+1}] ---\n{content}\n"
             return text
         else:
-            return None # Book not found
+            return None
     except: return None
         
 def process_image(image_data):
