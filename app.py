@@ -664,6 +664,19 @@ input[type="search"]::-webkit-search-results-decoration {
         display: flex; align-items: center; gap: 15px;
         border-bottom: 1px solid var(--border); margin-bottom: 20px;
     }
+    /* AD BANNER STYLE */
+    .ad-banner-small {
+        width: 100%; height: 60px;
+        background: #202020; border: 1px dashed #444;
+        display: flex; align-items: center; justify-content: center;
+        color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+        border-radius: 8px; margin-top: 10px; flex-shrink: 0; /* சுருங்காது */
+        cursor: default; user-select: none;
+    }
+    /* Light Mode-க்கு */
+    body.light-mode .ad-banner-small { background: #e4e4e7; border-color: #ccc; color: #888; }
+    /* Pro Mode வந்தால் மறைக்க */
+    .ad-banner-small.hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -674,6 +687,12 @@ input[type="search"]::-webkit-search-results-decoration {
         <div class="settings-header">
             <div class="back-btn" onclick="closeSettings()"><i class="fas fa-arrow-left"></i></div>
             <h2 style="margin:0; font-size:20px; color:var(--text);">Settings</h2>
+        <div class="settings-content">
+    </div>
+
+    <div style="padding: 20px;">
+    <div class="ad-banner-small" id="settings-ad">Settings Ad Space (320x60)</div>
+    </div>
         </div>
 
         <div class="settings-search" style="position:relative;">
@@ -720,6 +739,7 @@ input[type="search"]::-webkit-search-results-decoration {
                     <label for="pic-upload" class="edit-pic-btn"><i class="fas fa-camera"></i></label>
                     <input type="file" id="pic-upload" hidden accept="image/*" onchange="uploadProfilePic(this)">
                 </div>
+                
                 <div class="profile-details">
                     <div class="detail-row">
                         <span class="detail-label">Name</span>
@@ -739,6 +759,13 @@ input[type="search"]::-webkit-search-results-decoration {
                     </div>
                     <div class="logout-row" onclick="handleLogout()">Log Out</div>
                 </div>
+                <div id="subpage-profile" class="settings-sub-page">
+                <div class="settings-content"> <div class="profile-card">
+               </div> <div class="ad-banner-small" id="profile-ad">Profile Ad Space (320x60)</div>
+
+              </div> 
+            </div>
+                
             </div>
             </div>
     </div>
@@ -764,7 +791,13 @@ input[type="search"]::-webkit-search-results-decoration {
                     <span>System Default</span>
                 </div>
             </div>
-             </div>
+            <div id="subpage-themes" class="settings-sub-page">
+            <div class="settings-content"> <div class="theme-list">
+            </div> <div class="ad-banner-small" id="theme-ad">Theme Ad Space (320x60)</div>
+
+            </div> 
+           </div>
+        </div>
     </div>
 
 </div>
@@ -839,6 +872,11 @@ input[type="search"]::-webkit-search-results-decoration {
             
             <div class="history-label" style="flex-shrink:0;">Chat History</div>
             <div id="history-list" style="flex:1; overflow-y:auto; padding-right:5px; margin-bottom:10px;"></div>
+
+            <div class="ad-banner-small" id="sidebar-ad">Menu Ad Space (320x60)</div>
+
+            <div class="sidebar-footer">
+            </div>
             
             <div class="sidebar-footer">
                 <div class="footer-link" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</div>
