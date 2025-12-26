@@ -999,6 +999,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
         function finishSetup() {
             userDetails.name = currentUser;
+            if (!userDetails.medium) userDetails.medium = 'English';
             let valid = true;
             if(userDetails.type === 'school') {
                 userDetails.standard = document.getElementById('school-std').value;
@@ -1011,8 +1012,11 @@ input[type="search"]::-webkit-search-results-decoration {
                 userDetails.subject = document.getElementById('college-subject').value.trim();
                 if(!userDetails.dept || !userDetails.subject) valid = false;
             }
-            if(!valid) { alert("Please fill all details"); return; }
-
+            if(!valid) { alert("Please fill all details"); 
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                document.getElementById('step-3').classList.add('active');
+                return;
+            }
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
             document.getElementById("onboarding-overlay").classList.add('hidden');
