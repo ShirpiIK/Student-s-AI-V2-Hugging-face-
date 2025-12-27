@@ -910,13 +910,23 @@ input[type="search"]::-webkit-search-results-decoration {
                     <div class="toggle-btn" id="btn-college" onclick="toggleType('college')">College</div>
                 </div>
                 
-                <div id="school-opts">
-                    <select id="school-std" class="dropdown-select">
+                <select id="school-std" class="dropdown-select" onchange="checkStandard()">
                         <option value="" disabled selected>Select Standard</option>
                         <option value="6th">6th</option><option value="7th">7th</option><option value="8th">8th</option>
-                        <option value="9th">9th</option><option value="10th">10th</option><option value="11th">11th</option><option value="12th">12th</option>
+                        <option value="9th">9th</option><option value="10th">10th</option>
+                        <option value="11th">11th</option><option value="12th">12th</option>
                     </select>
+                    
                     <input type="text" id="school-subject" class="input-field" placeholder="Enter Subject (e.g. Maths)" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
+                    
+                    <select id="school-subject-select" class="dropdown-select" style="display:none;">
+                        <option value="" disabled selected>Select Subject</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="English">English</option>
+                        <option value="Maths">Maths</option>
+                        <option value="Science">Science</option>
+                        <option value="Social Science">Social Science</option>
+                    </select>
                 </div>
                 
                 <div id="college-opts" class="hidden-opt" style="display:none;">
@@ -1089,14 +1099,39 @@ input[type="search"]::-webkit-search-results-decoration {
                  let opt = document.createElement('option'); opt.value = s; opt.innerText = s; semSelect.appendChild(opt);
              });
         }
+        /* 👇 NEW FUNCTION: 6-10th Dropdown Switcher 👇 */
+        function checkStandard() {
+            const std = document.getElementById('school-std').value;
+            const textInput = document.getElementById('school-subject');
+            const selectInput = document.getElementById('school-subject-select');
+            
+            // 6 முதல் 10 வரை இருந்தால் மட்டும் Dropdown வரும்
+            if (['6th', '7th', '8th', '9th', '10th'].includes(std)) {
+                textInput.style.display = 'none';
+                selectInput.style.display = 'block';
+            } else {
+                textInput.style.display = 'block';
+                selectInput.style.display = 'none';
+            }
+        }
 
+        /* 👇 UPDATED FINISH SETUP (Handles Dropdown Value) 👇 */
         function finishSetup() {
             userDetails.name = currentUser;
             if (!userDetails.medium) userDetails.medium = 'English';
             let valid = true;
+            
             if(userDetails.type === 'school') {
                 userDetails.standard = document.getElementById('school-std').value;
-                userDetails.subject = document.getElementById('school-subject').value.trim();
+                
+                // Logic: Dropdown தெரியுதான்னு பார்த்து, அதுல இருந்து சப்ஜெக்ட் எடுக்கும்
+                const std = userDetails.standard;
+                if (['6th', '7th', '8th', '9th', '10th'].includes(std)) {
+                    userDetails.subject = document.getElementById('school-subject-select').value;
+                } else {
+                    userDetails.subject = document.getElementById('school-subject').value.trim();
+                }
+
                 if(!userDetails.standard || !userDetails.subject) valid = false;
             } else {
                 userDetails.dept = document.getElementById('college-dept').value;
@@ -1105,11 +1140,12 @@ input[type="search"]::-webkit-search-results-decoration {
                 userDetails.subject = document.getElementById('college-subject').value.trim();
                 if(!userDetails.dept || !userDetails.subject) valid = false;
             }
-            if(!valid) { alert("Please fill all details"); 
-            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-                document.getElementById('step-3').classList.add('active');
+            
+            if(!valid) { 
+                alert("Please fill all details"); 
                 return;
             }
+            
             localStorage.setItem("student_ai_user", currentUser);
             localStorage.setItem("student_details", JSON.stringify(userDetails));
             document.getElementById("onboarding-overlay").classList.add('hidden');
@@ -1246,6 +1282,7 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
+        /* 👇 UPDATED EDIT SUBJECT (Auto-New Chat Feature) 👇 */
         function editSubject(el) {
             const currentSub = el.innerText;
             const input = document.createElement('input');
@@ -1253,17 +1290,37 @@ input[type="search"]::-webkit-search-results-decoration {
             input.className = 'subject-edit-input';
             el.replaceWith(input);
             input.focus();
+            
             const save = () => {
-                const newVal = input.value.trim() || currentSub;
-                userDetails.subject = newVal;
-                localStorage.setItem("student_details", JSON.stringify(userDetails));
-                const span = document.createElement('span');
-                span.className = 'detail-value editable-subject';
-                span.id = 'profile-sub';
-                span.onclick = function() { editSubject(this) };
-                span.innerText = newVal;
-                input.replaceWith(span);
+                const newVal = input.value.trim();
+                
+                // சப்ஜெக்ட் மாறினால் மட்டும் New Chat ஆரம்பிக்கும்
+                if (newVal && newVal !== currentSub) {
+                    userDetails.subject = newVal;
+                    localStorage.setItem("student_details", JSON.stringify(userDetails));
+                    
+                    // UI Update
+                    const span = document.createElement('span');
+                    span.className = 'detail-value editable-subject';
+                    span.id = 'profile-sub';
+                    span.onclick = function() { editSubject(this) };
+                    span.innerText = newVal;
+                    input.replaceWith(span);
+                    
+                    // 🔥 MAGIC: பழைய சேட்டை மூடிவிட்டு, புது சேட் தொடங்கும்
+                    alert(`Subject changed to ${newVal}. Starting new session!`);
+                    newChat(); 
+                } else {
+                    // சப்ஜெக்ட் மாறவில்லை என்றால் சும்மா பழையபடியே வைக்கும்
+                    const span = document.createElement('span');
+                    span.className = 'detail-value editable-subject';
+                    span.id = 'profile-sub';
+                    span.onclick = function() { editSubject(this) };
+                    span.innerText = currentSub;
+                    input.replaceWith(span);
+                }
             };
+            
             input.onblur = save;
             input.onkeydown = (e) => { if(e.key === 'Enter') save(); }
         }
