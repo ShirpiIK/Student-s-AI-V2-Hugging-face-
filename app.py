@@ -1463,18 +1463,24 @@ input[type="search"]::-webkit-search-results-decoration {
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 🎙️ VOICE MODE FUNCTIONS --- */
+        /* --- 🎙️ UPDATED VOICE FUNCTION (With Error Alerts) --- */
         function toggleVoice() {
+            // 1. Browser Support Check
             if (!('webkitSpeechRecognition' in window)) {
-                alert("Voice input not supported in this browser. Try Chrome."); return;
+                alert("⚠️ Voice input not supported. Please use Google Chrome."); 
+                return;
             }
-            const micBtn = document.getElementById('mic-btn');
             
+            const micBtn = document.getElementById('mic-btn');
+            const inputEl = document.getElementById('msg-input');
+
+            // 2. Stop if already listening
             if (window.recognition && window.isListening) {
                 window.recognition.stop();
                 return;
             }
 
+            // 3. Start New Recognition
             const recognition = new webkitSpeechRecognition();
             recognition.lang = 'en-US'; // தமிழுக்கு 'ta-IN' போடலாம்
             recognition.interimResults = false;
@@ -1482,20 +1488,38 @@ input[type="search"]::-webkit-search-results-decoration {
 
             recognition.onstart = () => {
                 window.isListening = true;
-                micBtn.classList.add('listening');
+                micBtn.classList.add('listening'); // Red Pulse Effect
+                inputEl.placeholder = "Listening... Speak now...";
             };
+
             recognition.onend = () => {
                 window.isListening = false;
                 micBtn.classList.remove('listening');
+                inputEl.placeholder = "Message...";
             };
+
             recognition.onresult = (event) => {
                 const speechResult = event.results[0][0].transcript;
-                const inputEl = document.getElementById('msg-input');
                 inputEl.value += (inputEl.value ? " " : "") + speechResult;
+                // Auto resize textarea
                 inputEl.style.height = 'auto';
                 inputEl.style.height = inputEl.scrollHeight + 'px';
             };
-            
+
+            // 👇👇👇 முக்கிய மாற்றம்: எர்ரர் வந்தால் அலர்ட் வரும் 👇👇👇
+            recognition.onerror = (event) => {
+                console.error("Mic Error:", event.error);
+                if (event.error === 'not-allowed') {
+                    alert("🚫 Mic Permission Denied! Please allow microphone access in Settings.");
+                } else if (event.error === 'no-speech') {
+                    alert("🔇 No speech detected. Please speak louder.");
+                } else {
+                    alert("⚠️ Mic Error: " + event.error);
+                }
+                micBtn.classList.remove('listening');
+            };
+            // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
+
             window.recognition = recognition;
             recognition.start();
         }
