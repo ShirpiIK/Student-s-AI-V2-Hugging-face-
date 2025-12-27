@@ -1874,7 +1874,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
     /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
 
-    // 2. UPDATED TYPEWRITER (With Listen Button 🔊 + Copy + Colors)
+    // 👇 UPDATED TYPEWRITER (Fixes Listen Button Issue)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1903,8 +1903,10 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // --- Colors & Copy Logic ---
+                // Colors
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+                
+                // Copy Button for Code Blocks
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
                     pre.style.position = 'relative';
@@ -1921,9 +1923,14 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 LISTEN BUTTON CODE (இங்கே தான் மேஜிக் நடக்குது) 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                // 👇👇👇 FIX: Newlines-ஐ நீக்கிவிட்டு ஒரே வரியாக மாற்றுதல் 👇👇👇
+                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); // Markdown குறிகளை நீக்குதல்
+                
+                // முக்கிய மாற்றம்: .replace(/\n/g, ' ') சேர்க்கப்பட்டுள்ளது
+                const safeSpeechText = cleanTextForSpeech
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, "\\'")
+                    .replace(/\n/g, ' '); 
                 
                 const actionsHtml = `
                     <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
@@ -1933,7 +1940,7 @@ input[type="search"]::-webkit-search-results-decoration {
                         <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 END LISTEN BUTTON 👆👆👆
+                // 👆👆👆 FIX END 👆👆👆
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
