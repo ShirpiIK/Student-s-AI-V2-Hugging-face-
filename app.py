@@ -1381,13 +1381,12 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        /* 👇 UPDATED EDIT SUBJECT (Silent Background Update) 👇 */
+        /* 👇 UPDATED EDIT SUBJECT (No Alerts, Silent Update) 👇 */
         function editSubject(el) {
             const currentSub = el.innerText;
             const std = userDetails.standard || "";
-            const group = userDetails.group || "";
-
-            // Create Dropdown dynamically
+            
+            // 1. Dropdown Logic
             const select = document.createElement('select');
             select.className = 'subject-edit-input';
             select.style.width = "auto";
@@ -1395,17 +1394,16 @@ input[type="search"]::-webkit-search-results-decoration {
 
             let options = [];
             
-            // 11th/12th Logic (Based on Biology Group for now)
+            // 6-10th vs 11-12th Subjects
             const sub1to10 = ["Tamil", "English", "Maths", "Science", "Social Science"];
             const subBioGroup = ["Tamil", "English", "Maths", "Physics", "Chemistry", "Botany", "Zoology"];
 
             if (['11th', '12th'].includes(std)) {
-                // Future: Add logic for CS Group if needed
                 options = subBioGroup; 
             } else if (userDetails.type === 'school') {
                 options = sub1to10;
             } else {
-                // College Manual Input Logic
+                // College: Text Input (No Dropdown)
                 const input = document.createElement('input');
                 input.value = currentSub;
                 input.className = 'subject-edit-input';
@@ -1425,8 +1423,8 @@ input[type="search"]::-webkit-search-results-decoration {
                         span.innerText = newVal;
                         input.replaceWith(span);
                         
-                        alert(`Subject updated to ${newVal}!`);
-                        renderWelcomeScreen(); // 🔥 Silent Update
+                        // 🔥 NO ALERT: Silent Update
+                        if(typeof renderWelcomeScreen === 'function') renderWelcomeScreen(); 
                     } else {
                         revert(input, currentSub);
                     }
@@ -1436,7 +1434,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 return;
             }
 
-            // Fill Dropdown
+            // Fill Dropdown Options
             options.forEach(s => {
                 let opt = document.createElement('option');
                 opt.value = s; opt.innerText = s;
@@ -1447,7 +1445,7 @@ input[type="search"]::-webkit-search-results-decoration {
             el.replaceWith(select);
             select.focus();
 
-            // Helper to revert UI if no change
+            // UI-ஐ பழைய நிலைக்கு மாற்றும் உதவி ஃபங்ஷன்
             function revert(elem, val) {
                 const span = document.createElement('span');
                 span.className = 'detail-value editable-subject';
@@ -1464,18 +1462,16 @@ input[type="search"]::-webkit-search-results-decoration {
                     userDetails.subject = newVal;
                     localStorage.setItem("student_details", JSON.stringify(userDetails));
                     
-                    revert(select, newVal); // Update UI text
+                    revert(select, newVal);
                     
-                    // 👇 Notification Logic
-                    alert(`Subject changed to ${newVal}. New session started in background.`);
-                    
-                    // 👇 Sidebar திறக்காமல் Background-ல் அப்டேட் செய்யும்
-                    renderWelcomeScreen(); 
+                    // 🔥 முக்கிய மாற்றம்: Alert நீக்கப்பட்டது! Silent Update மட்டும் நடக்கும்.
+                    if(typeof renderWelcomeScreen === 'function') renderWelcomeScreen(); 
                 } else {
                     revert(select, currentSub);
                 }
             };
 
+            // Select செய்தாலே Save ஆகிவிடும்
             select.onchange = saveEdit;
             select.onblur = saveEdit;
         }
