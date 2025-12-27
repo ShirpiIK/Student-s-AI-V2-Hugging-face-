@@ -910,7 +910,8 @@ input[type="search"]::-webkit-search-results-decoration {
                     <div class="toggle-btn" id="btn-college" onclick="toggleType('college')">College</div>
                 </div>
                 
-                <select id="school-std" class="dropdown-select" onchange="checkStandard()">
+                <div id="school-opts">
+                    <select id="school-std" class="dropdown-select" onchange="checkStandard()">
                         <option value="" disabled selected>Select Standard</option>
                         <option value="6th">6th</option><option value="7th">7th</option><option value="8th">8th</option>
                         <option value="9th">9th</option><option value="10th">10th</option>
