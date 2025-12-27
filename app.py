@@ -1874,7 +1874,70 @@ input[type="search"]::-webkit-search-results-decoration {
 
     /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
 
-    // 2. UPDATED TYPEWRITER (With Listen Button 🔊 + Copy + Colors)
+    /* --- 🔊 ADVANCED SPEECH LOGIC (Play/Pause/Resume) --- */
+    let currentUtterance = null;
+    let isSpeechPaused = false;
+
+    function toggleSpeech(btn, text) {
+        const synth = window.speechSynthesis;
+
+        // 1. ஒரே பட்டனை மீண்டும் கிளிக் செய்தால் (Pause/Resume)
+        if (currentUtterance && currentUtterance.text === text) {
+            if (synth.paused) {
+                synth.resume(); // தொடர்
+                isSpeechPaused = false;
+                btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            } else if (synth.speaking) {
+                synth.pause(); // நிறுத்து
+                isSpeechPaused = true;
+                btn.innerHTML = '<i class="fas fa-play"></i> Resume';
+            } else {
+                startSpeaking(btn, text); // முடிந்துவிட்டால் மீண்டும் பேசு
+            }
+            return;
+        }
+
+        // 2. புது பட்டனை கிளிக் செய்தால் (பழையதை நிறுத்து)
+        synth.cancel();
+        
+        // மற்ற எல்லா பட்டனையும் பழைய நிலைக்கு மாற்று
+        document.querySelectorAll('.action-icon').forEach(icon => {
+            if (icon.innerHTML.includes('Pause') || icon.innerHTML.includes('Resume')) {
+                icon.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            }
+        });
+
+        // 3. புதிதாக பேசு
+        startSpeaking(btn, text);
+    }
+
+    function startSpeaking(btn, text) {
+        const synth = window.speechSynthesis;
+        // Text cleaning logic included here
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        utterance.lang = 'en-US'; 
+        utterance.rate = 1;
+
+        utterance.onend = () => {
+            btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen'; // பேசி முடித்ததும் பழையபடி மாறும்
+            currentUtterance = null;
+            isSpeechPaused = false;
+        };
+        
+        utterance.onerror = (e) => {
+            console.error("Speech Error", e);
+            btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+        };
+
+        currentUtterance = utterance;
+        isSpeechPaused = false;
+        
+        synth.speak(utterance);
+        btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+    }
+
+    // 👇 UPDATED TYPEWRITER (Connects to new Speech Logic)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1903,7 +1966,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // --- Colors & Copy Logic ---
+                // Colors & Copy Logic
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -1921,19 +1984,22 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 LISTEN BUTTON CODE (இங்கே தான் மேஜிக் நடக்குது) 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                // 👇👇👇 TEXT CLEANING FOR SPEECH 👇👇👇
+                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
+                const safeSpeechText = cleanTextForSpeech
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, "\\'")
+                    .replace(/\n/g, ' '); // Newlines removed
                 
                 const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <div class="action-icon" onclick="toggleSpeech(this, '${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                         <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 END LISTEN BUTTON 👆👆👆
+                // 👆👆👆 END FIX 👆👆👆
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
