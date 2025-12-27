@@ -1064,12 +1064,62 @@ input[type="search"]::-webkit-search-results-decoration {
 
         
         // 2. ONBOARDING & LOGIN LOGIC
+        /* 👇 UPDATED NEXT STEP (With Validation for All Steps) 👇 */
         function nextStep(targetStep) {
+            // STEP 2 VALIDATION: Name Check
             if (targetStep === 3) { 
                 const name = document.getElementById('name-input').value.trim();
                 if (!name) return shakeElement('name-input');
                 currentUser = name;
             }
+
+            // 👇👇👇 STEP 3 VALIDATION: Student Details Check (New) 👇👇👇
+            if (targetStep === 4) {
+                let isValid = true;
+                
+                if (userDetails.type === 'school') {
+                    // 1. Check Standard
+                    const std = document.getElementById('school-std').value;
+                    if (!std) { 
+                        shakeElement('school-std'); 
+                        isValid = false; 
+                    } else {
+                        // 2. Check Subjects based on Standard
+                        if (['11th', '12th'].includes(std)) {
+                            // For 11th & 12th: Check Group AND Subject
+                            const grp = document.getElementById('school-group').value;
+                            const sub = document.getElementById('school-subject-select').value;
+                            
+                            if (!grp) { shakeElement('school-group'); isValid = false; }
+                            else if (!sub) { shakeElement('school-subject-select'); isValid = false; }
+                        } else {
+                            // For 6th to 10th: Check Subject only
+                            const sub = document.getElementById('school-subject-select').value;
+                            if (!sub) { shakeElement('school-subject-select'); isValid = false; }
+                        }
+                    }
+                } else {
+                    // College Validation
+                    const dept = document.getElementById('college-dept').value;
+                    const year = document.getElementById('college-year').value;
+                    const sem = document.getElementById('college-sem').value;
+                    const sub = document.getElementById('college-subject').value.trim();
+                    
+                    if (!dept) { shakeElement('college-dept'); isValid = false; }
+                    if (!year) { shakeElement('college-year'); isValid = false; }
+                    if (!sem) { shakeElement('college-sem'); isValid = false; }
+                    if (!sub) { shakeElement('college-subject'); isValid = false; }
+                }
+
+                // If anything is missing, Stop & Alert
+                if (!isValid) {
+                    alert("Please fill all details to proceed!");
+                    return; // ⛔ STOP HERE
+                }
+            }
+            // 👆👆👆 VALIDATION END 👆👆👆
+
+            // Proceed to Next Step
             if (targetStep > 1) history.pushState({ step: targetStep }, null, "");
             document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
             document.getElementById('step-' + targetStep).classList.add('active');
