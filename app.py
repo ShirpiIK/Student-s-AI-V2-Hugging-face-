@@ -122,7 +122,20 @@ def get_book_text(user_details):
         else:
             return None
     except: return None
-        
+
+# 👇 ADD THIS FUNCTION BEFORE generate_with_retry 👇
+def process_image(image_data):
+    try:
+        if "," in image_data:
+            image_data = image_data.split(",")[1]
+        image_bytes = base64.b64decode(image_data)
+        img = Image.open(io.BytesIO(image_bytes))
+        return img
+    except Exception as e:
+        print(f"Image Error: {e}")
+        return None
+# 👆 ADD THIS FUNCTION 👆
+
 # 👇 REPLACED generate_with_retry FUNCTION 👇
 def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
     global current_key_index
@@ -1043,11 +1056,12 @@ input[type="search"]::-webkit-search-results-decoration {
     <script>
         // 1. GLOBAL VARIABLES
         let currentUser = null;
-        let userDetails = { type: 'school', medium: 'English' }; // Default Medium added
+        let userDetails = { type: 'school', medium: 'English' };
         let currentChatId = null;
         let isGenerating = false;
-        let abortController = null; // 🛑 புதுசா சேருங்க
-
+        let abortController = null;
+        let currentUtterance = null; // For Speech
+        let isSpeechPaused = false;  // For Speech
         
         // 2. ONBOARDING & LOGIN LOGIC
         function nextStep(targetStep) {
@@ -1062,9 +1076,21 @@ input[type="search"]::-webkit-search-results-decoration {
         }
 
         window.onpopstate = function(e) {
-            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-            const s = e.state && e.state.step ? e.state.step : 1;
-            document.getElementById('step-' + s).classList.add('active');
+            // Back Button Handler
+            const activeSubPage = document.querySelector('.settings-sub-page.active');
+            if (activeSubPage) { activeSubPage.classList.remove('active'); return; }
+            
+            const settings = document.getElementById('settings-overlay');
+            if (settings && settings.classList.contains('active')) { settings.classList.remove('active'); return; }
+            
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('open')) { toggleSidebar(); return; }
+
+            // Onboarding Steps
+            if (e.state && e.state.step) {
+                document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                document.getElementById('step-' + e.state.step).classList.add('active');
+            }
         };
 
         function toggleType(type) {
@@ -1105,9 +1131,8 @@ input[type="search"]::-webkit-search-results-decoration {
                 userDetails.subject = document.getElementById('college-subject').value.trim();
                 if(!userDetails.dept || !userDetails.subject) valid = false;
             }
-            if(!valid) { alert("Please fill all details"); 
-            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-                document.getElementById('step-3').classList.add('active');
+            if(!valid) { 
+                alert("Please fill all details"); 
                 return;
             }
             localStorage.setItem("student_ai_user", currentUser);
@@ -1123,31 +1148,29 @@ input[type="search"]::-webkit-search-results-decoration {
             setTimeout(() => el.classList.remove('shake'), 500);
             el.addEventListener('input', () => el.classList.remove('input-error'), {once:true});
         }
-        // 👇 STOP BUTTON LOGIC
+
+        // 3. STOP BUTTON & UI LOGIC
         function toggleBtn(state) {
             const btn = document.querySelector('.send-btn');
             if (state === 'sending') {
-                btn.innerHTML = '<i class="fas fa-stop"></i>'; // Square Icon
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
                 btn.onclick = stopGeneration;
             } else {
-                btn.innerHTML = '<i class="fas fa-arrow-up"></i>'; // Arrow Icon
+                btn.innerHTML = '<i class="fas fa-arrow-up"></i>';
                 btn.onclick = send;
             }
         }
 
-        // 👇 UPDATED STOP FUNCTION (Instant Visual Feedback)
         async function stopGeneration() {
             if (abortController) abortController.abort();
             isGenerating = false; 
             toggleBtn('idle');
             
-            // 👇 உடனே ஸ்கிரீன்ல "Stopped" னு காட்ட இந்த வரியை சேர்க்கிறோம்
             const lastAiMsg = document.querySelector('.ai-msg:last-child .msg-bubble');
             if (lastAiMsg && !lastAiMsg.innerHTML.includes("Stopped")) {
                 lastAiMsg.innerHTML += ' <span style="color:orange; font-weight:bold; font-size:14px;">... [Stopped]</span>';
             }
 
-            // Backend Sync
             if (currentChatId && window.typeProgress < 1) {
                 await fetch('/truncate_response', {
                     method: 'POST',
@@ -1161,7 +1184,7 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        // 3. APP CORE & SETTINGS LOGIC
+        // 4. MAIN APP LOGIC
         function checkLogin() {
             const stored = localStorage.getItem("student_ai_user");
             if (stored) { 
@@ -1174,53 +1197,40 @@ input[type="search"]::-webkit-search-results-decoration {
             setTheme(theme);
         }
 
-        // 👇 பழைய showApp ஃபங்ஷனை அழித்துவிட்டு இதை போடவும் 👇
         async function showApp() {
-            // 1. Basic UI Updates (பெயர் மற்றும் ஹிஸ்டரி லோட் செய்தல்)
             document.getElementById("display-name").innerText = currentUser;
             updateProfileUI();
             loadHistory();
 
-            // 2. Welcome Message & Suggestions Logic
             const introDiv = document.getElementById("chat-box");
             if(introDiv.innerHTML === "") {
-                // Welcome Message
                 const subName = userDetails.subject || 'subjects';
                 let welcomeMsg = `<h1>Hi ${currentUser},</h1><p>Ready to study <b>${subName}</b>?</p>`;
                 
-                // 👇 Initial Suggestions Logic (Mockup based on subject)
+                // Chips Mockup
                 const sub = (userDetails.subject || "").toLowerCase();
-                let starters = [];
-                
-                // Subject-க்கு ஏற்ற கேள்விகள் (நீங்க அப்புறம் இதை மாத்திக்கலாம்)
+                let starters = ["Unit 1 Introduction", "Basic Definitions"];
                 if(sub.includes('math')) starters = ["Algebra Basics", "Trigonometry Formulas"];
-                else if(sub.includes('phy')) starters = ["Newton's Laws", "Thermodynamics"];
-                else if(sub.includes('chem')) starters = ["Periodic Table", "Chemical Bonding"];
-                else if(sub.includes('bio')) starters = ["Cell Structure", "Genetics"];
-                else if(sub.includes('tamil') || userDetails.medium === 'Tamil') starters = ["Unit 1 Introduction", "Basic Definitions"];
-                else starters = ["Unit 1 Introduction", "Basic Definitions"]; // Default
-
-                // Create Chips HTML
+                
                 let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:10px;">`;
                 starters.forEach(s => {
-                    // கிளிக் பண்ணா நேரா மெசேஜ் டைப் ஆகி சென்ட் ஆகிடும்
                     chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
                 });
                 chipsHtml += `</div>`;
 
-                // Chat Box உள்ளே செட் பண்ணுதல்
                 introDiv.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;">${welcomeMsg}</div>${chipsHtml}</div>`;
             }
         }
-        // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
         
+        // Settings Functions
         function openSettings() {
             document.getElementById('settings-overlay').classList.add('active');
             if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
             updateProfileUI();
         }
-
         function closeSettings() { document.getElementById('settings-overlay').classList.remove('active'); }
+        function openSubPage(pageId) { document.getElementById(pageId).classList.add('active'); }
+        function closeSubPage(pageId) { document.getElementById(pageId).classList.remove('active'); }
 
         function updateProfileUI() {
             document.getElementById('profile-name').innerText = currentUser;
@@ -1278,7 +1288,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
         function handleLogout() { localStorage.clear(); location.reload(); }
 
-        // 4. ATTACHMENT & UTILITY LOGIC
+        // 5. ATTACHMENT & UTILITY
         function toggleAttachMenu() {
             const menu = document.getElementById('attach-menu');
             menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
@@ -1303,73 +1313,118 @@ input[type="search"]::-webkit-search-results-decoration {
             document.querySelectorAll('input[type="file"]').forEach(el => el.value = "");
         }
 
-        document.addEventListener('click', function(e) {
-            const menu = document.getElementById('attach-menu');
-            const btn = document.querySelector('.plus-btn');
-            if (menu && menu.style.display === 'flex' && !menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.style.display = 'none';
-            }
-        });
-
-        /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
-        /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
-        
-        // 👇 UPDATED TYPEWRITER (With Speaker Button 🔊)
-        typeWriter = function(element, text, callback) {
-        const chatBox = document.getElementById('chat-box');
-        let i = 0;
-        window.typeProgress = 0; 
-        
-        element.innerHTML = marked.parse(text);
-        const finalHTML = element.innerHTML;
-        element.innerHTML = "";
-        element.style.minHeight = "20px";
-
-        function type() {
-            if (!isGenerating) return; 
-            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
-
-            if (i < finalHTML.length) {
-                // ... (Typing Logic same as before) ...
-                if (finalHTML.charAt(i) === '<') {
-                    let tagEnd = finalHTML.indexOf('>', i);
-                    i = tagEnd + 1;
+        /* --- 🔊 SPEECH LOGIC (LISTEN, PAUSE, RESUME) --- */
+        function toggleSpeech(btn, text) {
+            const synth = window.speechSynthesis;
+            if (currentUtterance && currentUtterance.text === text) {
+                if (synth.paused) {
+                    synth.resume();
+                    isSpeechPaused = false;
+                    btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                } else if (synth.speaking) {
+                    synth.pause();
+                    isSpeechPaused = true;
+                    btn.innerHTML = '<i class="fas fa-play"></i> Resume';
                 } else {
-                    i += 3;
+                    startSpeaking(btn, text);
                 }
-                element.innerHTML = finalHTML.substring(0, i);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                requestAnimationFrame(type);
-            } else {
-                element.innerHTML = finalHTML;
-                window.typeProgress = 1;
-                
-                // ... (Colors & Copy Logic) ...
-                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
-                // ... (Copy button logic) ...
-
-                // 👇👇👇 முக்கியம்: இந்த பகுதி இருக்கானு பாருங்க 👇👇👇
-                // Clean text for speech
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-                
-                const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
-                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    </div>`;
-                element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 இந்த கோட் இருந்தால் தான் பட்டன் வரும்! 👆👆👆
-
-                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
-                chatBox.scrollTop = chatBox.scrollHeight;
-                if (callback) callback();
+                return;
             }
+            synth.cancel();
+            document.querySelectorAll('.action-icon').forEach(icon => {
+                if (icon.innerHTML.includes('Pause') || icon.innerHTML.includes('Resume')) {
+                    icon.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                }
+            });
+            startSpeaking(btn, text);
         }
-        type();
+
+        function startSpeaking(btn, text) {
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US'; 
+            utterance.rate = 1;
+            utterance.onend = () => {
+                btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                currentUtterance = null;
+                isSpeechPaused = false;
+            };
+            utterance.onerror = (e) => {
+                if (e.error !== 'interrupted') btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+            };
+            currentUtterance = utterance;
+            isSpeechPaused = false;
+            synth.speak(utterance);
+            btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+        }
+
+        /* --- ⌨️ TYPEWRITER (With Buttons) --- */
+        typeWriter = function(element, text, callback) {
+            const chatBox = document.getElementById('chat-box');
+            let i = 0;
+            window.typeProgress = 0; 
+            
+            element.innerHTML = marked.parse(text);
+            const finalHTML = element.innerHTML;
+            element.innerHTML = "";
+            element.style.minHeight = "20px";
+
+            function type() {
+                if (!isGenerating) return; 
+                if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
+
+                if (i < finalHTML.length) {
+                    if (finalHTML.charAt(i) === '<') {
+                        let tagEnd = finalHTML.indexOf('>', i);
+                        i = tagEnd + 1;
+                    } else {
+                        i += 3;
+                    }
+                    element.innerHTML = finalHTML.substring(0, i);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    requestAnimationFrame(type);
+                } else {
+                    element.innerHTML = finalHTML;
+                    window.typeProgress = 1;
+                    
+                    element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+                    element.querySelectorAll('pre').forEach(pre => {
+                        if (pre.querySelector('.code-copy-btn')) return;
+                        pre.style.position = 'relative';
+                        const btn = document.createElement('button');
+                        btn.className = 'code-copy-btn';
+                        btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                        btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
+                        btn.onclick = () => {
+                            navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
+                                btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                                setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                            });
+                        };
+                        pre.appendChild(btn);
+                    });
+
+                    // Buttons Logic
+                    const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
+                    const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'").replace(/\n/g, ' '); 
+                    
+                    const actionsHtml = `
+                        <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <div class="action-icon" onclick="toggleSpeech(this, '${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                            <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
+                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                            <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                        </div>`;
+                    element.insertAdjacentHTML('beforeend', actionsHtml);
+
+                    if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    if (callback) callback();
+                }
+            }
+            type();
         };
-        
+
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
                 const originalIcon = btn.innerHTML;
@@ -1382,30 +1437,24 @@ input[type="search"]::-webkit-search-results-decoration {
             if (navigator.share) {
                 navigator.share({ title: 'Student AI', text: text }).catch(console.error);
             } else {
-                alert("Sharing not supported. Text copied.");
+                alert("Sharing not supported on this device/browser. Text copied to clipboard.");
+                copyText(document.querySelector('.action-icon'), text);
             }
         }
 
-        // 5. CHAT HANDLING LOGIC
-        /* --- TOGGLE SIDEBAR (FIX: HIDE CHAT INPUT) --- */
+        // 6. CHAT & MESSAGE LOGIC
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
-            const chatInput = document.querySelector('.input-wrapper'); // Chat Bar Element
-            
+            const chatInput = document.querySelector('.input-wrapper');
             sb.classList.toggle('open');
-            
             if(sb.classList.contains('open')) {
-                // மெனு திறக்கும்போது:
-                // 1. ஹிஸ்டரி சேர்க்கிறோம் (Back button support)
                 history.pushState({menu: 'open'}, null, "");
-                
-                // 2. 👇 Chat Bar-ஐ மறைக்கிறோம் (Keyboard issue fix)
                 if(chatInput) chatInput.style.display = 'none';
             } else {
-                // மெனு மூடும்போது Chat Bar மீண்டும் வரும்
                 if(chatInput) chatInput.style.display = 'block';
             }
         }
+
         function editMessage(text) {
             const inputEl = document.getElementById('msg-input');
             inputEl.value = text;
@@ -1424,7 +1473,6 @@ input[type="search"]::-webkit-search-results-decoration {
             send(); 
         }
 
-        /* --- 1. FIXED ADDMSG WITH WORKING ICONS --- */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1439,21 +1487,13 @@ input[type="search"]::-webkit-search-results-decoration {
             let actionsHtml = "";
 
             if (role === 'user') {
-                // 👇 Question Icons
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
-            } else {
-                // 👇 Response Icons
-                actionsHtml = `
-                <div class="msg-actions">
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                </div>`;
-            }
+            } 
+            // AI messages get buttons via typeWriter, not here initially.
 
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
@@ -1463,77 +1503,6 @@ input[type="search"]::-webkit-search-results-decoration {
             box.scrollTo(0, box.scrollHeight);
         }
 
-        /* --- 🎙️ UPDATED VOICE FUNCTION (With Error Alerts) --- */
-        function toggleVoice() {
-            // 1. Browser Support Check
-            if (!('webkitSpeechRecognition' in window)) {
-                alert("⚠️ Voice input not supported. Please use Google Chrome."); 
-                return;
-            }
-            
-            const micBtn = document.getElementById('mic-btn');
-            const inputEl = document.getElementById('msg-input');
-
-            // 2. Stop if already listening
-            if (window.recognition && window.isListening) {
-                window.recognition.stop();
-                return;
-            }
-
-            // 3. Start New Recognition
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = 'en-US'; // தமிழுக்கு 'ta-IN' போடலாம்
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            recognition.onstart = () => {
-                window.isListening = true;
-                micBtn.classList.add('listening'); // Red Pulse Effect
-                inputEl.placeholder = "Listening... Speak now...";
-            };
-
-            recognition.onend = () => {
-                window.isListening = false;
-                micBtn.classList.remove('listening');
-                inputEl.placeholder = "Message...";
-            };
-
-            recognition.onresult = (event) => {
-                const speechResult = event.results[0][0].transcript;
-                inputEl.value += (inputEl.value ? " " : "") + speechResult;
-                // Auto resize textarea
-                inputEl.style.height = 'auto';
-                inputEl.style.height = inputEl.scrollHeight + 'px';
-            };
-
-            // 👇👇👇 முக்கிய மாற்றம்: எர்ரர் வந்தால் அலர்ட் வரும் 👇👇👇
-            recognition.onerror = (event) => {
-                console.error("Mic Error:", event.error);
-                if (event.error === 'not-allowed') {
-                    alert("🚫 Mic Permission Denied! Please allow microphone access in Settings.");
-                } else if (event.error === 'no-speech') {
-                    alert("🔇 No speech detected. Please speak louder.");
-                } else {
-                    alert("⚠️ Mic Error: " + event.error);
-                }
-                micBtn.classList.remove('listening');
-            };
-            // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
-
-            window.recognition = recognition;
-            recognition.start();
-        }
-
-        // 1. பேசுறதுக்கான ஃபங்ஷன் (இதை typeWriter-க்கு மேலே தனியா போடுங்க)
-        function speakText(txt) {
-            window.speechSynthesis.cancel(); // பழைய பேச்சை நிறுத்து
-            const utterance = new SpeechSynthesisUtterance(txt);
-            utterance.lang = 'en-US'; // தமிழுக்கு 'ta-IN'
-            utterance.rate = 1;
-            window.speechSynthesis.speak(utterance);
-        }
-        
-        /* --- UPDATED SEND FUNCTION (Fixes Listen Button Disappearing) --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1541,16 +1510,13 @@ input[type="search"]::-webkit-search-results-decoration {
             const fileData = window.currentFile;
             if (!txt && !fileData) return;
 
-            // UI Reset
             inputEl.value = "";
             inputEl.style.height = 'auto';
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
-            // User Message Add
             addMsg('user', txt, fileData);
 
-            // Create AI Bubble
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
@@ -1558,7 +1524,6 @@ input[type="search"]::-webkit-search-results-decoration {
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
 
-            // Start Generation
             isGenerating = true;
             toggleBtn('sending'); 
             abortController = new AbortController(); 
@@ -1590,25 +1555,21 @@ input[type="search"]::-webkit-search-results-decoration {
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // 👇👇👇 FIX START: Suggestions-ஐ முதலிலேயே பிரிக்கிறோம் 👇👇👇
                 let fullText = data.response;
                 let cleanText = fullText;
                 let suggestions = [];
                 
                 const match = fullText.match(/<<SUGGEST:(.*?)>>/);
                 if (match) {
-                    cleanText = fullText.replace(match[0], ""); // Tag-ஐ நீக்குகிறோம்
+                    cleanText = fullText.replace(match[0], ""); 
                     suggestions = match[1].split('|').map(s => s.trim());
                 }
 
-                // 👇 Clean Text-ஐ மட்டும் டைப் செய்ய அனுப்புகிறோம்
                 typeWriter(bubble, cleanText, () => {
                     if(isGenerating) {
                         isGenerating = false;
                         toggleBtn('idle'); 
                     }
-                    
-                    // 👇 Chips-ஐ Bubble-க்கு வெளியே சேர்க்கிறோம் (Overwrite பண்ணாமல்!)
                     if (suggestions.length > 0) {
                         const chipsDiv = document.createElement('div');
                         chipsDiv.className = 'suggestion-container';
@@ -1621,13 +1582,8 @@ input[type="search"]::-webkit-search-results-decoration {
                         });
                         if(aiDiv) aiDiv.appendChild(chipsDiv);
                     }
-                    
-                    // Note: Action Buttons (Copy/Listen) இப்போது typeWriter-க்குள்ளேயே இருப்பதால்,
-                    // இங்கே மீண்டும் சேர்க்க தேவையில்லை. (Double Buttons வராது).
-                    
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
-                // 👆👆👆 FIX END 👆👆👆
 
             } catch (e) {
                 if (e.name === 'AbortError') {
@@ -1639,9 +1595,45 @@ input[type="search"]::-webkit-search-results-decoration {
                 toggleBtn('idle'); 
             }
         }
-                    
+
+        // 7. MIC LOGIC
+        function toggleVoice() {
+            if (!('webkitSpeechRecognition' in window)) { alert("Use Google Chrome"); return; }
+            const micBtn = document.getElementById('mic-btn');
+            const inputEl = document.getElementById('msg-input');
             
-        // 6. HISTORY & CHAT MANAGEMENT
+            if (window.recognition && window.isListening) { window.recognition.stop(); return; }
+
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US'; 
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                window.isListening = true;
+                micBtn.classList.add('listening');
+                inputEl.placeholder = "Listening...";
+            };
+            recognition.onend = () => {
+                window.isListening = false;
+                micBtn.classList.remove('listening');
+                inputEl.placeholder = "Message...";
+            };
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                inputEl.value += (inputEl.value ? " " : "") + speechResult;
+                inputEl.style.height = 'auto';
+                inputEl.style.height = inputEl.scrollHeight + 'px';
+            };
+            recognition.onerror = (event) => {
+                if (event.error === 'not-allowed') alert("Allow Mic Permission");
+                micBtn.classList.remove('listening');
+            };
+            window.recognition = recognition;
+            recognition.start();
+        }
+
+        // 8. HISTORY LOGIC
         async function loadHistory() {
              const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
              const data = await res.json();
@@ -1671,43 +1663,43 @@ input[type="search"]::-webkit-search-results-decoration {
             document.getElementById('chat-box').innerHTML = "";
             d.messages.forEach(m => addMsg(m.role === 'user' ? 'user' : 'ai', m.content));
         }
+
         function showModal(title, isInput, callback) {
             const modal = document.getElementById('custom-modal') || createModalElement();
             document.getElementById('m-title').innerText = title;
             const inp = document.getElementById('m-inp');
             inp.style.display = isInput ? 'block' : 'none';
             inp.value = "";
-     
-        modal.style.display = 'flex';
-        window.modalCallback = (confirm) => {
-        modal.style.display = 'none';
-        if(confirm) callback(isInput ? inp.value : true);
-        };
+            modal.style.display = 'flex';
+            window.modalCallback = (confirm) => {
+                modal.style.display = 'none';
+                if(confirm) callback(isInput ? inp.value : true);
+            };
         }
 
         function createModalElement() {
-        const div = document.createElement('div');
-        div.id = 'custom-modal';
-        div.innerHTML = `<div class="modal-content"><h3 id="m-title"></h3><input id="m-inp" class="modal-input"><div class="modal-btns"><button class="m-btn" style="background:#333;color:#fff" onclick="modalCallback(false)">Cancel</button><button class="m-btn" style="background:#fff;color:#000" onclick="modalCallback(true)">Confirm</button></div></div>`;
-        document.body.appendChild(div);
-        return div;
+            const div = document.createElement('div');
+            div.id = 'custom-modal';
+            div.innerHTML = `<div class="modal-content"><h3 id="m-title"></h3><input id="m-inp" class="modal-input"><div class="modal-btns"><button class="m-btn" style="background:#333;color:#fff" onclick="modalCallback(false)">Cancel</button><button class="m-btn" style="background:#fff;color:#000" onclick="modalCallback(true)">Confirm</button></div></div>`;
+            document.body.appendChild(div);
+            return div;
         }
 
         async function renameChat(cid) {
              showModal("Rename Chat", true, async (newTitle) => {
-        if(newTitle) {
-            await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newTitle})});
-            loadHistory();
-        }
-        });
+                if(newTitle) {
+                    await fetch('/rename_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid, title:newTitle})});
+                    loadHistory();
+                }
+            });
          }
 
         async function deleteChat(cid) {
-        showModal("Delete this chat?", false, async () => {
-        await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
-        loadHistory();
-        if(currentChatId === cid) document.getElementById('chat-box').innerHTML = "";
-        });
+            showModal("Delete this chat?", false, async () => {
+                await fetch('/delete_chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser, chat_id:cid})});
+                loadHistory();
+                if(currentChatId === cid) document.getElementById('chat-box').innerHTML = "";
+            });
         }
         
         function newChat() {
@@ -1716,308 +1708,47 @@ input[type="search"]::-webkit-search-results-decoration {
             toggleSidebar();
         }
 
-        // FIXED SEARCH & CLEAR LOGIC
         function filterHistory(query) {
             const items = document.querySelectorAll('.history-item');
             const clearBtn = document.getElementById('clear-search');
             clearBtn.style.display = query.length > 0 ? 'block' : 'none';
-    
             items.forEach(item => {
                 const title = item.querySelector('span').innerText.toLowerCase();
                 item.style.display = title.includes(query.toLowerCase()) ? 'flex' : 'none';
             });
         }
+        function clearSearch() { const input = document.getElementById('hist-search'); input.value = ""; filterHistory(""); input.focus(); }
 
-        function clearSearch() {
-            const input = document.getElementById('hist-search');
-            input.value = "";
-            filterHistory("");
-            input.focus();
-        }
-        // --- SETTINGS NAVIGATION ---
-        function openSubPage(pageId) {
-            document.getElementById(pageId).classList.add('active');
-        }
-
-        function closeSubPage(pageId) {
-            document.getElementById(pageId).classList.remove('active');
-        }
-        /* =========================================
-   🚀 GLOBAL NAVIGATION & INPUT SUPPORT
-   ========================================= */
-
-    // 1. MOBILE BACK BUTTON HANDLE (History Management)
-    window.onpopstate = function(event) {
-    // A. சப்-பேஜ் திறந்திருந்தால் (Student Details / Themes)
-    const activeSubPage = document.querySelector('.settings-sub-page.active');
-    if (activeSubPage) {
-        activeSubPage.classList.remove('active');
-        return; // இங்கே நிறுத்தவும், ஆப் வெளியே போகாது
-    }
-
-    // B. செட்டிங்ஸ் திறந்திருந்தால்
-    const settings = document.getElementById('settings-overlay');
-    if (settings && settings.classList.contains('active')) {
-        settings.classList.remove('active');
-        return;
-    }
-
-    // C. மெனு திறந்திருந்தால்
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && sidebar.classList.contains('open')) {
-        toggleSidebar(); // மெனுவை மூடும்
-        return;
-    }
-
-    // D. ஆன்-போர்டிங் (Onboarding) ஸ்டெப்ஸ் பின்னோக்கி செல்ல
-    if (event.state && event.state.step) {
-        document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-        document.getElementById('step-' + event.state.step).classList.add('active');
-    }
-    };
-
-     // 2. OPEN FUNCTIONS WITH HISTORY PUSH
-     // (இதை பழைய function-க்கு பதில் மாற்றுங்கள்)
-
-    function openSettings() {
-    document.getElementById('settings-overlay').classList.add('active');
-    history.pushState({view: 'settings'}, null, ""); // ஹிஸ்டரி சேர்ப்பு
-    
-    // மெனு திறந்திருந்தால் மூடிவிடு
-    const sb = document.getElementById('sidebar');
-    if(sb.classList.contains('open')) toggleSidebar();
-    }
-
-    function openSubPage(pageId) {
-    document.getElementById(pageId).classList.add('active');
-    history.pushState({view: 'subpage'}, null, ""); // சப்-பேஜ் ஹிஸ்டரி
-    }
-
-    function closeSettings() {
-    // Back பட்டன் அழுத்தினால் தானாக மூடும், இருந்தாலும் Manual Close-க்கு:
-    if(history.state && history.state.view === 'settings') history.back();
-    else document.getElementById('settings-overlay').classList.remove('active');
-    }
-
-    function closeSubPage(pageId) {
-    if(history.state && history.state.view === 'subpage') history.back();
-    else document.getElementById(pageId).classList.remove('active');
-    }
-
-    /* --- UNIVERSAL ENTER KEY & KEYBOARD HIDE FIX --- */
-    document.addEventListener("DOMContentLoaded", function() {
-    
-    // 1. Chat Input: Send & Hide Keyboard
-    const msgInput = document.getElementById('msg-input');
-    if(msgInput) {
-        msgInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-                this.blur(); // 👇 இதுதான் கீபோர்டை கீழே தள்ளும்!
-            }
-        });
-    }
-
-    // 2. Onboarding Name
-    const nameInput = document.getElementById('name-input');
-    if(nameInput) {
-        nameInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                nextStep(3);
-                this.blur();
-            }
-        });
-    }
-    
-    // 3. Subject Inputs (UPDATED: Goes to Step 4)
-    ['school-subject', 'college-subject'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) {
-            el.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    nextStep(4); // ✅ இப்போ Enter தட்டினால் Medium Page போகும்!
-                    this.blur();
-                }
+        function filterSettings(query) {
+            const btns = document.querySelectorAll('.settings-option-btn');
+            const clearBtn = document.getElementById('clear-setting-search');
+            if(clearBtn) clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+            btns.forEach(btn => {
+                const text = btn.innerText.toLowerCase();
+                btn.style.display = text.includes(query.toLowerCase()) ? 'flex' : 'none';
             });
         }
-    });
-});
-    // --- SETTINGS SEARCH LOGIC ---
-    function filterSettings(query) {
-    const btns = document.querySelectorAll('.settings-option-btn');
-    const clearBtn = document.getElementById('clear-setting-search');
-    
-    if(clearBtn) clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+        function clearSettingsSearch() { const inp = document.getElementById('setting-search-input'); inp.value = ""; filterSettings(""); inp.blur(); }
 
-    btns.forEach(btn => {
-        const text = btn.innerText.toLowerCase();
-        btn.style.display = text.includes(query.toLowerCase()) ? 'flex' : 'none';
-    });
-    }
-
-    function clearSettingsSearch() {
-    const inp = document.getElementById('setting-search-input');
-    inp.value = "";
-    filterSettings("");
-    inp.blur(); // கீபோர்டு மறைய
-    }
-        // 7. INITIALIZE APP
-        checkLogin();
-    </script>
-    <script>
-    // 1. Add Highlight.js for Colors
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
-    document.head.appendChild(link);
-
-    /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
-
-    /* --- 🔊 ADVANCED SPEECH & SHARE LOGIC (Final Fix) --- */
-    let currentUtterance = null;
-    let isSpeechPaused = false;
-
-    // 1. Smart Speech Toggle (Play/Pause/Resume)
-    function toggleSpeech(btn, text) {
-        const synth = window.speechSynthesis;
-
-        // A. ஒரே பட்டனை மீண்டும் கிளிக் செய்தால் (Pause/Resume Logic)
-        if (currentUtterance && currentUtterance.text === text) {
-            if (synth.paused) {
-                synth.resume(); // தொடர்
-                isSpeechPaused = false;
-                btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
-            } else if (synth.speaking) {
-                synth.pause(); // நிறுத்து
-                isSpeechPaused = true;
-                btn.innerHTML = '<i class="fas fa-play"></i> Resume';
-            } else {
-                // ஒருவேளை பேச்சு முடிந்து, பட்டன் மாறாமல் இருந்தால்
-                startSpeaking(btn, text);
-            }
-            return;
-        }
-
-        // B. புது பட்டனை கிளிக் செய்தால் (பழையதை நிறுத்து)
-        synth.cancel();
-        
-        // மற்ற எல்லா பட்டனையும் "Listen" நிலைக்கு மாற்று
-        document.querySelectorAll('.action-icon').forEach(icon => {
-            if (icon.innerHTML.includes('Pause') || icon.innerHTML.includes('Resume')) {
-                icon.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+        document.addEventListener("DOMContentLoaded", function() {
+            const msgInput = document.getElementById('msg-input');
+            if(msgInput) {
+                msgInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); this.blur(); }
+                });
             }
         });
 
-        // C. புதிதாக பேசு
-        startSpeaking(btn, text);
-    }
+        // Initialize
+        checkLogin();
 
-    // 2. Start Speaking Helper
-    function startSpeaking(btn, text) {
-        const synth = window.speechSynthesis;
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        utterance.lang = 'en-US'; 
-        utterance.rate = 1;
+        // Highlight.js CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '[https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css](https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css)';
+        document.head.appendChild(link);
+    </script>
 
-        // பேசி முடித்ததும் பட்டனை Reset செய்
-        utterance.onend = () => {
-            btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
-            currentUtterance = null;
-            isSpeechPaused = false;
-        };
-        
-        utterance.onerror = (e) => {
-            console.error("Speech Error", e);
-            // தவறு நடந்தால் பயனருக்கு தெரிவி
-            if (e.error !== 'interrupted') {
-               btn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
-            }
-        };
-
-        currentUtterance = utterance;
-        isSpeechPaused = false;
-        
-        synth.speak(utterance);
-        btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
-    }
-
-    // 👇 UPDATED TYPEWRITER (Includes Share Button & Pause Logic)
-    typeWriter = function(element, text, callback) {
-        const chatBox = document.getElementById('chat-box');
-        let i = 0;
-        window.typeProgress = 0; 
-        
-        element.innerHTML = marked.parse(text);
-        const finalHTML = element.innerHTML;
-        element.innerHTML = "";
-        element.style.minHeight = "20px";
-
-        function type() {
-            if (!isGenerating) return; 
-            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
-
-            if (i < finalHTML.length) {
-                if (finalHTML.charAt(i) === '<') {
-                    let tagEnd = finalHTML.indexOf('>', i);
-                    i = tagEnd + 1;
-                } else {
-                    i += 3;
-                }
-                element.innerHTML = finalHTML.substring(0, i);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                requestAnimationFrame(type);
-            } else {
-                element.innerHTML = finalHTML;
-                window.typeProgress = 1;
-                
-                // Colors & Copy Logic
-                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
-                element.querySelectorAll('pre').forEach(pre => {
-                    if (pre.querySelector('.code-copy-btn')) return;
-                    pre.style.position = 'relative';
-                    const btn = document.createElement('button');
-                    btn.className = 'code-copy-btn';
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
-                    btn.onclick = () => {
-                        navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
-                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
-                        });
-                    };
-                    pre.appendChild(btn);
-                });
-
-                // 👇👇👇 TEXT CLEANING (For Smooth Speech) 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
-                const safeSpeechText = cleanTextForSpeech
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, "\\'")
-                    .replace(/\n/g, ' '); // Newlines removed -> Fixes Sound Issue
-                
-                // 👇👇👇 ACTION BUTTONS (Included SHARE & NEW LISTENER) 👇👇👇
-                const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-                        <div class="action-icon" onclick="toggleSpeech(this, '${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
-                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                        <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                    </div>`;
-                element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 SHARE BUTTON RESTORED 👆👆👆
-
-                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
-                chatBox.scrollTop = chatBox.scrollHeight;
-                if (callback) callback();
-            }
-        }
-        type();
-    };
-        
-            
-</script>
 
 <style>
     /* பழைய பிழையான .sub-header ஐ சரிசெய்தல் */
