@@ -1872,10 +1872,11 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* --- 🔊 FINAL FIXED CODE (Sound + Share + Pause) --- */
+    /* --- 🔊 FINAL STABLE CODE (Fixed for App Crash) --- */
     
-    let currentUtterance = null;
-    let isSpeechPaused = false;
+    // Global Variables
+    var currentUtterance = null;
+    var isSpeechPaused = false;
 
     // 1. SHARE FUNCTION
     function shareContent(text) {
@@ -1890,7 +1891,7 @@ input[type="search"]::-webkit-search-results-decoration {
         }
     }
 
-    // 2. TOGGLE SPEECH (Pause & Resume)
+    // 2. TOGGLE SPEECH (Pause/Resume)
     function toggleSpeech(btn, text) {
         const synth = window.speechSynthesis;
 
@@ -1918,7 +1919,7 @@ input[type="search"]::-webkit-search-results-decoration {
         startSpeaking(btn, text);
     }
 
-    // 3. START SPEAKING HELPER
+    // 3. START SPEAKING
     function startSpeaking(btn, text) {
         const synth = window.speechSynthesis;
         const utterance = new SpeechSynthesisUtterance(text);
@@ -1944,7 +1945,7 @@ input[type="search"]::-webkit-search-results-decoration {
         btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
     }
 
-    // 4. TYPEWRITER (Sound Fix applied here)
+    // 4. TYPEWRITER (Python String Escape Fixed 🛡️)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1990,14 +1991,14 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇 SOUND FIX IS HERE (Newlines removed) 👇
+                // 👇👇👇 முக்கிய மாற்றம்: Python String-க்காக 4 ஸ்லாஷ் (\\\\) போடப்பட்டுள்ளது 👇👇👇
                 const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
                 const safeSpeechText = cleanTextForSpeech
                     .replace(/"/g, '&quot;')
-                    .replace(/'/g, "\\'")
-                    .replace(/\n/g, ' '); // 👈 Important!
+                    .replace(/'/g, "\\\\'")  // 👈 இதுதான் Python-க்கு தேவை!
+                    .replace(/\n/g, ' '); 
                 
-                const safeShareText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+                const safeShareText = text.replace(/`/g, '\\\\`').replace(/"/g, '&quot;'); // 👈 இங்கேயும் மாற்றம்
 
                 const actionsHtml = `
                     <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
