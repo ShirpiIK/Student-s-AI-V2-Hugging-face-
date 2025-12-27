@@ -1341,23 +1341,22 @@ input[type="search"]::-webkit-search-results-decoration {
             chatBox.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;"><h1>Hi ${name},</h1><p>Ready to study <b>${userDetails.subject}</b>?</p></div>${chipsHtml}</div>`;
         }
         
-        /* 👇 UPDATED SHOW APP (Full Version) 👇 */
+        /* 👇 UPDATED SHOW APP (Instant Welcome - No Delay) 👇 */
         async function showApp() {
-            // 1. Display User Name
+            // 1. Display User Name (உடனே நடக்கும்)
             document.getElementById("display-name").innerText = currentUser;
             
-            // 2. Update Sidebar Profile Details (Subject, Class, etc.)
+            // 2. Update Sidebar Profile (உடனே நடக்கும்)
             updateProfileUI();
 
-            // 3. Load Previous Chat History
-            await loadHistory();
-
-            // 4. Handle Welcome Screen
-            // சேட் பாக்ஸ் காலியாக இருந்தால் மட்டும் Welcome Screen-ஐ காட்டு
+            // 3. 🔥 FAST FIX: Welcome Screen-ஐ முதலில் காட்டு! (Don't wait for history)
             const chatBox = document.getElementById("chat-box");
             if(chatBox.innerHTML.trim() === "") {
-                renderWelcomeScreen(); // இதுதான் அந்த புது ஃபங்ஷன் (Smart Suggestions)
+                renderWelcomeScreen(); // இது Local-ல் நடப்பதால் கண்ணிமைக்கும் நேரத்தில் வரும்!
             }
+
+            // 4. Load History in Background (இது மெதுவா நடந்தாலும் பரவாயில்லை)
+            await loadHistory();
         }
         
         // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
