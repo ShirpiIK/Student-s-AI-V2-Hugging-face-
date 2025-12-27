@@ -49,14 +49,23 @@ RULES:
    - If you combine info from multiple pages, list them all.
 4. **MATH:** Use LaTeX for formulas ($$ ... $$).
 5. **SUGGESTIONS:** End with 2 follow-up questions: `<<SUGGEST: Q1 | Q2>>`
+# 👇 இதை RULES-ல் சேர்க்கவும் 👇
+
+6. **TABLES:** Use Markdown tables for comparisons or structured data.
+   - Example:
+     | Property | Value |
+     |----------|-------|
+     | Mass     | 5kg   |
+7. **CHEMISTRY:** Use \ce{...} for formulas inside LaTeX. Example: $\ce{H2SO4}$.
 """
+
     
     if medium == "Tamil":
         base_instruction += """
-6. **LANGUAGE:** Tamil Medium selected.
+8. **LANGUAGE:** Tamil Medium selected.
    - Reply in **TAMIL SCRIPT (தமிழ்)**.
    - Cite the page number in English (e.g., `📖 **ஆதாரம்:** பக்கம் 12`).
-7. **QUIZ MODE:** If user asks for "Quiz" or "Test", generate 5 Multiple Choice Questions (MCQ) based on the context. 
+9. **QUIZ MODE:** If user asks for "Quiz" or "Test", generate 5 Multiple Choice Questions (MCQ) based on the context. 
    - Format: Question, Options (A,B,C,D). 
    - Do NOT reveal answers immediately. Wait for user to reply.
 """
@@ -188,7 +197,18 @@ HTML_TEMPLATE = """
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>window.MathJax = { tex: { inlineMath: [['$', '$']] }, svg: { fontCache: 'global' } };</script>
+    
+    <script>
+      window.MathJax = {
+        loader: { load: ['[tex]/mhchem'] },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']],
+          packages: {'[+]': ['mhchem']}
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -781,6 +801,60 @@ input[type="search"]::-webkit-search-results-decoration {
         gap: 10px; width: 100%; padding: 12px;
         border-radius: 12px; border: none; font-weight: 600;
         cursor: pointer; margin-top: 10px;
+    }
+    /* 👇 SCIENCE & MATH STYLING 👇 */
+    
+    /* 1. TABLES (அட்டவணை அழகா தெரிய) */
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin: 20px 0; 
+        font-size: 15px; 
+        overflow: hidden; 
+        border-radius: 8px;
+        border-style: hidden; /* Hide outer border */
+        box-shadow: 0 0 0 1px var(--border); /* Custom border */
+        display: block; /* மொபைலில் ஸ்க்ரோல் ஆக */
+        overflow-x: auto; 
+        white-space: nowrap;
+    }
+    th, td { 
+        padding: 12px 15px; 
+        border: 1px solid var(--border); 
+        text-align: left; 
+    }
+    th { 
+        background-color: var(--card); 
+        color: var(--text); 
+        font-weight: 700; 
+        text-transform: uppercase; 
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+    tr:nth-child(even) { background-color: rgba(255,255,255,0.03); }
+    tr:hover { background-color: rgba(255,255,255,0.05); transition: 0.2s; }
+
+    /* 2. MATH EQUATIONS (சமன்பாடுகள்) */
+    mjx-container { 
+        overflow-x: auto; 
+        overflow-y: hidden;
+        max-width: 100%; 
+        padding: 10px 0;
+    }
+    /* Inline Math ($...$) கலர் */
+    .mjx-chtml { color: #a5b4fc !important; } 
+
+    /* 3. CHEMISTRY FORMULAS highlight */
+    code { 
+        color: #ef4444; /* Code வார்த்தைகள் தனி நிறத்தில் */
+        background: rgba(255,0,0,0.1);
+        padding: 2px 5px;
+        border-radius: 4px;
+    }
+    pre code { 
+        color: inherit; 
+        background: transparent; 
+        padding: 0; 
     }
 </style>
 </head>
