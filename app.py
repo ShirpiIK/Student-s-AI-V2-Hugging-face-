@@ -1872,9 +1872,79 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
+    /* --- 🔊 FINAL FIXED CODE (Sound + Share + Pause) --- */
+    
+    let currentUtterance = null;
+    let isSpeechPaused = false;
 
-    // 2. UPDATED TYPEWRITER (With Listen Button 🔊 + Copy + Colors)
+    // 1. SHARE FUNCTION
+    function shareContent(text) {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Student AI Answer',
+                text: text
+            }).catch((error) => console.log('Sharing failed', error));
+        } else {
+            navigator.clipboard.writeText(text);
+            alert("Sharing not supported on this browser. Text copied!");
+        }
+    }
+
+    // 2. TOGGLE SPEECH (Pause & Resume)
+    function toggleSpeech(btn, text) {
+        const synth = window.speechSynthesis;
+
+        if (currentUtterance && currentUtterance.text === text) {
+            if (synth.paused) {
+                synth.resume(); 
+                isSpeechPaused = false;
+                btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+            } else if (synth.speaking) {
+                synth.pause(); 
+                isSpeechPaused = true;
+                btn.innerHTML = '<i class="fas fa-play"></i> Resume';
+            } else {
+                startSpeaking(btn, text);
+            }
+            return;
+        }
+
+        synth.cancel();
+        document.querySelectorAll('.action-icon').forEach(icon => {
+            if (icon.innerHTML.includes('Pause') || icon.innerHTML.includes('Resume')) {
+                icon.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            }
+        });
+        startSpeaking(btn, text);
+    }
+
+    // 3. START SPEAKING HELPER
+    function startSpeaking(btn, text) {
+        const synth = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US'; 
+        utterance.rate = 1;
+
+        utterance.onend = () => {
+            btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            currentUtterance = null;
+            isSpeechPaused = false;
+        };
+        
+        utterance.onerror = (e) => {
+            if (e.error !== 'interrupted') {
+               console.error("Speech error:", e);
+               btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            }
+        };
+
+        currentUtterance = utterance;
+        isSpeechPaused = false;
+        synth.speak(utterance);
+        btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+    }
+
+    // 4. TYPEWRITER (Sound Fix applied here)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1903,7 +1973,6 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // --- Colors & Copy Logic ---
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -1921,19 +1990,23 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 LISTEN BUTTON CODE (இங்கே தான் மேஜிக் நடக்குது) 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                // 👇 SOUND FIX IS HERE (Newlines removed) 👇
+                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
+                const safeSpeechText = cleanTextForSpeech
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, "\\'")
+                    .replace(/\n/g, ' '); // 👈 Important!
                 
+                const safeShareText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+
                 const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
-                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <div class="action-icon" onclick="toggleSpeech(this, '${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                        <div class="action-icon" onclick="copyText(this, \`${safeShareText}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                        <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                        <div class="action-icon" onclick="shareContent(\`${safeShareText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 END LISTEN BUTTON 👆👆👆
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
