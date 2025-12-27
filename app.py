@@ -614,7 +614,14 @@ HTML_TEMPLATE = """
        cursor: pointer; transition: all 0.2s; margin-right: 8px;
      }
      .mic-btn:hover { background: var(--text); color: var(--bg); }
-     .mic-btn.listening { background: #ef4444; color: white; border-color: #ef4444; animation: pulse 1.5s infinite; }
+     /* 👇 UPDATED ANIMATION STYLE (With !important) */
+     .mic-btn.listening { 
+       background: #ef4444 !important; /* Force Red Background */
+       color: white !important;        /* Force White Icon */
+       border-color: #ef4444 !important; 
+       animation: pulse 1.5s infinite; 
+       box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); /* Extra Glow */
+       }
      @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     /* 👇 புதிய கோடை இங்கே மட்டும் பேஸ்ட் பண்ணுங்க */
     * {
