@@ -122,6 +122,20 @@ def get_book_text(user_details):
         else:
             return None
     except: return None
+
+# 👇 ADD THIS FUNCTION BEFORE generate_with_retry 👇
+def process_image(image_data):
+    try:
+        # Remove header if present (e.g., "data:image/jpeg;base64,")
+        if "," in image_data:
+            image_data = image_data.split(",")[1]
+        image_bytes = base64.b64decode(image_data)
+        img = Image.open(io.BytesIO(image_bytes))
+        return img
+    except Exception as e:
+        print(f"Image Error: {e}")
+        return None
+# 👆 ADD THIS FUNCTION 👆
         
 # 👇 REPLACED generate_with_retry FUNCTION 👇
 def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
