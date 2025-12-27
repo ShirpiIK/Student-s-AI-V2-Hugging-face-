@@ -1063,8 +1063,7 @@ input[type="search"]::-webkit-search-results-decoration {
         let abortController = null; // 🛑 புதுசா சேருங்க
 
         
-        // 2. ONBOARDING & LOGIN LOGIC
-        /* 👇 UPDATED NEXT STEP (With Validation for All Steps) 👇 */
+        /* 👇 UPDATED NEXT STEP (No Alert, Only Shake) 👇 */
         function nextStep(targetStep) {
             // STEP 2 VALIDATION: Name Check
             if (targetStep === 3) { 
@@ -1073,7 +1072,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 currentUser = name;
             }
 
-            // 👇👇👇 STEP 3 VALIDATION: Student Details Check (New) 👇👇👇
+            // 👇👇👇 STEP 3 VALIDATION (Silent Check) 👇👇👇
             if (targetStep === 4) {
                 let isValid = true;
                 
@@ -1111,10 +1110,9 @@ input[type="search"]::-webkit-search-results-decoration {
                     if (!sub) { shakeElement('college-subject'); isValid = false; }
                 }
 
-                // If anything is missing, Stop & Alert
+                // If anything is missing, JUST STOP (No Alert)
                 if (!isValid) {
-                    alert("Please fill all details to proceed!");
-                    return; // ⛔ STOP HERE
+                    return; // ⛔ சும்மா நின்றுவிடும், ஆனால் பாக்ஸ் ஷேக் ஆகும்
                 }
             }
             // 👆👆👆 VALIDATION END 👆👆👆
