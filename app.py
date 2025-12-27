@@ -1747,7 +1747,7 @@ input[type="search"]::-webkit-search-results-decoration {
         link.rel = 'stylesheet';
         link.href = '[https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css](https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css)';
         document.head.appendChild(link);
-    </script>
+</script>
 
 
 <style>
