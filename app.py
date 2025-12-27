@@ -1249,44 +1249,56 @@ input[type="search"]::-webkit-search-results-decoration {
             setTheme(theme);
         }
 
-        // 👇 பழைய showApp ஃபங்ஷனை அழித்துவிட்டு இதை போடவும் 👇
+        /* 👇 NEW: SMART WELCOME SCREEN (Handles Suggestions & Reset) 👇 */
+        function renderWelcomeScreen() {
+            currentChatId = null; // Reset Chat ID
+            const chatBox = document.getElementById('chat-box');
+            const sub = (userDetails.subject || "").toLowerCase();
+            const name = userDetails.name || "Student";
+            
+            // 👇 Smart Suggestion Logic based on Subject
+            let starters = ["Unit 1 Introduction", "Important Questions"]; // Default
+
+            if(sub.includes('math')) starters = ["Matrix Multiplication", "Calculus Formulas", "Trigonometry"];
+            else if(sub.includes('phy')) starters = ["Newton's Laws", "Optics Derivations", "Thermodynamics"];
+            else if(sub.includes('chem')) starters = ["Organic Chemistry", "Periodic Table", "Chemical Bonding"];
+            else if(sub.includes('botany')) starters = ["Plant Anatomy", "Photosynthesis", "Plant Tissue"];
+            else if(sub.includes('zoology')) starters = ["Human Physiology", "Genetics", "Digestion System"];
+            else if(sub.includes('bio')) starters = ["Cell Structure", "DNA Replication"];
+            else if(sub.includes('tamil')) starters = ["திருக்குறள்", "இலக்கணம்", "செய்யுள்"];
+            else if(sub.includes('english')) starters = ["Grammar Rules", "Essay Writing", "Poem Summary"];
+            else if(sub.includes('computer') || sub.includes('cse') || sub.includes('ai')) starters = ["Python Basics", "Data Structures", "DBMS Concepts"];
+
+            // HTML Generation
+            let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:10px;">`;
+            starters.forEach(s => {
+                chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
+            });
+            chipsHtml += `</div>`;
+            
+            // Set Content
+            chatBox.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;"><h1>Hi ${name},</h1><p>Ready to study <b>${userDetails.subject}</b>?</p></div>${chipsHtml}</div>`;
+        }
+        
+        /* 👇 UPDATED SHOW APP (Full Version) 👇 */
         async function showApp() {
-            // 1. Basic UI Updates (பெயர் மற்றும் ஹிஸ்டரி லோட் செய்தல்)
+            // 1. Display User Name
             document.getElementById("display-name").innerText = currentUser;
+            
+            // 2. Update Sidebar Profile Details (Subject, Class, etc.)
             updateProfileUI();
-            loadHistory();
 
-            // 2. Welcome Message & Suggestions Logic
-            const introDiv = document.getElementById("chat-box");
-            if(introDiv.innerHTML === "") {
-                // Welcome Message
-                const subName = userDetails.subject || 'subjects';
-                let welcomeMsg = `<h1>Hi ${currentUser},</h1><p>Ready to study <b>${subName}</b>?</p>`;
-                
-                // 👇 Initial Suggestions Logic (Mockup based on subject)
-                const sub = (userDetails.subject || "").toLowerCase();
-                let starters = [];
-                
-                // Subject-க்கு ஏற்ற கேள்விகள் (நீங்க அப்புறம் இதை மாத்திக்கலாம்)
-                if(sub.includes('math')) starters = ["Algebra Basics", "Trigonometry Formulas"];
-                else if(sub.includes('phy')) starters = ["Newton's Laws", "Thermodynamics"];
-                else if(sub.includes('chem')) starters = ["Periodic Table", "Chemical Bonding"];
-                else if(sub.includes('bio')) starters = ["Cell Structure", "Genetics"];
-                else if(sub.includes('tamil') || userDetails.medium === 'Tamil') starters = ["Unit 1 Introduction", "Basic Definitions"];
-                else starters = ["Unit 1 Introduction", "Basic Definitions"]; // Default
+            // 3. Load Previous Chat History
+            await loadHistory();
 
-                // Create Chips HTML
-                let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:10px;">`;
-                starters.forEach(s => {
-                    // கிளிக் பண்ணா நேரா மெசேஜ் டைப் ஆகி சென்ட் ஆகிடும்
-                    chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
-                });
-                chipsHtml += `</div>`;
-
-                // Chat Box உள்ளே செட் பண்ணுதல்
-                introDiv.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;">${welcomeMsg}</div>${chipsHtml}</div>`;
+            // 4. Handle Welcome Screen
+            // சேட் பாக்ஸ் காலியாக இருந்தால் மட்டும் Welcome Screen-ஐ காட்டு
+            const chatBox = document.getElementById("chat-box");
+            if(chatBox.innerHTML.trim() === "") {
+                renderWelcomeScreen(); // இதுதான் அந்த புது ஃபங்ஷன் (Smart Suggestions)
             }
         }
+        
         // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
         
         function openSettings() {
@@ -1321,37 +1333,58 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        /* 👇 PROFILE EDIT: Subject Click Logic (Pop-up Dropdown) 👇 */
+        /* 👇 UPDATED EDIT SUBJECT (Silent Background Update) 👇 */
         function editSubject(el) {
             const currentSub = el.innerText;
             const std = userDetails.standard || "";
             const group = userDetails.group || "";
 
-            // Create Dropdown
+            // Create Dropdown dynamically
             const select = document.createElement('select');
-            select.className = 'subject-edit-input'; // Reusing style
+            select.className = 'subject-edit-input';
             select.style.width = "auto";
             select.style.maxWidth = "150px";
 
             let options = [];
             
-            // Decide which list to show based on Standard & Group
+            // 11th/12th Logic (Based on Biology Group for now)
+            const sub1to10 = ["Tamil", "English", "Maths", "Science", "Social Science"];
+            const subBioGroup = ["Tamil", "English", "Maths", "Physics", "Chemistry", "Botany", "Zoology"];
+
             if (['11th', '12th'].includes(std)) {
-                if (group === 'Biology') options = subBioGroup;
-                else options = subBioGroup; // Default fallback if group missing
+                // Future: Add logic for CS Group if needed
+                options = subBioGroup; 
             } else if (userDetails.type === 'school') {
                 options = sub1to10;
             } else {
-                // College: Manual Input (ஏனெனில் College Subjects நிறைய இருக்கும்)
+                // College Manual Input Logic
                 const input = document.createElement('input');
                 input.value = currentSub;
                 input.className = 'subject-edit-input';
                 el.replaceWith(input);
                 input.focus();
                 
-                // College Save Logic (Old way)
-                input.onblur = () => saveEdit(input, currentSub);
-                input.onkeydown = (e) => { if(e.key === 'Enter') saveEdit(input, currentSub); }
+                const saveCollege = () => {
+                    const newVal = input.value.trim();
+                    if (newVal && newVal !== currentSub) {
+                        userDetails.subject = newVal;
+                        localStorage.setItem("student_details", JSON.stringify(userDetails));
+                        
+                        const span = document.createElement('span');
+                        span.className = 'detail-value editable-subject';
+                        span.id = 'profile-sub';
+                        span.onclick = function() { editSubject(this) };
+                        span.innerText = newVal;
+                        input.replaceWith(span);
+                        
+                        alert(`Subject updated to ${newVal}!`);
+                        renderWelcomeScreen(); // 🔥 Silent Update
+                    } else {
+                        revert(input, currentSub);
+                    }
+                };
+                input.onblur = saveCollege;
+                input.onkeydown = (e) => { if(e.key === 'Enter') saveCollege(); }
                 return;
             }
 
@@ -1366,35 +1399,39 @@ input[type="search"]::-webkit-search-results-decoration {
             el.replaceWith(select);
             select.focus();
 
+            // Helper to revert UI if no change
+            function revert(elem, val) {
+                const span = document.createElement('span');
+                span.className = 'detail-value editable-subject';
+                span.id = 'profile-sub';
+                span.onclick = function() { editSubject(this) };
+                span.innerText = val;
+                elem.replaceWith(span);
+            }
+
             // Save Function
-            const saveEdit = (inputEl, oldVal) => {
-                const newVal = inputEl.value;
-                if (newVal && newVal !== oldVal) {
+            const saveEdit = () => {
+                const newVal = select.value;
+                if (newVal && newVal !== currentSub) {
                     userDetails.subject = newVal;
                     localStorage.setItem("student_details", JSON.stringify(userDetails));
                     
-                    const span = document.createElement('span');
-                    span.className = 'detail-value editable-subject';
-                    span.id = 'profile-sub';
-                    span.onclick = function() { editSubject(this) };
-                    span.innerText = newVal;
-                    inputEl.replaceWith(span);
+                    revert(select, newVal); // Update UI text
                     
-                    alert(`Subject changed to ${newVal}. Starting new session!`);
-                    newChat(); 
+                    // 👇 Notification Logic
+                    alert(`Subject changed to ${newVal}. New session started in background.`);
+                    
+                    // 👇 Sidebar திறக்காமல் Background-ல் அப்டேட் செய்யும்
+                    renderWelcomeScreen(); 
                 } else {
-                    const span = document.createElement('span');
-                    span.className = 'detail-value editable-subject';
-                    span.id = 'profile-sub';
-                    span.onclick = function() { editSubject(this) };
-                    span.innerText = oldVal;
-                    inputEl.replaceWith(span);
+                    revert(select, currentSub);
                 }
             };
 
-            select.onchange = () => saveEdit(select, currentSub);
-            select.onblur = () => saveEdit(select, currentSub);
+            select.onchange = saveEdit;
+            select.onblur = saveEdit;
         }
+        
         function setTheme(theme) {
             localStorage.setItem('app_theme', theme);
             document.body.classList.remove('light-mode');
@@ -1838,11 +1875,10 @@ input[type="search"]::-webkit-search-results-decoration {
         }
         
         function newChat() {
-            currentChatId = null;
-            document.getElementById('chat-box').innerHTML = `<div class="msg ai-msg"><div class="ai-content"><h1>Hi ${currentUser},</h1><p>Start a new topic!</p></div></div>`;
-            toggleSidebar();
+            renderWelcomeScreen(); // புது லாஜிக்கை கூப்பிடுகிறது
+            toggleSidebar(); // இது Sidebar பட்டன் கிளிக் செய்யும்போது மட்டும் தேவை
         }
-
+        
         // FIXED SEARCH & CLEAR LOGIC
         function filterHistory(query) {
             const items = document.querySelectorAll('.history-item');
