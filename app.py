@@ -1533,7 +1533,7 @@ input[type="search"]::-webkit-search-results-decoration {
             window.speechSynthesis.speak(utterance);
         }
         
-        /* --- UPDATED SEND FUNCTION WITH STOP BUTTON --- */
+        /* --- UPDATED SEND FUNCTION (Fixes Listen Button Disappearing) --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1558,10 +1558,10 @@ input[type="search"]::-webkit-search-results-decoration {
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
 
-            // 👇 START GENERATION & TOGGLE BUTTON
+            // Start Generation
             isGenerating = true;
-            toggleBtn('sending'); // பட்டனை Stop ஆக மாற்று
-            abortController = new AbortController(); // கன்ட்ரோலர் ரெடி
+            toggleBtn('sending'); 
+            abortController = new AbortController(); 
 
             try {
                 if (!currentChatId) {
@@ -1569,11 +1569,10 @@ input[type="search"]::-webkit-search-results-decoration {
                     const d = await r.json(); currentChatId = d.chat_id; loadHistory();
                 }
 
-                // 👇 Signal அனுப்புகிறோம் (Stop பண்ண வசதியாக)
                 const res = await fetch('/chat', {
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'},
-                    signal: abortController.signal, // 👈 முக்கியம்
+                    signal: abortController.signal, 
                     body: JSON.stringify({ 
                         message: txt, 
                         image: fileData, 
@@ -1591,24 +1590,25 @@ input[type="search"]::-webkit-search-results-decoration {
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // Response வந்ததும் டைப் பண்றோம்
-                typeWriter(bubble, data.response, () => {
-                    // டைப்பிங் முடிஞ்சதும் பட்டனை மாத்து
+                // 👇👇👇 FIX START: Suggestions-ஐ முதலிலேயே பிரிக்கிறோம் 👇👇👇
+                let fullText = data.response;
+                let cleanText = fullText;
+                let suggestions = [];
+                
+                const match = fullText.match(/<<SUGGEST:(.*?)>>/);
+                if (match) {
+                    cleanText = fullText.replace(match[0], ""); // Tag-ஐ நீக்குகிறோம்
+                    suggestions = match[1].split('|').map(s => s.trim());
+                }
+
+                // 👇 Clean Text-ஐ மட்டும் டைப் செய்ய அனுப்புகிறோம்
+                typeWriter(bubble, cleanText, () => {
                     if(isGenerating) {
                         isGenerating = false;
                         toggleBtn('idle'); 
                     }
                     
-                    // Chips Logic (Old code...)
-                    let fullText = data.response;
-                    let suggestions = [];
-                    let cleanText = fullText;
-                    const match = fullText.match(/<<SUGGEST:(.*?)>>/);
-                    if (match) {
-                        cleanText = fullText.replace(match[0], "");
-                        bubble.innerHTML = marked.parse(cleanText);
-                        suggestions = match[1].split('|').map(s => s.trim());
-                    }
+                    // 👇 Chips-ஐ Bubble-க்கு வெளியே சேர்க்கிறோம் (Overwrite பண்ணாமல்!)
                     if (suggestions.length > 0) {
                         const chipsDiv = document.createElement('div');
                         chipsDiv.className = 'suggestion-container';
@@ -1622,28 +1622,21 @@ input[type="search"]::-webkit-search-results-decoration {
                         if(aiDiv) aiDiv.appendChild(chipsDiv);
                     }
                     
-                    // Actions (Copy/Share)
-                    const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
-                    const actionsHtml = `
-                        <div class="msg-actions">
-                            <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
-                            <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                            <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                        </div>`;
-                    if(aiDiv) aiDiv.insertAdjacentHTML('beforeend', actionsHtml);
+                    // Note: Action Buttons (Copy/Listen) இப்போது typeWriter-க்குள்ளேயே இருப்பதால்,
+                    // இங்கே மீண்டும் சேர்க்க தேவையில்லை. (Double Buttons வராது).
                     
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
+                // 👆👆👆 FIX END 👆👆👆
 
             } catch (e) {
-                // 👇 STOP பண்ணும்போது இங்கே வரும்
                 if (e.name === 'AbortError') {
                     document.getElementById(msgId).innerHTML = '<div class="msg-bubble" style="color:orange;">⏹️ Stopped.</div>';
                 } else {
                     document.getElementById(msgId).innerHTML = '<div class="msg-bubble" style="color:red;">Error.</div>';
                 }
                 isGenerating = false;
-                toggleBtn('idle'); // Reset Button
+                toggleBtn('idle'); 
             }
         }
                     
