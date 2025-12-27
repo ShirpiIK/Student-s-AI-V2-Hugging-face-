@@ -1636,31 +1636,44 @@ input[type="search"]::-webkit-search-results-decoration {
             send(); 
         }
 
-        /* --- 1. FIXED ADDMSG WITH WORKING ICONS --- */
+        /* 👇 UPDATED ADD MSG (No Listen Button 🔇) 👇 */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
+            
             if (img) contentHtml += `<img src="${img}" class="chat-img">`;
+
+            let cleanText = text;
+            let suggestions = [];
+            
             if (role === 'ai') {
-                contentHtml += `<div class="ai-content">${marked.parse(text)}</div>`;
-            } else {
-                contentHtml += `<div class="user-content">${text}</div>`;
+                const match = text.match(/<<SUGGEST:(.*?)>>/);
+                if (match) {
+                    cleanText = text.replace(match[0], ""); 
+                    suggestions = match[1].split('|').map(s => s.trim());
+                }
             }
 
-            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+            if (role === 'ai') {
+                contentHtml += `<div class="ai-content">${marked.parse(cleanText)}</div>`;
+            } else {
+                contentHtml += `<div class="user-content">${cleanText}</div>`;
+            }
+
+            const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
             let actionsHtml = "";
 
             if (role === 'user') {
-                // 👇 Question Icons
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                // 👇 Response Icons
+                // 👇👇👇 ACTION BUTTONS (Listen Button Removed ❌) 👇👇👇
+                // Copy, Regen, Share மட்டும் இருக்கும். Layout மாறாது.
                 actionsHtml = `
-                <div class="msg-actions">
+                <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
@@ -1671,7 +1684,21 @@ input[type="search"]::-webkit-search-results-decoration {
             msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
             msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
             
+            if (suggestions.length > 0) {
+                const chipsDiv = document.createElement('div');
+                chipsDiv.className = 'suggestion-container';
+                suggestions.forEach(topic => {
+                    const chip = document.createElement('div');
+                    chip.className = 'suggestion-chip';
+                    chip.innerText = topic;
+                    chip.onclick = () => { document.getElementById('msg-input').value = topic; send(); };
+                    chipsDiv.appendChild(chip);
+                });
+                msgDiv.appendChild(chipsDiv);
+            }
+
             box.appendChild(msgDiv);
+            msgDiv.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
             box.scrollTo(0, box.scrollHeight);
         }
 
@@ -2083,9 +2110,7 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
-
-    // 2. UPDATED TYPEWRITER (With Listen Button 🔊 + Copy + Colors)
+    /* 👇 UPDATED TYPEWRITER (No Listen Button 🔇) 👇 */
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -2114,7 +2139,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // --- Colors & Copy Logic ---
+                // Colors & Copy Logic
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -2132,19 +2157,16 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 LISTEN BUTTON CODE (இங்கே தான் மேஜிக் நடக்குது) 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-                
+                // 👇👇👇 ACTION BUTTONS (Listen Button Removed ❌) 👇👇👇
+                // Copy, Regen, Share மட்டும் இருக்கும்
                 const actionsHtml = `
                     <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                         <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 END LISTEN BUTTON 👆👆👆
+                // 👆👆👆
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
