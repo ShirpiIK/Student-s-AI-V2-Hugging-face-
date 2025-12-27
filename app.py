@@ -769,6 +769,19 @@ input[type="search"]::-webkit-search-results-decoration {
     
     /* 👇 Hide rogue buttons inside wizard container 👇 */
     .wizard-container > button { display: none !important; }
+    /* 👇 HIDE AD SPACES (Niotron Native Ads will float over this) 👇 */
+    .ad-banner-small { 
+        display: none !important; 
+    }
+    
+    /* 👇 LOGIN BUTTON STYLE FIX (Optional) 👇 */
+    .google-btn {
+        background: #4285F4; color: white;
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; width: 100%; padding: 12px;
+        border-radius: 12px; border: none; font-weight: 600;
+        cursor: pointer; margin-top: 10px;
+    }
 </style>
 </head>
 <body>
