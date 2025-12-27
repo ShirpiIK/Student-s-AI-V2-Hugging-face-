@@ -1149,6 +1149,14 @@ input[type="search"]::-webkit-search-results-decoration {
         let isGenerating = false;
         let abortController = null; // 🛑 புதுசா சேருங்க
 
+        /* 👇 NEW FUNCTION: Protect Math Formulas from Markdown 👇 */
+        function formatText(text) {
+            // 1. $$...$$ (பெரிய ஃபார்முலா) மற்றும் $...$ (சிறிய ஃபார்முலா) கண்டுபிடிக்கிறது
+            // 2. அதற்குள் இருக்கும் _ (underscore) குறியீட்டை பாதுகாக்கிறது
+            return marked.parse(text.replace(/(\$\$[\s\S]*?\$\$|\$[^$]*?\$)/g, function(match) {
+                return match.replace(/_/g, '\\_').replace(/\*/g, '\\*');
+            }));
+        }
         
         /* 👇 UPDATED NEXT STEP (No Alert, Only Shake) 👇 */
         function nextStep(targetStep) {
@@ -1718,7 +1726,7 @@ input[type="search"]::-webkit-search-results-decoration {
             send(); 
         }
 
-        /* 👇 UPDATED ADD MSG (No Listen Button 🔇) 👇 */
+        /* 👇 UPDATED ADD MSG (With Math Fix) 👇 */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1737,7 +1745,8 @@ input[type="search"]::-webkit-search-results-decoration {
             }
 
             if (role === 'ai') {
-                contentHtml += `<div class="ai-content">${marked.parse(cleanText)}</div>`;
+                // 🔥 FIX: Use formatText() here too
+                contentHtml += `<div class="ai-content">${formatText(cleanText)}</div>`;
             } else {
                 contentHtml += `<div class="user-content">${cleanText}</div>`;
             }
@@ -1752,10 +1761,11 @@ input[type="search"]::-webkit-search-results-decoration {
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                // 👇👇👇 ACTION BUTTONS (Listen Button Removed ❌) 👇👇👇
-                // Copy, Regen, Share மட்டும் இருக்கும். Layout மாறாது.
+                 const cleanTextForSpeech = cleanText.replace(/[*#`]/g, '').replace(/"/g, '&quot;').replace(/'/g, "\\\\'").replace(/\\n/g, ' ');
+
                 actionsHtml = `
                 <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="action-icon" onclick="toggleSpeech(this, '${cleanTextForSpeech}')"><i class="fas fa-volume-up"></i> Listen</div>
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
@@ -1780,10 +1790,17 @@ input[type="search"]::-webkit-search-results-decoration {
             }
 
             box.appendChild(msgDiv);
+            
             msgDiv.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+            
+            // 🔥🔥 MATHJAX TRIGGER 🔥🔥
+            if (window.MathJax && role === 'ai') {
+                MathJax.typesetPromise([msgDiv]).catch((err) => console.log(err));
+            }
+
             box.scrollTo(0, box.scrollHeight);
         }
-
+        
         /* --- 🎙️ UPDATED VOICE FUNCTION (With Error Alerts) --- */
         function toggleVoice() {
             // 1. Browser Support Check
@@ -2192,13 +2209,15 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* 👇 UPDATED TYPEWRITER (No Listen Button 🔇) 👇 */
+    /* 👇 UPDATED TYPEWRITER (Fixes Formula Rendering) 👇 */
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
         window.typeProgress = 0; 
         
-        element.innerHTML = marked.parse(text);
+        // 🔥 FIX: Use formatText() instead of marked.parse()
+        element.innerHTML = formatText(text);
+        
         const finalHTML = element.innerHTML;
         element.innerHTML = "";
         element.style.minHeight = "20px";
@@ -2208,11 +2227,12 @@ input[type="search"]::-webkit-search-results-decoration {
             if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
 
             if (i < finalHTML.length) {
+                // HTML Tag Logic
                 if (finalHTML.charAt(i) === '<') {
                     let tagEnd = finalHTML.indexOf('>', i);
                     i = tagEnd + 1;
                 } else {
-                    i += 3;
+                    i += 3; // Typing Speed
                 }
                 element.innerHTML = finalHTML.substring(0, i);
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -2221,7 +2241,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // Colors & Copy Logic
+                // Colors & Copy Buttons
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -2239,16 +2259,23 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 ACTION BUTTONS (Listen Button Removed ❌) 👇👇👇
-                // Copy, Regen, Share மட்டும் இருக்கும்
+                // Listen / Copy / Share Buttons
+                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
+                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                
                 const actionsHtml = `
                     <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
+                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                         <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆
+
+                // 🔥🔥 MATHJAX TRIGGER (இதுதான் ஃபார்முலாவை காட்டும்) 🔥🔥
+                if (window.MathJax) {
+                    MathJax.typesetPromise([element]).catch((err) => console.log(err));
+                }
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
