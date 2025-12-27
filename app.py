@@ -763,7 +763,12 @@ input[type="search"]::-webkit-search-results-decoration {
         font-size: 13px; cursor: pointer; transition: all 0.2s;
     }
     .suggestion-chip:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
-
+    /* 👇 OVERLAP FIX: Force hide inactive steps 👇 */
+    .step-content { display: none !important; }
+    .step-content.active { display: block !important; }
+    
+    /* 👇 Hide rogue buttons inside wizard container 👇 */
+    .wizard-container > button { display: none !important; }
 </style>
 </head>
 <body>
