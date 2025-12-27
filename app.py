@@ -923,16 +923,14 @@ input[type="search"]::-webkit-search-results-decoration {
                         <option value="11th">11th</option><option value="12th">12th</option>
                     </select>
                     
-                    <input type="text" id="school-subject" class="input-field" placeholder="Enter Subject (e.g. Maths)" autocomplete="off" onkeydown="if(event.key==='Enter') nextStep(4)">
+                    <select id="school-group" class="dropdown-select" style="display:none;" onchange="updateGroupSubjects()">
+                        <option value="" disabled selected>Select Group</option>
+                        <option value="Biology">Biology</option>
+                        </select>
                     
                     <select id="school-subject-select" class="dropdown-select" style="display:none;">
                         <option value="" disabled selected>Select Subject</option>
-                        <option value="Tamil">Tamil</option>
-                        <option value="English">English</option>
-                        <option value="Maths">Maths</option>
-                        <option value="Science">Science</option>
-                        <option value="Social Science">Social Science</option>
-                    </select>
+                        </select>
                 </div>
                 
                 <div id="college-opts" class="hidden-opt" style="display:none;">
@@ -1105,23 +1103,55 @@ input[type="search"]::-webkit-search-results-decoration {
                  let opt = document.createElement('option'); opt.value = s; opt.innerText = s; semSelect.appendChild(opt);
              });
         }
-        /* 👇 NEW FUNCTION: 6-10th Dropdown Switcher 👇 */
+        /* --- 🏫 SCHOOL LOGIC (Group & Dynamic Subjects) --- */
+        
+        // Subject Lists
+        const sub1to10 = ["Tamil", "English", "Maths", "Science", "Social Science"];
+        const subBioGroup = ["Tamil", "English", "Maths", "Physics", "Chemistry", "Botany", "Zoology"];
+
         function checkStandard() {
             const std = document.getElementById('school-std').value;
-            const textInput = document.getElementById('school-subject');
-            const selectInput = document.getElementById('school-subject-select');
+            const groupSelect = document.getElementById('school-group');
+            const subjectSelect = document.getElementById('school-subject-select');
             
-            // 6 முதல் 10 வரை இருந்தால் மட்டும் Dropdown வரும்
-            if (['6th', '7th', '8th', '9th', '10th'].includes(std)) {
-                textInput.style.display = 'none';
-                selectInput.style.display = 'block';
+            // Reset Selections
+            subjectSelect.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+            
+            if (['11th', '12th'].includes(std)) {
+                // 11th & 12th: Show Group, Hide Subject initially
+                groupSelect.style.display = 'block';
+                subjectSelect.style.display = 'none'; // Group choose பண்ணதுக்கு அப்புறம் வரும்
             } else {
-                textInput.style.display = 'block';
-                selectInput.style.display = 'none';
+                // 1st to 10th: Hide Group, Show 1-10 Subjects
+                groupSelect.style.display = 'none';
+                subjectSelect.style.display = 'block';
+                
+                sub1to10.forEach(s => {
+                    let opt = document.createElement('option');
+                    opt.value = s; opt.innerText = s;
+                    subjectSelect.appendChild(opt);
+                });
             }
         }
 
-        /* 👇 UPDATED FINISH SETUP (Handles Dropdown Value) 👇 */
+        function updateGroupSubjects() {
+            const group = document.getElementById('school-group').value;
+            const subjectSelect = document.getElementById('school-subject-select');
+            
+            subjectSelect.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+            subjectSelect.style.display = 'block';
+
+            let options = [];
+            if (group === 'Biology') options = subBioGroup;
+            // Future: else if (group === 'CS') options = subCSGroup;
+
+            options.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s; opt.innerText = s;
+                subjectSelect.appendChild(opt);
+            });
+        }
+
         function finishSetup() {
             userDetails.name = currentUser;
             if (!userDetails.medium) userDetails.medium = 'English';
@@ -1129,16 +1159,17 @@ input[type="search"]::-webkit-search-results-decoration {
             
             if(userDetails.type === 'school') {
                 userDetails.standard = document.getElementById('school-std').value;
-                
-                // Logic: Dropdown தெரியுதான்னு பார்த்து, அதுல இருந்து சப்ஜெக்ட் எடுக்கும்
                 const std = userDetails.standard;
-                if (['6th', '7th', '8th', '9th', '10th'].includes(std)) {
-                    userDetails.subject = document.getElementById('school-subject-select').value;
-                } else {
-                    userDetails.subject = document.getElementById('school-subject').value.trim();
-                }
 
-                if(!userDetails.standard || !userDetails.subject) valid = false;
+                if (['11th', '12th'].includes(std)) {
+                    userDetails.group = document.getElementById('school-group').value; // Save Group
+                    userDetails.subject = document.getElementById('school-subject-select').value;
+                    if(!userDetails.group || !userDetails.subject) valid = false;
+                } else {
+                    userDetails.group = null; // No group for 1-10
+                    userDetails.subject = document.getElementById('school-subject-select').value;
+                    if(!userDetails.standard || !userDetails.subject) valid = false;
+                }
             } else {
                 userDetails.dept = document.getElementById('college-dept').value;
                 userDetails.year = document.getElementById('college-year').value;
@@ -1158,6 +1189,8 @@ input[type="search"]::-webkit-search-results-decoration {
             setTimeout(() => document.getElementById("onboarding-overlay").style.display = 'none', 600);
             showApp();
         }
+
+        
 
         function shakeElement(id) {
             const el = document.getElementById(id);
@@ -1288,49 +1321,80 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        /* 👇 UPDATED EDIT SUBJECT (Auto-New Chat Feature) 👇 */
+        /* 👇 PROFILE EDIT: Subject Click Logic (Pop-up Dropdown) 👇 */
         function editSubject(el) {
             const currentSub = el.innerText;
-            const input = document.createElement('input');
-            input.value = currentSub;
-            input.className = 'subject-edit-input';
-            el.replaceWith(input);
-            input.focus();
+            const std = userDetails.standard || "";
+            const group = userDetails.group || "";
+
+            // Create Dropdown
+            const select = document.createElement('select');
+            select.className = 'subject-edit-input'; // Reusing style
+            select.style.width = "auto";
+            select.style.maxWidth = "150px";
+
+            let options = [];
             
-            const save = () => {
-                const newVal = input.value.trim();
+            // Decide which list to show based on Standard & Group
+            if (['11th', '12th'].includes(std)) {
+                if (group === 'Biology') options = subBioGroup;
+                else options = subBioGroup; // Default fallback if group missing
+            } else if (userDetails.type === 'school') {
+                options = sub1to10;
+            } else {
+                // College: Manual Input (ஏனெனில் College Subjects நிறைய இருக்கும்)
+                const input = document.createElement('input');
+                input.value = currentSub;
+                input.className = 'subject-edit-input';
+                el.replaceWith(input);
+                input.focus();
                 
-                // சப்ஜெக்ட் மாறினால் மட்டும் New Chat ஆரம்பிக்கும்
-                if (newVal && newVal !== currentSub) {
+                // College Save Logic (Old way)
+                input.onblur = () => saveEdit(input, currentSub);
+                input.onkeydown = (e) => { if(e.key === 'Enter') saveEdit(input, currentSub); }
+                return;
+            }
+
+            // Fill Dropdown
+            options.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s; opt.innerText = s;
+                if(s === currentSub) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            el.replaceWith(select);
+            select.focus();
+
+            // Save Function
+            const saveEdit = (inputEl, oldVal) => {
+                const newVal = inputEl.value;
+                if (newVal && newVal !== oldVal) {
                     userDetails.subject = newVal;
                     localStorage.setItem("student_details", JSON.stringify(userDetails));
                     
-                    // UI Update
                     const span = document.createElement('span');
                     span.className = 'detail-value editable-subject';
                     span.id = 'profile-sub';
                     span.onclick = function() { editSubject(this) };
                     span.innerText = newVal;
-                    input.replaceWith(span);
+                    inputEl.replaceWith(span);
                     
-                    // 🔥 MAGIC: பழைய சேட்டை மூடிவிட்டு, புது சேட் தொடங்கும்
                     alert(`Subject changed to ${newVal}. Starting new session!`);
                     newChat(); 
                 } else {
-                    // சப்ஜெக்ட் மாறவில்லை என்றால் சும்மா பழையபடியே வைக்கும்
                     const span = document.createElement('span');
                     span.className = 'detail-value editable-subject';
                     span.id = 'profile-sub';
                     span.onclick = function() { editSubject(this) };
-                    span.innerText = currentSub;
-                    input.replaceWith(span);
+                    span.innerText = oldVal;
+                    inputEl.replaceWith(span);
                 }
             };
-            
-            input.onblur = save;
-            input.onkeydown = (e) => { if(e.key === 'Enter') save(); }
-        }
 
+            select.onchange = () => saveEdit(select, currentSub);
+            select.onblur = () => saveEdit(select, currentSub);
+        }
         function setTheme(theme) {
             localStorage.setItem('app_theme', theme);
             document.body.classList.remove('light-mode');
