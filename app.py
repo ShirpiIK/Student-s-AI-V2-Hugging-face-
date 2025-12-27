@@ -1053,7 +1053,7 @@ input[type="search"]::-webkit-search-results-decoration {
             </div>
         </div>
     </div>
-    <script>
+<script>
         // 1. GLOBAL VARIABLES
         let currentUser = null;
         let userDetails = { type: 'school', medium: 'English' };
