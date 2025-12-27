@@ -1314,61 +1314,7 @@ input[type="search"]::-webkit-search-results-decoration {
         /* --- 1. SMOOTH TYPEWRITER LOGIC --- */
         /* --- PROFESSIONAL MARKDOWN-AWARE TYPEWRITER --- */
         
-        // 👇 UPDATED TYPEWRITER (With Speaker Button 🔊)
-        typeWriter = function(element, text, callback) {
-        const chatBox = document.getElementById('chat-box');
-        let i = 0;
-        window.typeProgress = 0; 
         
-        element.innerHTML = marked.parse(text);
-        const finalHTML = element.innerHTML;
-        element.innerHTML = "";
-        element.style.minHeight = "20px";
-
-        function type() {
-            if (!isGenerating) return; 
-            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
-
-            if (i < finalHTML.length) {
-                // ... (Typing Logic same as before) ...
-                if (finalHTML.charAt(i) === '<') {
-                    let tagEnd = finalHTML.indexOf('>', i);
-                    i = tagEnd + 1;
-                } else {
-                    i += 3;
-                }
-                element.innerHTML = finalHTML.substring(0, i);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                requestAnimationFrame(type);
-            } else {
-                element.innerHTML = finalHTML;
-                window.typeProgress = 1;
-                
-                // ... (Colors & Copy Logic) ...
-                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
-                // ... (Copy button logic) ...
-
-                // 👇👇👇 முக்கியம்: இந்த பகுதி இருக்கானு பாருங்க 👇👇👇
-                // Clean text for speech
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-                
-                const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
-                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    </div>`;
-                element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 இந்த கோட் இருந்தால் தான் பட்டன் வரும்! 👆👆👆
-
-                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
-                chatBox.scrollTop = chatBox.scrollHeight;
-                if (callback) callback();
-            }
-        }
-        type();
-        };
         
         function copyText(btn, text) {
             navigator.clipboard.writeText(text).then(() => {
@@ -1533,7 +1479,7 @@ input[type="search"]::-webkit-search-results-decoration {
             window.speechSynthesis.speak(utterance);
         }
         
-        /* --- UPDATED SEND FUNCTION (Fixes Listen Button Disappearing) --- */
+        /* --- UPDATED SEND FUNCTION (Clean & No Overwrite) --- */
         async function send() {
             if (isGenerating) return;
             const inputEl = document.getElementById('msg-input');
@@ -1547,10 +1493,8 @@ input[type="search"]::-webkit-search-results-decoration {
             document.getElementById('preview-box').style.display = 'none';
             window.currentFile = null;
 
-            // User Message Add
             addMsg('user', txt, fileData);
 
-            // Create AI Bubble
             const msgId = "ai-" + Date.now();
             const chatBox = document.getElementById('chat-box');
             chatBox.insertAdjacentHTML('beforeend', 
@@ -1558,7 +1502,6 @@ input[type="search"]::-webkit-search-results-decoration {
             );
             chatBox.scrollTo(0, chatBox.scrollHeight);
 
-            // Start Generation
             isGenerating = true;
             toggleBtn('sending'); 
             abortController = new AbortController(); 
@@ -1583,32 +1526,30 @@ input[type="search"]::-webkit-search-results-decoration {
                 });
 
                 const data = await res.json();
-                
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
                 const bubble = document.createElement('div');
                 bubble.className = "msg-bubble";
                 aiDiv.appendChild(bubble);
                 
-                // 👇👇👇 FIX START: Suggestions-ஐ முதலிலேயே பிரிக்கிறோம் 👇👇👇
+                // Suggestions பிரித்தல்
                 let fullText = data.response;
                 let cleanText = fullText;
                 let suggestions = [];
-                
                 const match = fullText.match(/<<SUGGEST:(.*?)>>/);
                 if (match) {
-                    cleanText = fullText.replace(match[0], ""); // Tag-ஐ நீக்குகிறோம்
+                    cleanText = fullText.replace(match[0], ""); 
                     suggestions = match[1].split('|').map(s => s.trim());
                 }
 
-                // 👇 Clean Text-ஐ மட்டும் டைப் செய்ய அனுப்புகிறோம்
+                // Typewriter அழைப்பு
                 typeWriter(bubble, cleanText, () => {
                     if(isGenerating) {
                         isGenerating = false;
                         toggleBtn('idle'); 
                     }
                     
-                    // 👇 Chips-ஐ Bubble-க்கு வெளியே சேர்க்கிறோம் (Overwrite பண்ணாமல்!)
+                    // Chips மட்டும் தனியாக சேர்க்கிறோம்
                     if (suggestions.length > 0) {
                         const chipsDiv = document.createElement('div');
                         chipsDiv.className = 'suggestion-container';
@@ -1621,13 +1562,8 @@ input[type="search"]::-webkit-search-results-decoration {
                         });
                         if(aiDiv) aiDiv.appendChild(chipsDiv);
                     }
-                    
-                    // Note: Action Buttons (Copy/Listen) இப்போது typeWriter-க்குள்ளேயே இருப்பதால்,
-                    // இங்கே மீண்டும் சேர்க்க தேவையில்லை. (Double Buttons வராது).
-                    
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
-                // 👆👆👆 FIX END 👆👆👆
 
             } catch (e) {
                 if (e.name === 'AbortError') {
@@ -1874,7 +1810,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
     /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
 
-    // 👇 UPDATED TYPEWRITER (Fixes Listen Button Issue)
+    // 👇 UPDATED TYPEWRITER (Fixes Sound Newlines & Share Button Layout)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1906,7 +1842,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 // Colors
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 
-                // Copy Button for Code Blocks
+                // Copy Button Logic
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
                     pre.style.position = 'relative';
@@ -1923,17 +1859,16 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 FIX: Newlines-ஐ நீக்கிவிட்டு ஒரே வரியாக மாற்றுதல் 👇👇👇
-                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); // Markdown குறிகளை நீக்குதல்
-                
-                // முக்கிய மாற்றம்: .replace(/\n/g, ' ') சேர்க்கப்பட்டுள்ளது
+                // 👇👇👇 SOUND FIX: Newlines -> Space 👇👇👇
+                const cleanTextForSpeech = text.replace(/[*#`]/g, ''); 
                 const safeSpeechText = cleanTextForSpeech
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, "\\'")
-                    .replace(/\n/g, ' '); 
+                    .replace(/\n/g, ' '); // 👈 இதுதான் முக்கியம்!
                 
+                // 👇👇👇 LAYOUT FIX: flex-wrap added 👇👇👇
                 const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                         <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
