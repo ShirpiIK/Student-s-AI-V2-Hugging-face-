@@ -1524,6 +1524,7 @@ input[type="search"]::-webkit-search-results-decoration {
             recognition.start();
         }
 
+        // 1. பேசுறதுக்கான ஃபங்ஷன் (இதை typeWriter-க்கு மேலே தனியா போடுங்க)
         function speakText(txt) {
             window.speechSynthesis.cancel(); // பழைய பேச்சை நிறுத்து
             const utterance = new SpeechSynthesisUtterance(txt);
@@ -1878,7 +1879,9 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    // 👇 UPDATED TYPEWRITER (With Speaker Button 🔊)
+    /* --- 🔊 SPEAKER & TYPEWRITER LOGIC --- */
+
+    // 2. UPDATED TYPEWRITER (With Listen Button 🔊 + Copy + Colors)
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
@@ -1907,7 +1910,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // Colors & Copy Logic
+                // --- Colors & Copy Logic ---
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -1925,19 +1928,19 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // 👇👇👇 ADDED SPEAKER BUTTON HERE 👇👇👇
-                // Clean text for speech (Remove markdown symbols)
+                // 👇👇👇 LISTEN BUTTON CODE (இங்கே தான் மேஜிக் நடக்குது) 👇👇👇
                 const cleanTextForSpeech = text.replace(/[*#`]/g, '');
                 const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 
                 const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px;">
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
                         <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                        <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 END SPEAKER BUTTON 👆👆👆
+                // 👆👆👆 END LISTEN BUTTON 👆👆👆
 
                 if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
                 chatBox.scrollTop = chatBox.scrollHeight;
