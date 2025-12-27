@@ -1588,7 +1588,7 @@ input[type="search"]::-webkit-search-results-decoration {
             send(); 
         }
 
-        /* 👇 UPDATED ADD MSG (Permanent Suggestions in History) 👇 */
+        /* 👇 UPDATED ADD MSG (Fixed for App Crash) 👇 */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1596,15 +1596,14 @@ input[type="search"]::-webkit-search-results-decoration {
             // 1. Image Handling
             if (img) contentHtml += `<img src="${img}" class="chat-img">`;
 
-            // 2. Suggestion Extraction Logic (History-க்கும் வேலை செய்யும்)
+            // 2. Suggestion Extraction
             let cleanText = text;
             let suggestions = [];
             
-            // AI மெசேஜ்ஜில் Suggestion Tag இருந்தால் அதை பிரிக்கவும்
             if (role === 'ai') {
                 const match = text.match(/<<SUGGEST:(.*?)>>/);
                 if (match) {
-                    cleanText = text.replace(match[0], ""); // Tag-ஐ நீக்கிவிடு
+                    cleanText = text.replace(match[0], ""); 
                     suggestions = match[1].split('|').map(s => s.trim());
                 }
             }
@@ -1616,26 +1615,29 @@ input[type="search"]::-webkit-search-results-decoration {
                 contentHtml += `<div class="user-content">${cleanText}</div>`;
             }
 
-            // 4. Action Buttons (Copy, Edit, etc.)
-            const safeText = cleanText.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+            // 4. Action Buttons (🔥 Fixed Backslashes Here 🔥)
+            // Python String-க்காக '\\\\' பயன்படுத்துகிறோம்
+            const safeText = cleanText.replace(/`/g, '\\\\`').replace(/"/g, '&quot;');
             let actionsHtml = "";
 
             if (role === 'user') {
+                // 👇 Notice the double backslash below (\\`)
                 actionsHtml = `
                 <div class="msg-actions" style="justify-content: flex-end;">
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="copyText(this, \\`${safeText}\\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                // AI Message Actions (Listen, Share added for History too)
+                // Sound Logic
                 const cleanTextForSpeech = cleanText.replace(/[*#`]/g, '').replace(/"/g, '&quot;').replace(/'/g, "\\\\'").replace(/\n/g, ' ');
                 
+                // 👇 Notice the double backslash below (\\`)
                 actionsHtml = `
                 <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                     <div class="action-icon" onclick="toggleSpeech(this, '${cleanTextForSpeech}')"><i class="fas fa-volume-up"></i> Listen</div>
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="copyText(this, \\`${safeText}\\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                    <div class="action-icon" onclick="shareContent(\\`${safeText}\\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
             }
 
@@ -1644,7 +1646,7 @@ input[type="search"]::-webkit-search-results-decoration {
             msgDiv.className = `msg ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
             msgDiv.innerHTML = `<div class="msg-bubble" style="${role==='ai'?'background:transparent;padding:0;':''}">${contentHtml}</div>${actionsHtml}`;
             
-            // 6. 🔥 ADD SUGGESTION CHIPS (For History) 🔥
+            // 6. Add Suggestion Chips (Buttons)
             if (suggestions.length > 0) {
                 const chipsDiv = document.createElement('div');
                 chipsDiv.className = 'suggestion-container';
@@ -1659,10 +1661,7 @@ input[type="search"]::-webkit-search-results-decoration {
             }
 
             box.appendChild(msgDiv);
-            
-            // Highlight Code Blocks inside History
             msgDiv.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
-            
             box.scrollTo(0, box.scrollHeight);
         }
 
