@@ -768,7 +768,7 @@ input[type="search"]::-webkit-search-results-decoration {
     .step-content.active { display: block !important; }
     
     /* 👇 Hide rogue buttons inside wizard container 👇 */
-    .wizard-container > button { display: none !important; }
+    /*.wizard-container > button { display: none !important; }*/
 </style>
 </head>
 <body>
