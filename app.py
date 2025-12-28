@@ -1973,6 +1973,11 @@ input[type="search"]::-webkit-search-results-decoration {
                 });
 
                 const data = await res.json();
+
+                if (data.title) {
+                // டைட்டில் வந்தா உடனே ஹிஸ்டரியை ரீஃப்ரெஷ் செய்!
+                        loadHistory(); 
+                }
                 
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
@@ -2428,27 +2433,28 @@ def get_chat():
     d = request.json
     return jsonify({"messages": user_db.get(d["username"], {}).get(d["chat_id"], {}).get("messages", [])})
 
-# 👇 புதிய Function: தானாகவே சிறந்த மாடலை தேர்வு செய்து தலைப்பு வைக்கும்
-def get_chat_title(first_message):
+# 👇 புதிய Smart Title Function (Language Aware)
+def get_chat_title(first_message, medium="English"):
     global current_key_index
     try:
         if not API_KEYS: return "New Chat"
         
-        # 1. தற்போது பயன்பாட்டில் உள்ள கீ-யை எடு
+        # 1. கீ மற்றும் மாடலை தேர்வு செய்
         key = API_KEYS[current_key_index]
-        
-        # 2. அந்த கீ-க்கு ஏற்ற இலவச/சிறந்த மாடலை கண்டுபிடி
         model_name = get_working_model(key)
-        
-        if not model_name: 
-            return "New Chat" 
+        if not model_name: return "New Chat" 
 
-        # 3. ஜெனரேட் செய்
+        # 2. மொழிக்கு ஏற்றவாறு Prompt-ஐ மாற்றுதல்
+        lang_instruction = "in English"
+        if medium == "Tamil":
+            lang_instruction = "in Tamil (தமிழ்)"
+
+        # 3. AI-யிடம் கேட்பது
         genai.configure(api_key=key)
         model = genai.GenerativeModel(model_name)
         
-        # தலைப்பு 4-5 வார்த்தைக்குள் இருக்க வேண்டும் என்று சொல்கிறோம்
-        prompt = f"Summarize this message into a very short title (max 4 words) for a chat history. No quotes. Message: {first_message}"
+        prompt = f"Generate a very short title (max 4 words) {lang_instruction} for this message: {first_message}. Do not use quotes."
+        
         response = model.generate_content(prompt)
         return response.text.strip().replace('"', '').replace("'", "")
         
@@ -2484,10 +2490,14 @@ def chat():
     current_msgs = user_db[u][cid].get("messages", [])
     chat_title = user_db[u][cid].get("title", "New Chat")
 
-    # மெசேஜ் லிஸ்ட் காலியாக இருந்தால் (இதுதான் முதல் முறை), தலைப்பை மாற்று
+    # 👇👇👇 புது மாற்றம்: மீடியம் (medium) சேர்த்து அனுப்புகிறோம் 👇👇👇
     if len(current_msgs) == 0:
-        chat_title = get_chat_title(msg) # மேலே உள்ள Helper Function-ஐ கூப்பிடு
-        user_db[u][cid]["title"] = chat_title # DB-ல் அப்டேட் செய்
+        print("⚡ Generating Auto-Title...")
+        # msg கூடவே medium-ையும் அனுப்புறோம்
+        chat_title = get_chat_title(msg, medium) 
+        user_db[u][cid]["title"] = chat_title 
+    # 👆👆👆 ------------------------------------------------ 👆👆👆
+    
     # 👆👆👆 ------------------------------------------------ 👆👆👆
 
     # 3. Instruction based on Medium
