@@ -399,7 +399,39 @@ HTML_TEMPLATE = """
             font-size: 14px; transition: background 0.2s;
         }
         .history-item:hover { background: var(--card); }
-        .history-actions { display: flex; gap: 10px; opacity: 0; transition: opacity 0.2s; }
+        /* 👇 Buttons-ஐ மறைத்து வைக்கிறோம் */
+        .history-actions { 
+            display: none; /* Default-ஆக தெரியாது */
+            gap: 15px; 
+            position: absolute; 
+            right: 10px; 
+            background: var(--card); 
+            padding: 5px 10px; 
+            border-radius: 8px; 
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        /* 👇 Long Press பண்ணும்போது இந்த கிளாஸ் வரும் */
+        .history-item.active-options .history-actions {
+         display: flex; /* அப்போ மட்டும் தெரியும் */
+        }
+
+        /* 👇 History Item டிசைன் */
+        .history-item { 
+            position: relative; /* இது முக்கியம் */
+            padding: 15px; 
+            margin-bottom: 8px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            color: var(--text); 
+            display: flex; 
+            align-items: center;
+            font-size: 14px; 
+            transition: background 0.2s;
+            user-select: none; /* Text select ஆகாம இருக்க */
+            -webkit-user-select: none;
+        }
         .history-item:hover .history-actions { opacity: 1; }
         .hist-icon { color: var(--text-muted); font-size: 12px; padding: 4px; }
         .hist-icon:hover { color: var(--text); }
@@ -2036,24 +2068,74 @@ input[type="search"]::-webkit-search-results-decoration {
         }
                     
             
-        // 6. HISTORY & CHAT MANAGEMENT
-        async function loadHistory() {
-             const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
-             const data = await res.json();
-             const list = document.getElementById('history-list'); list.innerHTML = "";
-             if(data.chats) {
-                 Object.keys(data.chats).reverse().forEach(cid => {
-                     list.innerHTML += `
-                        <div class="history-item">
-                            <span onclick="loadChat('${cid}')" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${data.chats[cid].title}</span>
-                            <div class="history-actions">
-                                <i class="fas fa-pen hist-icon" onclick="renameChat('${cid}')"></i>
-                                <i class="fas fa-trash hist-icon" onclick="deleteChat('${cid}')"></i>
-                            </div>
-                        </div>`;
-                 });
-             }
-        }
+        // 👇 LONG PRESS LOGIC (Desktop & Mobile) 👇
+
+let pressTimer;
+
+function handleLongPress(element) {
+    // மற்ற எல்லா மெனுவையும் மூடிவிடு
+    document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-options'));
+    
+    // இதில் மட்டும் மெனுவை காட்டு
+    element.classList.add('active-options');
+}
+
+// History List-ஐ உருவாக்கும்போது இதை இணைக்கிறோம்
+async function loadHistory() {
+     const res = await fetch('/get_history', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:currentUser})});
+     const data = await res.json();
+     const list = document.getElementById('history-list'); list.innerHTML = "";
+     
+     if(data.chats) {
+         // Timestamp படி வரிசைப்படுத்துதல்
+         const sortedChats = Object.entries(data.chats).sort(([,a], [,b]) => {
+             return (b.timestamp || 0) - (a.timestamp || 0);
+         });
+
+         sortedChats.forEach(([cid, chat]) => {
+             // 👇 HTML உருவாக்கம் (Events உடன்)
+             const item = document.createElement('div');
+             item.className = 'history-item';
+             item.innerHTML = `
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${chat.title}</span>
+                <div class="history-actions">
+                    <i class="fas fa-pen hist-icon" onclick="event.stopPropagation(); renameChat('${cid}')"></i>
+                    <i class="fas fa-trash hist-icon" style="color:#ef4444;" onclick="event.stopPropagation(); deleteChat('${cid}')"></i>
+                </div>`;
+            
+            // 👇 Click Event (சாதாரணமாக தொட்டால் Chat லோட் ஆகும்)
+            item.onclick = (e) => {
+                if(!item.classList.contains('active-options')) {
+                    loadChat(cid);
+                }
+            };
+
+            // 👇 Touch Start (மொபைல் Long Press)
+            item.ontouchstart = (e) => {
+                pressTimer = setTimeout(() => handleLongPress(item), 600); // 600ms பிடித்தால் மெனு வரும்
+            };
+
+            item.ontouchend = () => clearTimeout(pressTimer);
+            item.ontouchmove = () => clearTimeout(pressTimer); // விரலை நகர்த்தினால் கேன்சல்
+
+            // 👇 Mouse Down (கம்ப்யூட்டர் Long Click)
+            item.onmousedown = () => {
+                pressTimer = setTimeout(() => handleLongPress(item), 600);
+            };
+            item.onmouseup = () => clearTimeout(pressTimer);
+            item.onmouseleave = () => clearTimeout(pressTimer);
+
+            list.appendChild(item);
+         });
+     }
+}
+
+// 👇 திரை வேறு எங்காவது தொட்டால் மெனுவை மூடு
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.history-item')) {
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-options'));
+    }
+});
         
         async function loadChat(cid) {
             currentChatId = cid; 
@@ -2401,10 +2483,17 @@ def new_chat():
     u = request.json.get("username")
     if u not in user_db: user_db[u] = {}
     nid = str(uuid.uuid4())
-    user_db[u][nid] = {"title": "New Chat", "messages": []}
+    
+    # 👇 "timestamp": time.time() என்பதை புதுசா சேர்த்திருக்கோம்!
+    user_db[u][nid] = {
+        "title": "New Chat", 
+        "messages": [], 
+        "timestamp": time.time() 
+    }
+    
     save_db(user_db)
     return jsonify({"chat_id": nid})
-
+    
 @app.route("/rename_chat", methods=["POST"])
 def rename_chat():
     d = request.json
