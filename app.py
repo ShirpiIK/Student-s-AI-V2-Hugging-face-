@@ -187,14 +187,31 @@ def get_book_text(user_details):
         print(f"❌ Error reading PDF: {e}")
         return None
 
+# 👇 இதுக்கு @app தேவையில்லை. இது ஒரு Helper Function.
 def get_chat_title(first_message):
+    global current_key_index
     try:
-        # தலைப்பு வைக்க தனியா ஒரு சின்ன மாடல் கால் (Fast & Cheap)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        if not API_KEYS: return "New Chat"
+        
+        # 1. தற்போது பயன்பாட்டில் உள்ள கீ-யை எடு
+        key = API_KEYS[current_key_index]
+        
+        # 2. அந்த கீ-க்கு ஏற்ற இலவச/சிறந்த மாடலை கண்டுபிடி
+        model_name = get_working_model(key)
+        
+        if not model_name: 
+            return "New Chat" 
+
+        # 3. ஜெனரேட் செய்
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel(model_name)
+        
         prompt = f"Summarize this message into a very short title (max 4 words) for a chat history. No quotes. Message: {first_message}"
         response = model.generate_content(prompt)
-        return response.text.strip()
+        return response.text.strip().replace('"', '').replace("'", "")
+        
     except Exception as e:
+        print(f"Title Error: {e}")
         return "New Chat"
         
 # 👇 REPLACED generate_with_retry FUNCTION 👇
