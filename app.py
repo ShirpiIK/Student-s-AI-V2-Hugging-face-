@@ -2129,6 +2129,8 @@ function confirmClearHistory() {
 
                 const data = await res.json();
 
+                loadHistory();
+                
                 if (data.title) {
                 // டைட்டில் வந்தா உடனே ஹிஸ்டரியை ரீஃப்ரெஷ் செய்!
                         loadHistory(); 
