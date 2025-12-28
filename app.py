@@ -1258,8 +1258,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
             <div class="ad-banner-small" id="sidebar-ad">Menu Ad Space (320x60)</div>
 
-            <div class="sidebar-footer">
-            </div>
+            
             
             <div class="sidebar-footer">
                 <div class="footer-link" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</div>
