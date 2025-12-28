@@ -111,10 +111,19 @@ def get_working_model(key):
     except: return None
     return None
 # 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
+# 👇 REPLACED get_book_text FUNCTION (Auto-Detect Path) 👇
 def get_book_text(user_details):
     try:
-        base_path = "books"
-        # 1. Path Construction logic (Same as before)
+        # 1. சரியான பாதையை தானாகவே கண்டுபிடித்தல் (Smart Check)
+        if os.path.exists("books/books"):
+            base_path = "books/books" # டபுள் ஃபோல்டர் இருந்தால்
+        elif os.path.exists("books"):
+            base_path = "books"       # சிங்கிள் ஃபோல்டர் இருந்தால்
+        else:
+            print("❌ Error: 'books' folder not found!")
+            return None
+
+        # 2. Path Construction
         if user_details.get("type") == "school":
             std = user_details.get("standard", "").lower()
             sub = user_details.get("subject", "").lower()
@@ -124,36 +133,34 @@ def get_book_text(user_details):
             sub = user_details.get("subject", "").lower()
             path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
             
+        # 3. Debugging Print (இதை வெச்சு பாதை சரியா இருக்கானு செக் பண்ணலாம்)
+        print(f"🔍 Searching for file at: {path}")
+
         if os.path.exists(path):
             text = ""
             with open(path, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
                 
-                # 👇 மாற்றம்: ஒவ்வொரு பக்கத்திலும் அச்சிடப்பட்ட நம்பரைத் தேடுதல்
+                # Page Number Logic
                 for i, page in enumerate(reader.pages[:50]): # Limit for speed
                     content = page.extract_text()
                     if content:
                         lines = content.strip().split('\n')
-                        page_label = f"PDF Page {i+1}" # Default (கிடைக்கலைனா இது வரும்)
-
-                        # Logic: கடைசி வரியிலோ அல்லது முதல் வரியிலோ நம்பர் மட்டும் இருக்கான்னு பார்த்தல்
+                        page_label = f"PDF Page {i+1}" 
                         if lines:
                             last_line = lines[-1].strip()
                             first_line = lines[0].strip()
-                            
-                            # 1. Check Footer (கீழே)
-                            if last_line.isdigit():
-                                page_label = f"Page {last_line}"
-                            # 2. Check Header (மேலே) - Footer இல்லனா இதை பார்
-                            elif first_line.isdigit():
-                                page_label = f"Page {first_line}"
+                            if last_line.isdigit(): page_label = f"Page {last_line}"
+                            elif first_line.isdigit(): page_label = f"Page {first_line}"
                         
-                        # AI-க்கு அனுப்பும் டெக்ஸ்டில் இந்த லேபிளைச் சேர்த்தல்
                         text += f"\n--- [{page_label}] ---\n{content}\n"
             return text
         else:
+            print(f"❌ File not found: {path}")
             return None
-    except: return None
+    except Exception as e: 
+        print(f"❌ Error reading PDF: {e}")
+        return None
         
 # 👇 REPLACED generate_with_retry FUNCTION 👇
 def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
