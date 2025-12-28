@@ -39,6 +39,7 @@ if not os.path.exists(data_folder):
 # --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
+current_key_index = 0
 app = Flask(__name__)
 
 # ==========================================
