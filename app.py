@@ -2727,6 +2727,8 @@ def chat():
     
     # 6. AI Message-ஐ லிஸ்டில் சேர்
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
+
+    user_db[u][cid]["timestamp"] = time.time()
     
     # 7. MongoDB-ல் சேமி
     save_db(user_db)
