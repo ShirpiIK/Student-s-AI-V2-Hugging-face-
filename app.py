@@ -217,6 +217,55 @@ HTML_TEMPLATE = """
     </script>
 
     <style>
+                 /* 👇 IPHONE FEEL: ULTRA SMOOTH SCROLLING & TOUCH 👇 */
+    
+        /* 1. Force Hardware Acceleration (GPU-வை ஆன் செய்யும்) */
+        * {
+           -webkit-tap-highlight-color: transparent; /* கிளிக் பண்ணா ப்ளூ பாக்ஸ் வராது */
+           box-sizing: border-box;
+        }
+
+        body, #app-container, #chat-box {
+        /* ஸ்க்ரோலிங் ஸ்மூத் ஆக்குதல் */
+        -webkit-overflow-scrolling: touch; 
+        scroll-behavior: smooth;
+        
+        /* ஓவர் ஸ்க்ரோல் ஆவதை தடுத்தல் (Bouncing Effect) */
+        overscroll-behavior-y: none;
+        
+            /* Font Rendering */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 2. Chat Box Physics (முக்கியமானது) */
+        #chat-box {
+            will-change: scroll-position; /* பிரவுசருக்கு முன்கூட்டியே சொல்லுதல் */
+            touch-action: pan-y; /* டச் ரெஸ்பான்ஸ் ஃபாஸ்ட் ஆகும் */
+            transform: translateZ(0); /* 3D Engine-ஐ ஆன் செய்யும் (Lag இருக்காது) */
+        }
+
+        /* 3. Buttons & Interactions */
+        button, .suggestion-chip, .action-icon {
+            cursor: pointer;
+            user-select: none; /* பட்டனை செலக்ட் பண்ண முடியாது */
+            transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth Animation */
+        }
+    
+        button:active, .suggestion-chip:active, .action-icon:active {
+            transform: scale(0.96); /* கிளிக் பண்ணா லேசா உள்ள போகும் (iPhone Style) */
+        }
+
+        /* 4. Text Selection Fix */
+        /* யூசர் மெசேஜை தவிர மற்ற எதையும் காப்பி பண்ண முடியாது (App Feel) */
+        body {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .msg-content, .user-content, .ai-content, code {
+            -webkit-user-select: text;
+            user-select: text;
+        }
         /* --- VARIABLES & THEMES --- */
         :root {
             --bg: #09090b; 
