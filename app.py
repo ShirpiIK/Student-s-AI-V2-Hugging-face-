@@ -1,62 +1,44 @@
-import PyPDF2  # PDF படிக்க
-import re      # Suggestions பிரிக்க
 import os
 import uuid
-import time
-import json
-import base64
-import io
+import logging
 import warnings
-from PIL import Image
+import json
+import time
 from flask import Flask, request, jsonify, render_template_string, Response
-import google.generativeai as genai
 
+# 👇 LlamaIndex Imports (PDF-ஐ தேடி எடுக்க)
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage
+from llama_index.llms.gemini import Gemini
+from llama_index.embeddings.gemini import GeminiEmbedding
 from huggingface_hub import snapshot_download
 
-# 👇 இங்கே உங்க Dataset பெயரை சரியா போடுங்க (எ.கா: "shirpi/education-library")
-dataset_id = "Shirpi/Education_library" 
+# 👇 Google GenAI (பதில் சொல்ல & படங்கள் பார்க்க)
+import google.generativeai as genai
 
-# 👇 லோக்கல் ஃபோல்டர் பெயர் (இதை மாத்த வேணாம்)
-data_folder = "pdfs"
-
-# 👇 இதுதான் அந்த மேஜிக்! Dataset-ஐ டவுன்லோட் செய்யும்
-if not os.path.exists(data_folder):
-    print(f"Downloading files from {dataset_id}...")
-    snapshot_download(
-        repo_id=dataset_id, 
-        repo_type="dataset", 
-        local_dir=data_folder, 
-        local_dir_use_symlinks=False
-    )
-    print("Download Completed!")
-
-# --- FIX: IGNORE DEPRECATION WARNINGS ---
+# --- FIX: IGNORE WARNINGS ---
 warnings.filterwarnings("ignore")
 
+app = Flask(__name__)
+
 # ==========================================
-# 👇 API KEYS SETUP 👇
+# 👇 1. SETUP: API KEYS & CONFIG 👇
 # ==========================================
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
-
-# --- 💾 DATABASE ---
-DB_FILE = "chat_db.json"
-def load_db():
-    try:
-        if os.path.exists(DB_FILE):
-            with open(DB_FILE, 'r') as f: return json.load(f)
-    except: pass
-    return {}
-def save_db(db):
-    try:
-        with open(DB_FILE, 'w') as f: json.dump(db, f, indent=2)
-    except: pass
-user_db = load_db()
-
+API_KEY = API_KEYS[0] if API_KEYS else ""
 current_key_index = 0
-app = Flask(__name__)
 
-# 👇 REPLACED System Instruction (With Citation Rule) 👇
+if not API_KEY:
+    print("⚠️ WARNING: API Key not found!")
+
+# LlamaIndex Setup (PDF தேடுவதற்கு)
+os.environ["GOOGLE_API_KEY"] = API_KEY
+Settings.llm = Gemini(model="models/gemini-1.5-flash", api_key=API_KEY)
+Settings.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=API_KEY)
+
+# ==========================================
+# 👇 2. YOUR ORIGINAL INSTRUCTIONS (RESTORED) 👇
+# ==========================================
 def get_system_instruction(medium="English"):
     base_instruction = """
 ROLE: You are "Student's AI", a professional academic tutor.
@@ -68,8 +50,6 @@ RULES:
    - If you combine info from multiple pages, list them all.
 4. **MATH:** Use LaTeX for formulas ($$ ... $$).
 5. **SUGGESTIONS:** End with 2 follow-up questions: `<<SUGGEST: Q1 | Q2>>`
-# 👇 இதை RULES-ல் சேர்க்கவும் 👇
-
 6. **TABLES:** Use Markdown tables for comparisons or structured data.
    - Example:
      | Property | Value |
@@ -77,7 +57,6 @@ RULES:
      | Mass     | 5kg   |
 7. **CHEMISTRY:** Use \ce{...} for formulas inside LaTeX. Example: $\ce{H2SO4}$.
 """
-
     
     if medium == "Tamil":
         base_instruction += """
@@ -89,114 +68,118 @@ RULES:
    - Do NOT reveal answers immediately. Wait for user to reply.
 """
     else:
-        base_instruction += "\n6. **LANGUAGE:** English by default."
+        base_instruction += "\n8. **LANGUAGE:** English by default."
         
     return base_instruction
 
-# --- 🧬 MODEL & FILE HANDLING ---
-def get_working_model(key):
-    try:
-        genai.configure(api_key=key)
-        models = list(genai.list_models())
-        chat_models = [m for m in models if 'generateContent' in m.supported_generation_methods]
-        for m in chat_models:
-            if "flash" in m.name.lower() and "1.5" in m.name: return m.name
-        for m in chat_models:
-            if "pro" in m.name.lower() and "1.5" in m.name: return m.name
-        if chat_models: return chat_models[0].name
-    except: return None
-    return None
-# 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
-def get_book_text(user_details):
-    try:
-        base_path = "books"
-        # 1. Path Construction logic (Same as before)
-        if user_details.get("type") == "school":
-            std = user_details.get("standard", "").lower()
-            sub = user_details.get("subject", "").lower()
-            path = os.path.join(base_path, "school", std, f"{sub}.pdf")
-        else:
-            dept = user_details.get("dept", "").lower()
-            sub = user_details.get("subject", "").lower()
-            path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
-            
-        if os.path.exists(path):
-            text = ""
-            with open(path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
-                
-                # 👇 மாற்றம்: ஒவ்வொரு பக்கத்திலும் அச்சிடப்பட்ட நம்பரைத் தேடுதல்
-                for i, page in enumerate(reader.pages[:50]): # Limit for speed
-                    content = page.extract_text()
-                    if content:
-                        lines = content.strip().split('\n')
-                        page_label = f"PDF Page {i+1}" # Default (கிடைக்கலைனா இது வரும்)
+# ==========================================
+# 👇 3. LLAMAINDEX ENGINE (PDF READER) 👇
+# ==========================================
+dataset_id = "Shirpi/Education-library"  
+data_folder = "pdfs"
+persist_dir = "storage"
 
-                        # Logic: கடைசி வரியிலோ அல்லது முதல் வரியிலோ நம்பர் மட்டும் இருக்கான்னு பார்த்தல்
-                        if lines:
-                            last_line = lines[-1].strip()
-                            first_line = lines[0].strip()
-                            
-                            # 1. Check Footer (கீழே)
-                            if last_line.isdigit():
-                                page_label = f"Page {last_line}"
-                            # 2. Check Header (மேலே) - Footer இல்லனா இதை பார்
-                            elif first_line.isdigit():
-                                page_label = f"Page {first_line}"
-                        
-                        # AI-க்கு அனுப்பும் டெக்ஸ்டில் இந்த லேபிளைச் சேர்த்தல்
-                        text += f"\n--- [{page_label}] ---\n{content}\n"
-            return text
-        else:
+def initialize_index():
+    index = None
+    # A. Download
+    if not os.path.exists(data_folder):
+        print(f"📥 Downloading Library from {dataset_id}...")
+        try:
+            snapshot_download(repo_id=dataset_id, repo_type="dataset", local_dir=data_folder, local_dir_use_symlinks=False)
+            print("✅ Download Completed!")
+        except Exception as e:
+            print(f"❌ Download Error: {e}")
             return None
-    except: return None
-        
-# 👇 REPLACED generate_with_retry FUNCTION 👇
-def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
+
+    # B. Load/Create Index
+    if os.path.exists(persist_dir):
+        try:
+            storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
+            index = load_index_from_storage(storage_context)
+            print("📂 Loaded existing index.")
+        except: pass
+            
+    if index is None:
+        print("🚀 Creating New Index (Recursive)...")
+        try:
+            documents = SimpleDirectoryReader(data_folder, recursive=True).load_data()
+            index = VectorStoreIndex.from_documents(documents)
+            if not os.path.exists(persist_dir): os.makedirs(persist_dir)
+            index.storage_context.persist(persist_dir=persist_dir)
+            print("✅ Index Created!")
+        except Exception as e:
+            print(f"❌ Indexing Error: {e}")
+            
+    return index
+
+# Initialize Retriever (Global)
+retriever = None
+try:
+    ai_index = initialize_index()
+    if ai_index:
+        # நாம் முழு ChatEngine பயன்படுத்தாமல், Retriever மட்டும் பயன்படுத்துவோம்.
+        # இது PDF-ல் உள்ள விஷயத்தை மட்டும் எடுத்து தரும். மீதியை நம்ம பழைய Code பார்த்துக்கும்.
+        retriever = ai_index.as_retriever(similarity_top_k=5)
+except: pass
+
+# ==========================================
+# 👇 4. GENERATION FUNCTION (ROTATING KEYS) 👇
+# ==========================================
+def generate_response(prompt, system_instruction, image_data=None):
     global current_key_index
-    if not API_KEYS: return "🚨 API Keys Missing."
-
-    formatted_history = []
-    for m in history_messages[-6:]:
-        role = "user" if m["role"] == "user" else "model"
-        formatted_history.append({"role": role, "parts": [m["content"]]})
-
-    current_parts = []
-    if file_text: current_parts.append(f"analyzing file:\n{file_text}\n\n")
-    current_parts.append(prompt)
+    
+    parts = [prompt]
     if image_data:
-        img = process_image(image_data)
-        if img: current_parts.append(img)
+        # Convert Base64 to Image for Gemini
+        from PIL import Image
+        import io, base64
+        try:
+            img_bytes = base64.b64decode(image_data.split(',')[1])
+            img = Image.open(io.BytesIO(img_bytes))
+            parts.append(img)
+        except: pass
 
     for i in range(len(API_KEYS)):
         key = API_KEYS[current_key_index]
-        model_name = get_working_model(key)
-        
-        if not model_name:
-            current_key_index = (current_key_index + 1) % len(API_KEYS)
-            continue
-
         try:
             genai.configure(api_key=key)
-            
-            # 👇 இங்கே தான் மாற்றம்: system_instruction வருகிறதா என பார்க்கிறோம்
-            final_instruction = system_instruction if system_instruction else "You are a helpful tutor."
-            
-            model = genai.GenerativeModel(model_name=model_name, system_instruction=final_instruction)
-            
-            if image_data or file_text:
-                response = model.generate_content(current_parts)
-            else:
-                chat = model.start_chat(history=formatted_history)
-                response = chat.send_message(prompt)
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                system_instruction=system_instruction
+            )
+            response = model.generate_content(parts)
             return response.text
         except Exception as e:
+            print(f"Key Error: {e}")
             current_key_index = (current_key_index + 1) % len(API_KEYS)
             time.sleep(1)
+            
+    return "⚠️ Server Busy. Please try again."
 
-    return "⚠️ System Busy. Please try again."
-    
-# --- UI TEMPLATE (UPDATED: PROFESSIONAL UI V2) ---
+# ==========================================
+# 👇 5. DATABASE & HTML 👇
+# ==========================================
+DB_FILE = "chat_db.json"
+user_db = {} 
+
+def load_db():
+    global user_db
+    try:
+        if os.path.exists(DB_FILE):
+            with open(DB_FILE, 'r') as f: user_db = json.load(f)
+    except: pass
+
+def save_db():
+    try: with open(DB_FILE, 'w') as f: json.dump(user_db, f, indent=2)
+    except: pass
+
+load_db()
+
+
+
+# ==========================================
+# 👇 6. ROUTES 👇
+# ==========================================
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -2409,7 +2392,8 @@ input[type="search"]::-webkit-search-results-decoration {
 (இதை Part 2 முடிஞ்ச இடத்துல இருந்து அப்படியே தொடர்ந்து பேஸ்ட் பண்ணுங்க. முக்கியம்: இதை மிஸ் பண்ணிடாதீங்க)"""
 # --- BACKEND ROUTES (UNCHANGED) ---
 @app.route("/", methods=["GET"])
-def home(): return render_template_string(HTML_TEMPLATE)
+def home(): 
+    return render_template_string(HTML_TEMPLATE)
 
 @app.route("/new_chat", methods=["POST"])
 def new_chat():
@@ -2417,26 +2401,8 @@ def new_chat():
     if u not in user_db: user_db[u] = {}
     nid = str(uuid.uuid4())
     user_db[u][nid] = {"title": "New Chat", "messages": []}
-    save_db(user_db)
+    save_db()
     return jsonify({"chat_id": nid})
-
-@app.route("/rename_chat", methods=["POST"])
-def rename_chat():
-    d = request.json
-    u, cid, t = d.get("username"), d.get("chat_id"), d.get("title")
-    if u in user_db and cid in user_db[u]:
-        user_db[u][cid]["title"] = t
-        save_db(user_db)
-    return jsonify({"status":"ok"})
-
-@app.route("/delete_chat", methods=["POST"])
-def delete_chat():
-    d = request.json
-    u, cid = d.get("username"), d.get("chat_id")
-    if u in user_db and cid in user_db[u]:
-        del user_db[u][cid]
-        save_db(user_db)
-    return jsonify({"status":"ok"})
 
 @app.route("/get_history", methods=["POST"])
 def get_history():
@@ -2448,72 +2414,24 @@ def get_chat():
     d = request.json
     return jsonify({"messages": user_db.get(d["username"], {}).get(d["chat_id"], {}).get("messages", [])})
 
-@app.route("/chat", methods=["POST"])
-def chat():
+@app.route("/rename_chat", methods=["POST"])
+def rename_chat():
     d = request.json
-    u, cid, msg = d.get("username"), d.get("chat_id"), d.get("message")
-    
-    # 👇 Frontend-ல் இருந்து வரும் விபரங்கள்
-    u_details = d.get("user_details", {}) 
-    medium = u_details.get("medium", "English") # தமிழ் என்றால் "Tamil" வரும்
-    
-    # 1. Load Book Content (RAG)
-    book_text = get_book_text(u_details)
-    
-    # 2. Context Prompt (புக்கை AI-க்கு கொடுத்தல்)
-    prompt = msg
-    if book_text:
-        prompt = f"Context Book Content:\n{book_text}\n\nUser Question: {msg}"
-    else:
-        # புக் இல்லனா பொதுவான பதில், ஆனால் எச்சரிக்கையுடன்
-        prompt = f"Note: No textbook found for this subject. Answer generally.\n\nUser Question: {msg}"
+    u, cid, t = d.get("username"), d.get("chat_id"), d.get("title")
+    if u in user_db and cid in user_db[u]:
+        user_db[u][cid]["title"] = t
+        save_db()
+    return jsonify({"status":"ok"})
 
-    if u not in user_db: user_db[u] = {}
-    if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
+@app.route("/delete_chat", methods=["POST"])
+def delete_chat():
+    d = request.json
+    u, cid = d.get("username"), d.get("chat_id")
+    if u in user_db and cid in user_db[u]:
+        del user_db[u][cid]
+        save_db()
+    return jsonify({"status":"ok"})
 
-    # 3. Instruction based on Medium
-    sys_inst = get_system_instruction(medium)
-    
-    # 4. Generate Answer
-    # (Note: generate_with_retry ஃபங்ஷனில் system_instruction அனுப்பும் வசதி வேண்டும். 
-    # அல்லது global SYSTEM_INSTRUCTION-ஐ தற்காலிகமாக மாற்றலாம், ஆனால் அது thread-safe இல்லை.
-    # அதனால், generate_with_retry-ஐ கீழே மாற்றித் தருகிறேன்).
-    
-    user_db[u][cid]["messages"].append({"role": "user", "content": msg})
-    
-    # Call AI
-    reply = generate_with_retry(prompt, system_instruction=sys_inst, history_messages=user_db[u][cid]["messages"][:-1])
-    
-    user_db[u][cid]["messages"].append({"role": "model", "content": reply})
-    
-    save_db(user_db)
-    return jsonify({"response": reply})
-    
-@app.route('/manifest.json')
-def manifest():
-    data = {
-        "name": "Student's AI",
-        "short_name": "Student's AI",
-        "start_url": "/",
-        "display": "standalone",
-        "orientation": "portrait",
-        "background_color": "#09090b",
-        "theme_color": "#09090b",
-        "icons": [
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png", 
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    }
-    return Response(json.dumps(data), mimetype='application/json')
-# 👇 ADD THIS NEW ROUTE AT THE END (Before if __name__ == '__main__':) 👇
 @app.route("/truncate_response", methods=["POST"])
 def truncate_response():
     try:
@@ -2521,16 +2439,71 @@ def truncate_response():
         u, cid, ratio = d.get("username"), d.get("chat_id"), d.get("ratio")
         if u in user_db and cid in user_db[u]:
             msgs = user_db[u][cid]["messages"]
-            # கடைசி மெசேஜ் AI உடையதா இருந்தால் மட்டும் கட் செய்யவும்
             if msgs and msgs[-1]["role"] == "model":
                 full_text = msgs[-1]["content"]
-                # கட் பண்ண வேண்டிய இடத்தை கணக்கிடுதல்
                 cut_idx = int(len(full_text) * float(ratio))
-                # பாதியில் நிறுத்தியதற்கான மார்க்கர்
                 msgs[-1]["content"] = full_text[:cut_idx] + " ... [Stopped]"
-                save_db(user_db)
+                save_db()
         return jsonify({"status": "updated"})
     except: return jsonify({"status": "error"})
-        
+
+# 👇 MAIN CHAT ROUTE (Combines LlamaIndex + Your Instructions) 👇
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.json
+    u, cid = data.get("username"), data.get("chat_id")
+    msg = data.get("message", "")
+    image_data = data.get("image")
+    
+    # Get User Details for Medium (Tamil/English)
+    u_details = data.get("user_details", {})
+    medium = u_details.get("medium", "English")
+
+    if u not in user_db: user_db[u] = {}
+    if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
+
+    # 1. Retrieve Context from PDF (Using LlamaIndex)
+    context_text = ""
+    if not image_data and retriever: # படங்கள் இருந்தால் PDF தேவையில்லை
+        try:
+            nodes = retriever.retrieve(msg)
+            # Combine text with Page Numbers
+            for node in nodes:
+                page_label = node.metadata.get('page_label', 'Unknown Page')
+                context_text += f"\n--- [Source: {page_label}] ---\n{node.text}\n"
+        except Exception as e:
+            print(f"Retrieval Error: {e}")
+
+    # 2. Prepare System Instruction (With Context)
+    sys_inst = get_system_instruction(medium)
+    
+    final_prompt = msg
+    if context_text:
+        final_prompt = f"CONTEXT BOOK CONTENT:\n{context_text}\n\nUSER QUESTION: {msg}"
+    
+    # 3. Add to History
+    user_db[u][cid]["messages"].append({"role": "user", "content": msg})
+
+    # 4. Generate Answer
+    reply = generate_response(final_prompt, sys_inst, image_data)
+    
+    user_db[u][cid]["messages"].append({"role": "model", "content": reply})
+    save_db()
+    
+    return jsonify({"response": reply})
+
+@app.route('/manifest.json')
+def manifest():
+    data = {
+        "name": "Student's AI",
+        "short_name": "Student's AI",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#09090b",
+        "theme_color": "#09090b",
+        "icons": [{"src": "https://huggingface.co/spaces/Shirpi/Student-s_AI/resolve/main/1000177401.png", "sizes": "192x192", "type": "image/png"}]
+    }
+    return Response(json.dumps(data), mimetype='application/json')
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
