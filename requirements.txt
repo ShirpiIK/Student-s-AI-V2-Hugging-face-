@@ -3,4 +3,5 @@ google-generativeai
 PyPDF2
 Pillow
 huggingface-hub
-
+pymongo
+certifi
