@@ -11,6 +11,29 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
+# 👇 புதிய வரிகள் (Hugging Face Library)
+from huggingface_hub import snapshot_download
+
+# 👇 இங்கே உங்க Dataset பெயரை சரியா போடுங்க (எ.கா: "username/dataset-name")
+dataset_id = "Shirpi/Education_library" 
+
+# 👇 லோக்கல் ஃபோல்டர் பெயர் (இதை 'pdfs' என மாற்றுகிறோம்)
+data_folder = "pdfs"
+
+# 👇 இதுதான் அந்த மேஜிக்! Dataset-ஐ டவுன்லோட் செய்யும்
+if not os.path.exists(data_folder):
+    print(f"Downloading files from {dataset_id}...")
+    try:
+        snapshot_download(
+            repo_id=dataset_id, 
+            repo_type="dataset", 
+            local_dir=data_folder, 
+            local_dir_use_symlinks=False
+        )
+        print("✅ Download Completed!")
+    except Exception as e:
+        print(f"❌ Download Error: {e}")
+        
 # --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
@@ -90,7 +113,7 @@ def get_working_model(key):
 # 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
 def get_book_text(user_details):
     try:
-        base_path = "books"
+        base_path = "pdfs"
         # 1. Path Construction logic (Same as before)
         if user_details.get("type") == "school":
             std = user_details.get("standard", "").lower()
