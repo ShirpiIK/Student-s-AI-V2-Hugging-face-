@@ -856,10 +856,7 @@ input[type="search"]::-webkit-search-results-decoration {
         background: transparent; 
         padding: 0; 
     }
-    /* 👇 இதை CSS-ல் கடைசியில் சேருங்கள் (HIDE BOTH INITIALLY) 👇 */
-    #onboarding-overlay, #app-container {
-        display: none !important; /* JS முடிவு செய்யும் வரை இரண்டும் தெரியாது */
-    }
+    
 </style>
 </head>
 <body>
@@ -1383,21 +1380,18 @@ input[type="search"]::-webkit-search-results-decoration {
             }
         }
 
-        /* 👇 UPDATED CHECK LOGIN (No Flash Glitch) 👇 */
+         // 3. APP CORE & SETTINGS LOGIC
         function checkLogin() {
             const stored = localStorage.getItem("student_ai_user");
-            
             if (stored) { 
-                // ஏற்கனவே யூசர் இருந்தால் -> ஆப்பை மட்டும் காட்டு
                 currentUser = stored;
                 userDetails = JSON.parse(localStorage.getItem("student_details") || "{}");
-                
-                document.getElementById("app-container").style.display = 'flex'; // Show App
+                document.getElementById("onboarding-overlay").style.display = 'none';
                 showApp();
-            } else {
-                // புது யூசர் என்றால் -> வெல்கம் பேஜை மட்டும் காட்டு
-                document.getElementById("onboarding-overlay").style.display = 'flex'; // Show Intro
             }
+            const theme = localStorage.getItem('app_theme') || 'system';
+            setTheme(theme);
+        }
 
             // Theme Logic
             const theme = localStorage.getItem('app_theme') || 'system';
