@@ -1,6 +1,5 @@
 flask
 google-generativeai
-Pillow
 huggingface-hub
 llama-index-core
 llama-index-llms-gemini
