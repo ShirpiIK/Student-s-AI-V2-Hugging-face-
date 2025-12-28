@@ -857,55 +857,50 @@ input[type="search"]::-webkit-search-results-decoration {
         background: transparent; 
         padding: 0; 
     }
-    /* 👇 IPHONE FEEL: ULTRA SMOOTH SCROLLING & TOUCH 👇 */
+    /* 👇 HIDE ALL LOADING ANIMATIONS 👇 */
+    #nprogress, .spinner, .loader, .loading-bar, .progress-ring {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+    }
     
-        /* 1. Force Hardware Acceleration (GPU-வை ஆன் செய்யும்) */
-        * {
-           -webkit-tap-highlight-color: transparent; /* கிளிக் பண்ணா ப்ளூ பாக்ஸ் வராது */
-           box-sizing: border-box;
-        }
+    /* ஒருவேளை பாடி (Body) லோடிங் ஆகுறப்ப மங்கலா தெரிந்தால் அதை சரி செய்ய: */
+    body {
+        opacity: 1 !important; 
+    }
 
-        body, #app-container, #chat-box {
-        /* ஸ்க்ரோலிங் ஸ்மூத் ஆக்குதல் */
+    /* 👇 REAL NATIVE PERFORMANCE (No Lag) 👇 */
+    * {
+        -webkit-tap-highlight-color: transparent; /* நீல நிற கிளிக் பாக்ஸை நீக்கும் */
+    }
+
+    /* GPU-வை கட்டாயப்படுத்தி ஆன் செய்தல் */
+    body, #app-container {
+        overscroll-behavior-y: none; /* பவுன்ஸ் ஆகாது */
+        background-color: var(--bg);
+    }
+
+    #chat-box {
+        /* 👇 இதுதான் முக்கியம்! Native Scrolling */
         -webkit-overflow-scrolling: touch; 
-        scroll-behavior: smooth;
+        overflow-y: scroll; 
         
-        /* ஓவர் ஸ்க்ரோல் ஆவதை தடுத்தல் (Bouncing Effect) */
-        overscroll-behavior-y: none;
+        /* 3D Engine ON - Hardware Acceleration */
+        transform: translate3d(0, 0, 0); 
+        backface-visibility: hidden;
+        perspective: 1000px;
         
-            /* Font Rendering */
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* 2. Chat Box Physics (முக்கியமானது) */
-        #chat-box {
-            will-change: scroll-position; /* பிரவுசருக்கு முன்கூட்டியே சொல்லுதல் */
-            touch-action: pan-y; /* டச் ரெஸ்பான்ஸ் ஃபாஸ்ட் ஆகும் */
-            transform: translateZ(0); /* 3D Engine-ஐ ஆன் செய்யும் (Lag இருக்காது) */
-        }
-
-        /* 3. Buttons & Interactions */
-        button, .suggestion-chip, .action-icon {
-            cursor: pointer;
-            user-select: none; /* பட்டனை செலக்ட் பண்ண முடியாது */
-            transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth Animation */
-        }
+        /* ஸ்க்ரோல் பாரை மறைத்தல் (iPhone Style) */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE */
+    }
     
-        button:active, .suggestion-chip:active, .action-icon:active {
-            transform: scale(0.96); /* கிளிக் பண்ணா லேசா உள்ள போகும் (iPhone Style) */
-        }
-
-        /* 4. Text Selection Fix */
-        /* யூசர் மெசேஜை தவிர மற்ற எதையும் காப்பி பண்ண முடியாது (App Feel) */
-        body {
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        .msg-content, .user-content, .ai-content, code {
-            -webkit-user-select: text;
-            user-select: text;
-        }
+    /* Chrome-ல் ஸ்க்ரோல் பாரை மறைக்க */
+    #chat-box::-webkit-scrollbar {
+        display: none;
+    }
     
 </style>
 </head>
