@@ -1,3 +1,5 @@
+import pymongo
+import certifi
 import PyPDF2  # PDF படிக்க
 import re      # Suggestions பிரிக்க
 import os
@@ -43,22 +45,40 @@ warnings.filterwarnings("ignore")
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
 
-# --- 💾 DATABASE ---
-DB_FILE = "chat_db.json"
+# 👇 உங்க MongoDB லிங்க் இங்கே போடுங்க (பாஸ்வேர்ட் மாற்ற மறக்காதீங்க!)
+MONGO_URI = "mongodb+srv://ikshirpi826_db_user:<db_password>@students-ai.2wdmflx.mongodb.net/?appName=Students-AI"
+
+# MongoDB Connection
+client = pymongo.MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+db = client["StudentAI_DB"]  # டேட்டாபேஸ் பெயர்
+collection = db["chat_history"] # ஃபோல்டர் பெயர்
+
+# 👇 பழைய load_db ஃபங்ஷனுக்கு பதில் இது
 def load_db():
     try:
-        if os.path.exists(DB_FILE):
-            with open(DB_FILE, 'r') as f: return json.load(f)
-    except: pass
-    return {}
-def save_db(db):
-    try:
-        with open(DB_FILE, 'w') as f: json.dump(db, f, indent=2)
-    except: pass
-user_db = load_db()
+        # MongoDB-ல் இருந்து டேட்டாவை எடு
+        data = collection.find_one({"_id": "global_store"})
+        if data:
+            return data["data"]
+        return {}
+    except Exception as e:
+        print(f"DB Load Error: {e}")
+        return {}
 
-current_key_index = 0
-app = Flask(__name__)
+# 👇 பழைய save_db ஃபங்ஷனுக்கு பதில் இது
+def save_db(db_data):
+    try:
+        # MongoDB-ல் டேட்டாவை சேமி (Update)
+        collection.update_one(
+            {"_id": "global_store"}, 
+            {"$set": {"data": db_data}}, 
+            upsert=True
+        )
+    except Exception as e:
+        print(f"DB Save Error: {e}")
+
+# ஆரம்பத்தில் டேட்டாவை லோட் செய்தல்
+user_db = load_db()
 
 # 👇 REPLACED System Instruction (With Citation Rule) 👇
 def get_system_instruction(medium="English"):
