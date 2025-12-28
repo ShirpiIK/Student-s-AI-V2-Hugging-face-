@@ -2,3 +2,4 @@ flask
 google-generativeai
 PyPDF2
 Pillow
+huggingface-hub
