@@ -982,14 +982,14 @@ input[type="search"]::-webkit-search-results-decoration {
                         <i class="fas fa-palette" style="color:var(--text);"></i>
                         <span>Themes</span>
                     </div>
-                    <div class="settings-option-btn" onclick="openSubPage('subpage-chats')">
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
+                </div>
+                <div class="settings-option-btn" onclick="openSubPage('subpage-chats')">
                     <div style="display:flex; align-items:center; gap:15px;">
                         <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
                             <i class="fas fa-comments" style="color:var(--text); font-size:16px;"></i>
                         </div>
                         <span>Chats</span>
-                    </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                     </div>
                     <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
