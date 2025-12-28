@@ -5,3 +5,5 @@ Pillow
 huggingface-hub
 pymongo
 certifi
+importlib-metadata
+dnspython
