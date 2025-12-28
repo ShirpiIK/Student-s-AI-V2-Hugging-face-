@@ -18,7 +18,7 @@ from huggingface_hub import snapshot_download
 dataset_id = "Shirpi/Education_library" 
 
 # 👇 லோக்கல் ஃபோல்டர் பெயர் (இதை 'pdfs' என மாற்றுகிறோம்)
-data_folder = "pdfs"
+data_folder = "books"
 
 # 👇 இதுதான் அந்த மேஜிக்! Dataset-ஐ டவுன்லோட் செய்யும்
 if not os.path.exists(data_folder):
@@ -113,7 +113,7 @@ def get_working_model(key):
 # 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
 def get_book_text(user_details):
     try:
-        base_path = "pdfs"
+        base_path = "books"
         # 1. Path Construction logic (Same as before)
         if user_details.get("type") == "school":
             std = user_details.get("standard", "").lower()
