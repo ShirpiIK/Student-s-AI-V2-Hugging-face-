@@ -11,6 +11,25 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template_string, Response
 import google.generativeai as genai
 
+from huggingface_hub import snapshot_download
+
+# 👇 இங்கே உங்க Dataset பெயரை சரியா போடுங்க (எ.கா: "shirpi/education-library")
+dataset_id = "Shirpi/Education_library" 
+
+# 👇 லோக்கல் ஃபோல்டர் பெயர் (இதை மாத்த வேணாம்)
+data_folder = "pdfs"
+
+# 👇 இதுதான் அந்த மேஜிக்! Dataset-ஐ டவுன்லோட் செய்யும்
+if not os.path.exists(data_folder):
+    print(f"Downloading files from {dataset_id}...")
+    snapshot_download(
+        repo_id=dataset_id, 
+        repo_type="dataset", 
+        local_dir=data_folder, 
+        local_dir_use_symlinks=False
+    )
+    print("Download Completed!")
+
 # --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
