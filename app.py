@@ -186,6 +186,16 @@ def get_book_text(user_details):
     except Exception as e: 
         print(f"❌ Error reading PDF: {e}")
         return None
+
+def get_chat_title(first_message):
+    try:
+        # தலைப்பு வைக்க தனியா ஒரு சின்ன மாடல் கால் (Fast & Cheap)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"Summarize this message into a very short title (max 4 words) for a chat history. No quotes. Message: {first_message}"
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return "New Chat"
         
 # 👇 REPLACED generate_with_retry FUNCTION 👇
 def generate_with_retry(prompt, image_data=None, file_text=None, history_messages=[], system_instruction=None):
@@ -2430,44 +2440,61 @@ def get_chat():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    d = request.json
-    u, cid, msg = d.get("username"), d.get("chat_id"), d.get("message")
+    data = request.json
+    u = data.get("username")
+    cid = data.get("chat_id")
+    msg = data.get("message")
     
     # 👇 Frontend-ல் இருந்து வரும் விபரங்கள்
-    u_details = d.get("user_details", {}) 
-    medium = u_details.get("medium", "English") # தமிழ் என்றால் "Tamil" வரும்
+    u_details = data.get("user_details", {}) 
+    medium = u_details.get("medium", "English") 
     
-    # 1. Load Book Content (RAG)
+    # 1. User DB-ல் இந்த சேட் இருக்கிறதா என உறுதி செய்தல்
+    if u not in user_db: user_db[u] = {}
+    if cid not in user_db[u]: 
+        user_db[u][cid] = {"messages": [], "title": "New Chat"} # Default Title
+
+    # 👇👇👇 புது மாற்றம்: இதுதான் முதல் மெசேஜ்னா, தலைப்பு வை! 👇👇👇
+    current_msgs = user_db[u][cid].get("messages", [])
+    chat_title = user_db[u][cid].get("title", "New Chat")
+
+    if len(current_msgs) == 0:
+        print("⚡ Generating Auto-Title for new chat...")
+        chat_title = get_chat_title(msg) # Gemini-யை வைத்து தலைப்பு வை
+        user_db[u][cid]["title"] = chat_title # DB-ல் அப்டேட் செய்
+    # 👆👆👆 ------------------------------------------------ 👆👆👆
+
+    # 2. Load Book Content (RAG)
     book_text = get_book_text(u_details)
     
-    # 2. Context Prompt (புக்கை AI-க்கு கொடுத்தல்)
+    # 3. Context Prompt (புக்கை AI-க்கு கொடுத்தல்)
     prompt = msg
     if book_text:
         prompt = f"Context Book Content:\n{book_text}\n\nUser Question: {msg}"
     else:
-        # புக் இல்லனா பொதுவான பதில், ஆனால் எச்சரிக்கையுடன்
         prompt = f"Note: No textbook found for this subject. Answer generally.\n\nUser Question: {msg}"
 
-    if u not in user_db: user_db[u] = {}
-    if cid not in user_db[u]: user_db[u][cid] = {"messages": []}
-
-    # 3. Instruction based on Medium
+    # 4. Instruction based on Medium
     sys_inst = get_system_instruction(medium)
     
-    # 4. Generate Answer
-    # (Note: generate_with_retry ஃபங்ஷனில் system_instruction அனுப்பும் வசதி வேண்டும். 
-    # அல்லது global SYSTEM_INSTRUCTION-ஐ தற்காலிகமாக மாற்றலாம், ஆனால் அது thread-safe இல்லை.
-    # அதனால், generate_with_retry-ஐ கீழே மாற்றித் தருகிறேன்).
-    
+    # 5. User Message-ஐ லிஸ்டில் சேர்
     user_db[u][cid]["messages"].append({"role": "user", "content": msg})
     
-    # Call AI
-    reply = generate_with_retry(prompt, system_instruction=sys_inst, history_messages=user_db[u][cid]["messages"][:-1])
+    # 6. Call AI (பழைய மெசேஜ்களையும் நினைவில் வைத்துக்கொள்ள history அனுப்புகிறோம்)
+    reply = generate_with_retry(
+        prompt, 
+        system_instruction=sys_inst, 
+        history_messages=user_db[u][cid]["messages"][:-1]
+    )
     
+    # 7. AI Message-ஐ லிஸ்டில் சேர்
     user_db[u][cid]["messages"].append({"role": "model", "content": reply})
     
+    # 8. MongoDB-ல் சேமி
     save_db(user_db)
-    return jsonify({"response": reply})
+    
+    # 9. Response அனுப்பு (Title-ையும் சேர்த்து அனுப்புகிறோம், தேவைப்பட்டால் Frontend-ல் அப்டேட் செய்ய)
+    return jsonify({"response": reply, "title": chat_title})
     
 @app.route('/manifest.json')
 def manifest():
