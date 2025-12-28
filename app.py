@@ -51,7 +51,8 @@ API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').
 # --- 💾 MONGODB DATABASE SETUP ---
 # (மேலே import pymongo, import certifi மறக்காம சேருங்க)
 
-MONGO_URI = "mongodb+srv://ikshirpi826_db_user:6CssmEHW1xECEFcL@students-ai.2wdmflx.mongodb.net/?appName=Students-AI"
+# ரகசியப் பெட்டியில் (Secrets) இருந்து லின்க்கை எடு
+MONGO_URI = os.environ.get("MONGO_URI")
 
 # MongoDB Connection
 try:
