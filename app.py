@@ -1393,10 +1393,7 @@ input[type="search"]::-webkit-search-results-decoration {
             setTheme(theme);
         }
 
-            // Theme Logic
-            const theme = localStorage.getItem('app_theme') || 'system';
-            setTheme(theme);
-        }
+            
 
         /* 👇 NEW: SMART WELCOME SCREEN (Handles Suggestions & Reset) 👇 */
         function renderWelcomeScreen() {
