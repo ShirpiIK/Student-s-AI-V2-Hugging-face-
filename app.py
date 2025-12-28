@@ -1756,7 +1756,7 @@ input[type="search"]::-webkit-search-results-decoration {
             send(); 
         }
 
-        /* 👇 UPDATED ADD MSG (With Math Fix) 👇 */
+        /* 👇 UPDATED ADD MSG (Buttons Fixed) 👇 */
         function addMsg(role, text, img) {
             const box = document.getElementById('chat-box');
             let contentHtml = "";
@@ -1775,7 +1775,6 @@ input[type="search"]::-webkit-search-results-decoration {
             }
 
             if (role === 'ai') {
-                // 🔥 FIX: Use formatText() here too
                 contentHtml += `<div class="ai-content">${formatText(cleanText)}</div>`;
             } else {
                 contentHtml += `<div class="user-content">${cleanText}</div>`;
@@ -1791,15 +1790,14 @@ input[type="search"]::-webkit-search-results-decoration {
                     <div class="action-icon" onclick="editMessage(\`${safeText}\`)"><i class="fas fa-pen"></i> Edit</div>
                 </div>`;
             } else {
-                 const cleanTextForSpeech = cleanText.replace(/[*#`]/g, '').replace(/"/g, '&quot;').replace(/'/g, "\\\\'").replace(/\\n/g, ' ');
-
+                // 👇👇👇 இங்கே மாற்றம் (Listen நீக்கப்பட்டது & வரிசை சரிசெய்யப்பட்டது) 👇👇👇
                 actionsHtml = `
-                <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <div class="action-icon" onclick="toggleSpeech(this, '${cleanTextForSpeech}')"><i class="fas fa-volume-up"></i> Listen</div>
+                <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
+                // 👆👆👆 ---------------------------------------------------- 👆👆👆
             }
 
             const msgDiv = document.createElement('div');
@@ -1823,7 +1821,6 @@ input[type="search"]::-webkit-search-results-decoration {
             
             msgDiv.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
             
-            // 🔥🔥 MATHJAX TRIGGER 🔥🔥
             if (window.MathJax && role === 'ai') {
                 MathJax.typesetPromise([msgDiv]).catch((err) => console.log(err));
             }
@@ -2239,13 +2236,13 @@ input[type="search"]::-webkit-search-results-decoration {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* 👇 UPDATED TYPEWRITER (Fixes Formula Rendering) 👇 */
+    /* 👇 UPDATED TYPEWRITER (No Listen Button & Fixed Order) 👇 */
     typeWriter = function(element, text, callback) {
         const chatBox = document.getElementById('chat-box');
         let i = 0;
         window.typeProgress = 0; 
         
-        // 🔥 FIX: Use formatText() instead of marked.parse()
+        // Formats Markdown & Math
         element.innerHTML = formatText(text);
         
         const finalHTML = element.innerHTML;
@@ -2257,12 +2254,11 @@ input[type="search"]::-webkit-search-results-decoration {
             if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
 
             if (i < finalHTML.length) {
-                // HTML Tag Logic
                 if (finalHTML.charAt(i) === '<') {
                     let tagEnd = finalHTML.indexOf('>', i);
                     i = tagEnd + 1;
                 } else {
-                    i += 3; // Typing Speed
+                    i += 3; 
                 }
                 element.innerHTML = finalHTML.substring(0, i);
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -2271,7 +2267,7 @@ input[type="search"]::-webkit-search-results-decoration {
                 element.innerHTML = finalHTML;
                 window.typeProgress = 1;
                 
-                // Colors & Copy Buttons
+                // Highlight Code Blocks
                 element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
                 element.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.code-copy-btn')) return;
@@ -2289,20 +2285,16 @@ input[type="search"]::-webkit-search-results-decoration {
                     pre.appendChild(btn);
                 });
 
-                // Listen / Copy / Share Buttons
-                const cleanTextForSpeech = text.replace(/[*#`]/g, '');
-                const safeSpeechText = cleanTextForSpeech.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-                
+                // 👇👇👇 பட்டன் வரிசை மாற்றம் (Listen நீக்கப்பட்டது) 👇👇👇
                 const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px;">
-                        <div class="action-icon" onclick="speakText('${safeSpeechText}')"><i class="fas fa-volume-up"></i> Listen</div>
+                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
                         <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                         <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                         <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                     </div>`;
                 element.insertAdjacentHTML('beforeend', actionsHtml);
+                // 👆👆👆 -------------------------------------- 👆👆👆
 
-                // 🔥🔥 MATHJAX TRIGGER (இதுதான் ஃபார்முலாவை காட்டும்) 🔥🔥
                 if (window.MathJax) {
                     MathJax.typesetPromise([element]).catch((err) => console.log(err));
                 }
