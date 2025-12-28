@@ -982,6 +982,15 @@ input[type="search"]::-webkit-search-results-decoration {
                         <i class="fas fa-palette" style="color:var(--text);"></i>
                         <span>Themes</span>
                     </div>
+                    <div class="settings-option-btn" onclick="openSubPage('subpage-chats')">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-comments" style="color:var(--text); font-size:16px;"></i>
+                        </div>
+                        <span>Chats</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
+                    </div>
                     <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
             </div>
@@ -1062,6 +1071,46 @@ input[type="search"]::-webkit-search-results-decoration {
 
             <div style="padding:15px 20px; flex-shrink:0; border-top:1px solid var(--border); background:var(--bg);">
                 <div class="ad-banner-small" id="theme-ad">Theme Ad Space (320x60)</div>
+            </div>
+        </div>
+        <div id="subpage-chats" class="settings-sub-page" style="height:100%; display:flex; flex-direction:column;">
+            
+            <div class="sub-header" style="flex-shrink:0;">
+                <div class="back-btn" onclick="closeSubPage('subpage-chats')"><i class="fas fa-arrow-left"></i></div>
+                <h2 style="margin:0; font-size:20px; color:var(--text);">Chats Settings</h2>
+            </div>
+
+            <div class="settings-content" style="flex:1; overflow-y:auto; padding:20px;">
+                
+                <div style="margin-bottom:20px; padding:0 5px;">
+                    <div style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">DATA MANAGEMENT</div>
+                    <div style="font-size:13px; color:#666;">
+                        Control your chat history and data here. Deleting chats is permanent.
+                    </div>
+                </div>
+
+                <div style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); border-radius:16px; padding:20px;">
+                    
+                    <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
+                        <div style="width:40px; height:40px; background:rgba(239, 68, 68, 0.2); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-trash-alt" style="color:#ef4444; font-size:18px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:16px; font-weight:600; color:var(--text);">Delete All History</div>
+                            <div style="font-size:12px; color:var(--text-muted);">Permanently remove all messages</div>
+                        </div>
+                    </div>
+
+                    <button onclick="confirmClearHistory()" 
+                        style="width:100%; padding:14px; border-radius:12px; border:none; 
+                               background:#ef4444; color:white; font-size:15px; font-weight:600; 
+                               cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+                               transition: background 0.2s;">
+                        <i class="fas fa-exclamation-circle"></i> Delete All Chats
+                    </button>
+
+                </div>
+
             </div>
         </div>
 
@@ -1465,6 +1514,38 @@ input[type="search"]::-webkit-search-results-decoration {
                 });
             }
         }
+
+        // 👇 மொத்த ஹிஸ்டரியையும் அழிக்க (With Confirmation)
+function confirmClearHistory() {
+    showModal("Are you sure? This will delete ALL chat history permanently.", false, async (confirmed) => {
+        if (confirmed) {
+            try {
+                const res = await fetch('/clear_all_history', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: currentUser })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    document.getElementById('chat-box').innerHTML = ""; 
+                    document.getElementById('history-list').innerHTML = ""; 
+                    currentChatId = null;
+                    renderWelcomeScreen();
+                    closeSubPage('subpage-chats');
+                    closeSettings();
+                    if(document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+                } else {
+                    alert("Error deleting chats.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Something went wrong.");
+            }
+        }
+    });
+}
 
         // 3. APP CORE & SETTINGS LOGIC
         function checkLogin() {
@@ -2653,6 +2734,18 @@ def truncate_response():
                 save_db(user_db)
         return jsonify({"status": "updated"})
     except: return jsonify({"status": "error"})
+# 👇 புதிய Route: மொத்த ஹிஸ்டரியையும் அழிக்க (Delete All)
+@app.route("/clear_all_history", methods=["POST"])
+def clear_all_history():
+    try:
+        u = request.json.get("username")
+        # அந்த பயனரின் மொத்த dictionary-ையும் காலி செய்கிறோம்
+        if u in user_db:
+            user_db[u] = {} 
+            save_db(user_db)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
         
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
