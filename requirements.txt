@@ -1,8 +1,6 @@
 flask
 google-generativeai
+PyPDF2
+Pillow
 huggingface-hub
-llama-index-core
-llama-index-llms-gemini
-llama-index-embeddings-gemini
-llama-index-readers-file
-python-dotenv
+
