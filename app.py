@@ -756,15 +756,43 @@ HTML_TEMPLATE = """
     }
     .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
     .m-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
-    /* --- NEW SETTINGS UI --- */
-    .settings-option-btn {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 18px 20px; margin-bottom: 12px;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; cursor: pointer; color: var(--text);
-    font-weight: 500; transition: background 0.2s;
-    }
-    .settings-option-btn:active { transform: scale(0.98); background: var(--hover); }
+
+    /* 👇 இதை அப்படியே Copy & Paste பண்ணுங்க (Styles பகுதி) */
+.settings-option-btn {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    width: 100%;             
+    padding: 15px 20px;      
+    margin-bottom: 12px;
+    background: var(--card); 
+    border: 1px solid var(--border);
+    border-radius: 16px;     
+    cursor: pointer; 
+    color: var(--text);
+    font-weight: 500; 
+    transition: background 0.2s, transform 0.1s;
+    min-height: 70px;        /* உயரம் மாறாமல் இருக்க */
+}
+
+.settings-option-btn:active { 
+    transform: scale(0.98); 
+    background: var(--hover); 
+}
+
+/* 👇 இது புதுசு: ஐகானுக்கான கருப்பு பாக்ஸ் */
+.setting-icon-box {
+    width: 40px; 
+    height: 40px; 
+    background: var(--bg); 
+    border-radius: 10px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    margin-right: 15px;      
+    border: 1px solid var(--border);
+    flex-shrink: 0;          
+}
 
     /* Sub-Pages (Hidden by default) */
     .settings-sub-page {
@@ -966,33 +994,47 @@ input[type="search"]::-webkit-search-results-decoration {
                    style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);"></i>
             </div>
 
-            <div class="settings-content" style="flex:1; overflow-y:auto; padding:0 20px;">
+            <div class="settings-content" style="flex:1; overflow-y:auto; padding:20px;">
+                
                 <div class="settings-option-btn" onclick="openSubPage('subpage-profile')">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-user-graduate" style="color:var(--text); font-size:16px;"></i>
+                    <div style="display:flex; align-items:center;">
+                        <div class="setting-icon-box">
+                            <i class="fas fa-user-graduate" style="color:var(--text); font-size:18px;"></i>
                         </div>
-                        <span>Student Details</span>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:16px; font-weight:600;">Student Details</span>
+                            <span style="font-size:12px; color:var(--text-muted);">Name, Standard, Subject</span>
+                        </div>
                     </div>
                     <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
                 
                 <div class="settings-option-btn" onclick="openSubPage('subpage-themes')">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <i class="fas fa-palette" style="color:var(--text);"></i>
-                        <span>Themes</span>
-                    </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
-                </div>
-                <div class="settings-option-btn" onclick="openSubPage('subpage-chats')">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <div style="width:32px; height:32px; background:var(--bg); border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-comments" style="color:var(--text); font-size:16px;"></i>
+                    <div style="display:flex; align-items:center;">
+                        <div class="setting-icon-box">
+                            <i class="fas fa-palette" style="color:var(--text); font-size:18px;"></i>
                         </div>
-                        <span>Chats</span>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:16px; font-weight:600;">Themes</span>
+                            <span style="font-size:12px; color:var(--text-muted);">Dark, Light, System</span>
+                        </div>
                     </div>
                     <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
                 </div>
+
+                <div class="settings-option-btn" onclick="openSubPage('subpage-chats')">
+                    <div style="display:flex; align-items:center;">
+                        <div class="setting-icon-box">
+                            <i class="fas fa-comments" style="color:var(--text); font-size:18px;"></i>
+                        </div>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:16px; font-weight:600;">Chats</span>
+                            <span style="font-size:12px; color:var(--text-muted);">History, Clear Data</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-muted); font-size:14px;"></i>
+                </div>
+
             </div>
             
             <div style="padding:15px 20px; flex-shrink:0; border-top:1px solid var(--border); background:var(--bg);">
