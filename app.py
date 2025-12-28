@@ -45,39 +45,40 @@ warnings.filterwarnings("ignore")
 keys_string = os.environ.get("API_KEYS", "")
 API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').split() if k.strip()]
 
-# 👇 உங்க MongoDB லிங்க் இங்கே போடுங்க (பாஸ்வேர்ட் மாற்ற மறக்காதீங்க!)
-MONGO_URI = "mongodb+srv://ikshirpi826_db_user:<db_password>@students-ai.2wdmflx.mongodb.net/?appName=Students-AI"
+# --- 💾 MONGODB DATABASE SETUP ---
+# (மேலே import pymongo, import certifi மறக்காம சேருங்க)
+
+MONGO_URI = "mongodb+srv://admin:password123@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority"
 
 # MongoDB Connection
-client = pymongo.MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-db = client["StudentAI_DB"]  # டேட்டாபேஸ் பெயர்
-collection = db["chat_history"] # ஃபோல்டர் பெயர்
+try:
+    client = pymongo.MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+    db = client["StudentAI_DB"]
+    collection = db["chat_history"]
+    print("✅ MongoDB Connected Successfully!")
+except Exception as e:
+    print(f"❌ MongoDB Connection Error: {e}")
 
-# 👇 பழைய load_db ஃபங்ஷனுக்கு பதில் இது
 def load_db():
     try:
-        # MongoDB-ல் இருந்து டேட்டாவை எடு
         data = collection.find_one({"_id": "global_store"})
         if data:
-            return data["data"]
+            return data.get("data", {})
         return {}
     except Exception as e:
-        print(f"DB Load Error: {e}")
+        print(f"⚠️ DB Load Error: {e}")
         return {}
 
-# 👇 பழைய save_db ஃபங்ஷனுக்கு பதில் இது
 def save_db(db_data):
     try:
-        # MongoDB-ல் டேட்டாவை சேமி (Update)
         collection.update_one(
             {"_id": "global_store"}, 
             {"$set": {"data": db_data}}, 
             upsert=True
         )
     except Exception as e:
-        print(f"DB Save Error: {e}")
+        print(f"⚠️ DB Save Error: {e}")
 
-# ஆரம்பத்தில் டேட்டாவை லோட் செய்தல்
 user_db = load_db()
 
 # 👇 REPLACED System Instruction (With Citation Rule) 👇
