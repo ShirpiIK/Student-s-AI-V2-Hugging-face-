@@ -39,6 +39,8 @@ if not os.path.exists(data_folder):
 # --- FIX: IGNORE DEPRECATION WARNINGS ---
 warnings.filterwarnings("ignore")
 
+app = Flask(__name__)
+
 # ==========================================
 # 👇 API KEYS SETUP 👇
 # ==========================================
@@ -48,7 +50,7 @@ API_KEYS = [k.strip() for k in keys_string.replace(',', ' ').replace('\n', ' ').
 # --- 💾 MONGODB DATABASE SETUP ---
 # (மேலே import pymongo, import certifi மறக்காம சேருங்க)
 
-MONGO_URI = "mongodb+srv://admin:password123@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI = "mongodb+srv://ikshirpi826_db_user:<db_password>@students-ai.2wdmflx.mongodb.net/?appName=Students-AI"
 
 # MongoDB Connection
 try:
