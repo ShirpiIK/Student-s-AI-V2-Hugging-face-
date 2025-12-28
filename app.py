@@ -170,7 +170,9 @@ def load_db():
     except: pass
 
 def save_db():
-    try: with open(DB_FILE, 'w') as f: json.dump(user_db, f, indent=2)
+    try: 
+    with open(DB_FILE, 'w') as f: 
+        json.dump(user_db, f, indent=2)
     except: pass
 
 load_db()
