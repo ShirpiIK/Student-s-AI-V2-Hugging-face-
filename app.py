@@ -1634,36 +1634,118 @@ function confirmClearHistory() {
             setTheme(theme);
         }
 
-        /* 👇 NEW: SMART WELCOME SCREEN (Handles Suggestions & Reset) 👇 */
-        function renderWelcomeScreen() {
-            currentChatId = null; // Reset Chat ID
-            const chatBox = document.getElementById('chat-box');
-            const sub = (userDetails.subject || "").toLowerCase();
-            const name = userDetails.name || "Student";
-            
-            // 👇 Smart Suggestion Logic based on Subject
-            let starters = ["Unit 1 Introduction", "Important Questions"]; // Default
+        /* 👇 UPDATED WELCOME SCREEN (Old Header + New Professional Cards) 👇 */
+function renderWelcomeScreen() {
+    currentChatId = null; 
+    const chatBox = document.getElementById('chat-box');
+    
+    // User Details
+    const name = userDetails.name || "Student";
+    const sub = (userDetails.subject || "").toUpperCase(); // Subject
+    const subLower = (userDetails.subject || "").toLowerCase(); 
+    const isTamil = userDetails.medium === "Tamil"; 
 
-            if(sub.includes('math')) starters = ["Matrix Multiplication", "Calculus Formulas", "Trigonometry"];
-            else if(sub.includes('phy')) starters = ["Newton's Laws", "Optics Derivations", "Thermodynamics"];
-            else if(sub.includes('chem')) starters = ["Organic Chemistry", "Periodic Table", "Chemical Bonding"];
-            else if(sub.includes('botany')) starters = ["Plant Anatomy", "Photosynthesis", "Plant Tissue"];
-            else if(sub.includes('zoology')) starters = ["Human Physiology", "Genetics", "Digestion System"];
-            else if(sub.includes('bio')) starters = ["Cell Structure", "DNA Replication"];
-            else if(sub.includes('tamil')) starters = ["திருக்குறள்", "இலக்கணம்", "செய்யுள்"];
-            else if(sub.includes('english')) starters = ["Grammar Rules", "Essay Writing", "Poem Summary"];
-            else if(sub.includes('computer') || sub.includes('cse') || sub.includes('ai')) starters = ["Python Basics", "Data Structures", "DBMS Concepts"];
+    // --- 1. OLD LOGIC: Subject-based Suggestions ( chips ) ---
+    let starters = ["Unit 1 Summary", "Important Questions"]; // Default
 
-            // HTML Generation
-            let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:10px;">`;
-            starters.forEach(s => {
-                chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
-            });
-            chipsHtml += `</div>`;
+    // Subject-க்கு ஏற்ற கேள்விகள்
+    if(subLower.includes('math')) starters = ["Matrix Multiplication", "Calculus Formulas", "Trigonometry"];
+    else if(subLower.includes('phy')) starters = ["Newton's Laws", "Optics Derivations", "Thermodynamics"];
+    else if(subLower.includes('chem')) starters = ["Organic Chemistry", "Periodic Table", "Chemical Bonding"];
+    else if(subLower.includes('botany')) starters = ["Plant Anatomy", "Photosynthesis", "Plant Tissue"];
+    else if(subLower.includes('zoology')) starters = ["Human Physiology", "Genetics", "Digestion System"];
+    else if(subLower.includes('bio')) starters = ["Cell Structure", "DNA Replication"];
+    else if(subLower.includes('tamil')) starters = ["திருக்குறள்", "இலக்கணம்", "செய்யுள்"];
+    else if(subLower.includes('english')) starters = ["Grammar Rules", "Essay Writing", "Poem Summary"];
+    else if(subLower.includes('computer') || subLower.includes('cse')) starters = ["Python Basics", "Data Structures", "DBMS Concepts"];
+
+    // Chips HTML உருவாக்குதல்
+    let chipsHtml = `<div class="suggestion-container" style="justify-content:center; margin-top:15px; margin-bottom:30px;">`;
+    starters.forEach(s => {
+        chipsHtml += `<div class="suggestion-chip" onclick="document.getElementById('msg-input').value='${s}';send()">${s}</div>`;
+    });
+    chipsHtml += `</div>`;
+
+    // --- 2. NEW LOGIC: Purpose Cards (Bilingual) ---
+    
+    let welcomeText, sectionTitle, cardsData;
+
+    if (isTamil) {
+        // 👉 தமிழ் மீடியம்
+        welcomeText = `வணக்கம் ${name}, <b>${sub}</b> படிக்கத் தயாரா?`;
+        sectionTitle = "நான் எப்படி உதவுவேன்?";
+        
+        cardsData = [
+            {
+                icon: "fas fa-book-open", color: "#60a5fa",
+                title: "பாடப்புத்தகம் மட்டும்",
+                desc: "வேறெங்கும் தேடமாட்டேன். உங்கள் புத்தகத்திலிருந்து (Textbook) மட்டுமே சரியான பதிலை தருவேன்."
+            },
+            {
+                icon: "fas fa-comments", color: "#a78bfa",
+                title: "எளிய விளக்கம்",
+                desc: "பதில் புரியவில்லையா? <b>'பேச்சு வழக்குல சொல்லு'</b> என்று கேளுங்கள், நண்பன் போல விளக்குவேன்!"
+            },
+            {
+                icon: "fas fa-hand-holding-heart", color: "#34d399",
+                title: "தயக்கம் வேண்டாம்",
+                desc: "வகுப்பில் சந்தேகம் கேட்க கூச்சமா? இங்கே எந்த கேள்வியையும் தைரியமாக கேட்கலாம்."
+            }
+        ];
+    } else {
+        // 👉 English Medium
+        welcomeText = `Hi ${name}, Ready to study <b>${sub}</b>?`;
+        sectionTitle = "How I can help you:";
+
+        cardsData = [
+            {
+                icon: "fas fa-book-open", color: "#60a5fa",
+                title: "Textbook Based",
+                desc: "I don't guess. I answer strictly from your uploaded book with page citations."
+            },
+            {
+                icon: "fas fa-comments", color: "#a78bfa",
+                title: "Simple Explanations",
+                desc: "Don't understand? Ask me to <b>'Explain simply'</b> like a friend!"
+            },
+            {
+                icon: "fas fa-hand-holding-heart", color: "#34d399",
+                title: "Ask Fearlessly",
+                desc: "Hesitant to ask doubts in class? Feel free to ask anything here, privately."
+            }
+        ];
+    }
+
+    // Cards HTML உருவாக்குதல்
+    let cardsHtml = `<div class="features-grid">`;
+    cardsData.forEach(card => {
+        cardsHtml += `
+        <div class="feature-card">
+            <div class="feature-icon"><i class="${card.icon}" style="color:${card.color};"></i></div>
+            <div class="feature-title">${card.title}</div>
+            <div class="feature-desc">${card.desc}</div>
+        </div>`;
+    });
+    cardsHtml += `</div>`;
+    
+    // --- 3. FINAL ASSEMBLY (Old Top + New Bottom) ---
+    chatBox.innerHTML = `
+    <div class="msg ai-msg" style="align-items:center; width:100%;">
+        <div class="ai-content" style="text-align:center; max-width:100%;">
             
-            // Set Content
-            chatBox.innerHTML = `<div class="msg ai-msg"><div class="ai-content" style="text-align:center;"><h1>Hi ${name},</h1><p>Ready to study <b>${userDetails.subject}</b>?</p></div>${chipsHtml}</div>`;
-        }
+            <h1 style="margin-bottom:5px; font-size:24px;">${welcomeText}</h1>
+            ${chipsHtml}
+            
+            <div style="width:50px; height:2px; background:var(--border); margin:0 auto 20px auto;"></div>
+
+            <p style="font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:10px;">
+                ${sectionTitle}
+            </p>
+            ${cardsHtml}
+
+        </div>
+    </div>`;
+}
         
         /* 👇 UPDATED SHOW APP (Instant Welcome - No Delay) 👇 */
         async function showApp() {
