@@ -2254,8 +2254,11 @@ function renderWelcomeScreen() {
                 
                 if (data.title) {
                 // டைட்டில் வந்தா உடனே ஹிஸ்டரியை ரீஃப்ரெஷ் செய்!
-                        loadHistory(); 
+                    const chatItem = document.querySelector(`.history-item[onclick*="${currentChatId}"] span`);
+                    if (chatItem) chatItem.innerText = data.title;
                 }
+                loadHistory(); 
+                
                 
                 const aiDiv = document.getElementById(msgId);
                 aiDiv.innerHTML = ""; 
