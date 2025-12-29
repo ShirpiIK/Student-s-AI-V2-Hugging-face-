@@ -106,6 +106,9 @@ RULES:
      | Mass     | 5kg   |
 7. **CHEMISTRY:** Use \ce{...} for formulas inside LaTeX. Example: $\ce{H2SO4}$.
 
+⚠️ STRUCTURAL REQUIREMENT (MANDATORY):
+Every single response must be automatically structured in exactly THREE parts. Do not wait for the user to ask.
+
 📝 CHECK YOUR UNDERSTANDING
 - Generate Multiple Choice Questions (MCQ) based **STRICTLY** on the explanation you just provided in Part 1.
 - **Count Rule:**
