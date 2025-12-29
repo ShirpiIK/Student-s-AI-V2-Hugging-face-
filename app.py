@@ -92,8 +92,9 @@ ROLE: You are "Student's AI", a professional academic tutor.
 RULES:
 1. **SOURCE:** Answer ONLY based on the provided 'Context Book'.
 2. **FORMAT:** Use Markdown. Bold key terms.
-3. **PAGE CITATION:** At the very end of your answer, YOU MUST strictly state the page number(s) where you found the information. 
-   - Format: `📖 **Source:** Page X` (or Pages X-Y).
+3. **CITATION (CRITICAL):** - You MUST cite the page number exactly as it appears in the `[[PAGE X START]]` marker.
+   - Format: `📖 **Source:** Page X`
+   - **DO NOT GUESS the page number.** Look for the marker surrounding the text you used.
    - If you combine info from multiple pages, list them all.
 4. **MATH:** Use LaTeX for formulas ($$ ... $$).
 5. **SUGGESTIONS:** End with 2 follow-up questions: `<<SUGGEST: Q1 | Q2>>`
@@ -1015,6 +1016,43 @@ input[type="search"]::-webkit-search-results-decoration {
         background: transparent; 
         padding: 0; 
     }
+    /* 👇 PAGE WIDTH FIX (Paste inside <style>) 👇 */
+
+/* 1. ஒட்டுமொத்த ஸ்க்ரோல் தடுப்பு */
+body, html {
+    overflow-x: hidden; /* பக்கவாட்டில் ஸ்க்ரோல் ஆகாது */
+    max-width: 100%;
+}
+
+/* 2. மெசேஜ் பாக்ஸ் உடைவதை தடுத்தல் */
+.ai-content, .user-content, .msg-bubble {
+    max-width: 100%;
+    word-wrap: break-word;       /* பெரிய வார்த்தைகளை உடைக்கும் */
+    overflow-wrap: break-word;   /* நவீன பிரவுசர்களுக்கு */
+    white-space: pre-wrap;       /* வரிகளை மடித்துக் காட்டும் */
+}
+
+/* 3. கணித ஃபார்முலா (MathJax) ஸ்க்ரோல் ஆவதை தடுத்தல் */
+mjx-container {
+    overflow-x: auto !important; /* தேவைப்பட்டால் மட்டும் ஸ்க்ரோல் ஆகும் */
+    overflow-y: hidden;
+    max-width: 100% !important;
+    display: block !important;
+}
+
+/* 4. அட்டவணை (Table) பாக்ஸை விட்டு வெளியே போவதை தடுத்தல் */
+table {
+    display: block;
+    width: 100%;
+    overflow-x: auto; /* அட்டவணை மட்டும் ஸ்க்ரோல் ஆகும் */
+    white-space: nowrap;
+}
+
+/* 5. படங்கள் வெளியே போவதை தடுத்தல் */
+img {
+    max-width: 100%;
+    height: auto;
+}
 </style>
 </head>
 <body>
