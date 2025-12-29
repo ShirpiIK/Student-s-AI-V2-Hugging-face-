@@ -147,39 +147,7 @@ def get_working_model(key):
         if chat_models: return chat_models[0].name
     except: return None
     return None
-# 👇 REPLACED get_book_text FUNCTION (Smart Page Number Detection) 👇
-# 👇 REPLACED get_book_text FUNCTION (Auto-Detect Path) 👇
-def get_book_text(user_details):
-    try:
-        # 1. சரியான பாதையை தானாகவே கண்டுபிடித்தல் (Smart Check)
-        if os.path.exists("books/books"):
-            base_path = "books/books" # டபுள் ஃபோல்டர் இருந்தால்
-        elif os.path.exists("books"):
-            base_path = "books"       # சிங்கிள் ஃபோல்டர் இருந்தால்
-        else:
-            print("❌ Error: 'books' folder not found!")
-            return None
 
-        # 2. Path Construction
-        if user_details.get("type") == "school":
-            std = user_details.get("standard", "").lower()
-            sub = user_details.get("subject", "").lower()
-            path = os.path.join(base_path, "school", std, f"{sub}.pdf")
-        else:
-            dept = user_details.get("dept", "").lower()
-            sub = user_details.get("subject", "").lower()
-            path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
-            
-        # 3. Debugging Print (இதை வெச்சு பாதை சரியா இருக்கானு செக் பண்ணலாம்)
-        print(f"🔍 Searching for file at: {path}")
-
-        if os.path.exists(path):
-            text = ""
-            with open(path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
-                
-                # Page Number Logic
-                # 👇 REPLACED get_book_text (Old Smart Logic + New Strict Markers) 👇
 # 👇 REPLACED get_book_text (Old Smart Logic + New Strict Markers) 👇
 def get_book_text(user_details):
     try:
