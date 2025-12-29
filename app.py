@@ -2088,14 +2088,17 @@ function renderWelcomeScreen() {
                 actionsHtml = `
                 <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
                     
-                    <div class="action-icon" style="color:#a78bfa;" onclick="startContextQuiz(this)">
+                    <div class="action-icon" style="color:#a78bfa; font-weight:600; cursor:pointer;" onclick="startContextQuiz(this)">
                         <i class="fas fa-brain"></i> Test Yourself
                     </div>
 
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
+            }
                 // 👆👆👆 ---------------------------------------------------- 👆👆👆
             }
 
@@ -2662,26 +2665,45 @@ document.addEventListener('click', function(e) {
         }
         type();
     };
-    /* 👇 SMART QUIZ LOGIC (Auto-detects Length) 👇 */
+    /* 👇 UPDATED: STRICT QUIZ & NEXT STEPS SUGGESTION 👇 */
         function startContextQuiz(btn) {
+            // 1. பதிலை (Content) எடுப்பது
             const msgWrapper = btn.closest('.msg'); 
             const contentDiv = msgWrapper.querySelector('.ai-content');
+            
             if (!contentDiv) return;
 
-            // வார்த்தைகளை எண்ணுவது
+            // 2. வார்த்தைகளை எண்ணுவது (Questions Count Logic)
             const fullText = contentDiv.innerText;
             const wordCount = fullText.trim().split(/\s+/).length;
             
-            // எண்ணிக்கையை முடிவு செய்தல்
             let qCount = 5; 
-            if (wordCount < 60) qCount = 2;       // 2 Mark -> 2 Questions
-            else if (wordCount < 150) qCount = 3; // Medium -> 3 Questions
-            else qCount = 5;                      // Big -> 5 Questions
+            if (wordCount < 60) qCount = 2;       
+            else if (wordCount < 150) qCount = 3; 
+            else qCount = 5;                      
 
-            // AI-யிடம் கேட்பது
+            // 3. AI-யிடம் கேட்க வேண்டிய Strict Prompt
             const contextText = fullText.substring(0, 2000); 
-            let prompt = `Generate exactly ${qCount} Multiple Choice Questions (MCQ) to test my understanding. No intro text. The Content is: "${contextText}..."`;
+            
+            // 👇 இதுதான் அந்த மேஜிக் வரிகள் 👇
+            let prompt = `
+            Act as a strict teacher. I have just studied the following text:
+            "${contextText}..."
 
+            Please do exactly two things:
+
+            PART 1: "📝 Quick Quiz"
+            Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the provided text. 
+            - Do NOT ask about applications or outside concepts unless mentioned in the text.
+            - Focus on checking if I read the lines carefully.
+
+            PART 2: "🚀 Next Level Questions"
+            After the quiz, suggest 3 related advanced questions or topics (e.g., Applications, Derivations) that I should learn next to become an expert in this topic.
+            
+            Format the response professionally with bold headings.
+            `;
+
+            // 4. Send to AI
             const inputEl = document.getElementById('msg-input');
             inputEl.value = prompt;
             send(); 
