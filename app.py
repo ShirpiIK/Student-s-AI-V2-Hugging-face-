@@ -105,6 +105,14 @@ RULES:
      |----------|-------|
      | Mass     | 5kg   |
 7. **CHEMISTRY:** Use \ce{...} for formulas inside LaTeX. Example: $\ce{H2SO4}$.
+
+📝 CHECK YOUR UNDERSTANDING
+- Generate Multiple Choice Questions (MCQ) based **STRICTLY** on the explanation you just provided in Part 1.
+- **Count Rule:**
+  - If Part 1 is short (approx < 100 words) -> Generate **2 Questions**.
+  - If Part 1 is detailed/long -> Generate **5 Questions**.
+- **Constraint:** Do NOT ask about things you didn't explain.
+- **NO ANSWERS:** **DO NOT** reveal the correct answers. Just provide Options (A, B, C, D). Let the student think.
 """
 
     
@@ -2598,7 +2606,7 @@ document.addEventListener('click', function(e) {
     link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
     document.head.appendChild(link);
 
-    /* 👇 UPDATED TYPEWRITER: பட்டன் உடனே வரும் & டிசைன் உடையாது 👇 */
+    /* 👇 CLEAN TYPEWRITER (Test Yourself பட்டன் நீக்கப்பட்டது) 👇 */
 typeWriter = function(element, text, callback) {
     const chatBox = document.getElementById('chat-box');
     let i = 0;
@@ -2625,24 +2633,35 @@ typeWriter = function(element, text, callback) {
             chatBox.scrollTop = chatBox.scrollHeight;
             requestAnimationFrame(type);
         } else {
+            // Typing Finished
             element.innerHTML = finalHTML;
             window.typeProgress = 1;
             
-            // Highlight Code
+            // Highlight Code Blocks
             element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+            element.querySelectorAll('pre').forEach(pre => {
+                if (pre.querySelector('.code-copy-btn')) return;
+                pre.style.position = 'relative';
+                const btn = document.createElement('button');
+                btn.className = 'code-copy-btn';
+                btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
+                btn.onclick = () => {
+                    navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                        setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
+                    });
+                };
+                pre.appendChild(btn);
+            });
 
-            // 👇👇👇 இங்கே தான் "Test Yourself" பட்டன் சேர்க்கப்படுகிறது 👇👇👇
-            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+            // 👇👇👇 இங்கே மாற்றப்பட்டுள்ளது! (Test Yourself பட்டன் காலி) 👇👇👇
+            // வெறும் Copy, Regen, Share மட்டும் தான் வரும்.
             const actionsHtml = `
-                <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    
-                    <div class="action-icon" style="color:#a78bfa; border:1px solid rgba(167, 139, 250, 0.3); padding:4px 12px; border-radius:15px; cursor:pointer;" onclick="startContextQuiz(this)">
-                        <i class="fas fa-brain"></i> Test Yourself
-                    </div>
-
-                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
+                    <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                    <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
             
             element.insertAdjacentHTML('beforeend', actionsHtml);
@@ -2656,57 +2675,6 @@ typeWriter = function(element, text, callback) {
         }
     }
     type();
-};
-
-    /* 👇 இதை Script-இன் கடைசி வரிகளில் போடவும் 👇 */
-window.startContextQuiz = function(btn) {
-    console.log("Quiz Button Clicked!"); // இது கன்சோல்ல வருதான்னு பாருங்க
-
-    // 1. பதிலை (Content) எடுப்பது
-    const msgWrapper = btn.closest('.msg'); 
-    if (!msgWrapper) return console.error("No message wrapper found");
-
-    const contentDiv = msgWrapper.querySelector('.ai-content');
-    if (!contentDiv) return console.error("No content found");
-
-    // 2. வார்த்தைகளை எண்ணுவது (Size Logic)
-    const fullText = contentDiv.innerText;
-    const wordCount = fullText.trim().split(/\s+/).length;
-    
-    // 3. கேள்வி எண்ணிக்கை முடிவு
-    let qCount = 5; 
-    if (wordCount < 50) qCount = 2;       // 2 Mark Answer
-    else if (wordCount < 150) qCount = 3; // Medium Answer
-
-    // 4. AI Prompt (Strict Quiz + Suggestions)
-    const contextText = fullText.substring(0, 3000).replace(/"/g, "'"); 
-    
-    let prompt = `
-    I have just studied this text: 
-    "${contextText}..."
-
-    Please perform TWO tasks professionally:
-
-    PART 1: 📝 **Quick Quiz**
-    - Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY** on the text above.
-    - Do NOT ask outside questions.
-    
-    PART 2: 🚀 **Next Level Questions**
-    - After the quiz, suggest 3 advanced questions I should ask next to understand this topic deeper.
-    
-    Format nicely with bold headings.
-    `;
-
-    // 5. Send to AI
-    const inputEl = document.getElementById('msg-input');
-    if (inputEl) {
-        inputEl.value = prompt;
-        // Button Click Simulation
-        setTimeout(() => {
-            if(typeof send === 'function') send();
-            else console.error("Send function not found!");
-        }, 100);
-    }
 };
         
             
