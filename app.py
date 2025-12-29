@@ -180,6 +180,7 @@ def get_book_text(user_details):
                 
                 # Page Number Logic
                 # 👇 REPLACED get_book_text (Old Smart Logic + New Strict Markers) 👇
+# 👇 REPLACED get_book_text (Old Smart Logic + New Strict Markers) 👇
 def get_book_text(user_details):
     try:
         # 1. Path Construction
@@ -221,12 +222,12 @@ def get_book_text(user_details):
                         
                         # Step C: AI-க்கு புரியற மாதிரி Strict Marker சேர்க்கிறோம்
                         text += f"\n\n--- [[PAGE {page_label} START]] ---\n{content}\n--- [[PAGE {page_label} END]] ---\n"
-                return text
+            
+            return text
         else:
-            print(f"❌ File not found: {path}")
             return None
     except Exception as e: 
-        print(f"❌ Error reading PDF: {e}")
+        print(f"❌ Error: {e}")
         return None
         
 # 👇 REPLACED generate_with_retry FUNCTION 👇
