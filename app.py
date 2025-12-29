@@ -2587,49 +2587,64 @@ document.addEventListener('click', function(e) {
     filterSettings("");
     inp.blur(); // கீபோர்டு மறைய
     }
-    /* 👇 UPDATED: STRICT QUIZ & NEXT STEPS SUGGESTION 👇 */
-        function startContextQuiz(btn) {
-            // 1. பதிலை (Content) எடுப்பது
-            const msgWrapper = btn.closest('.msg'); 
-            const contentDiv = msgWrapper.querySelector('.ai-content');
-            
-            if (!contentDiv) return;
+    /* 👇 Smart Quiz Function: (Size-based Count + Suggestions) 👇 */
+function startContextQuiz(btn) {
+    console.log("Smart Quiz Started...");
 
-            // 2. வார்த்தைகளை எண்ணுவது (Questions Count Logic)
-            const fullText = contentDiv.innerText;
-            const wordCount = fullText.trim().split(/\s+/).length;
-            
-            let qCount = 5; 
-            if (wordCount < 60) qCount = 2;       
-            else if (wordCount < 150) qCount = 3; 
-            else qCount = 5;                      
+    // 1. பதிலை (Content) எடுப்பது
+    const msgWrapper = btn.closest('.msg'); 
+    const contentDiv = msgWrapper.querySelector('.ai-content');
+    
+    if (!contentDiv) {
+        console.error("Error: Content not found");
+        return;
+    }
 
-            // 3. AI-யிடம் கேட்க வேண்டிய Strict Prompt
-            const contextText = fullText.substring(0, 2000); 
-            
-            // 👇 இதுதான் அந்த மேஜிக் வரிகள் 👇
-            let prompt = `
-            Act as a strict teacher. I have just studied the following text:
-            "${contextText}..."
+    // 2. வார்த்தைகளை எண்ணுவது (Word Count Logic)
+    const fullText = contentDiv.innerText;
+    const wordCount = fullText.trim().split(/\s+/).length; // வார்த்தை எண்ணிக்கை
+    
+    // 3. எண்ணிக்கையை முடிவு செய்தல் (Smart Decision)
+    // 🟢 சின்ன பதில் (Approx 2 Mark) -> 2 கேள்விகள்
+    // 🟡 நடுத்தர பதில் (3 Mark) -> 3 கேள்விகள்
+    // 🔴 பெரிய பதில் (5 Mark/Essay) -> 5 கேள்விகள்
+    
+    let qCount = 5; // Default
 
-            Please do exactly two things:
+    if (wordCount < 60) {
+        qCount = 2; 
+    } else if (wordCount < 150) {
+        qCount = 3; 
+    }
 
-            PART 1: "📝 Quick Quiz"
-            Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the provided text. 
-            - Do NOT ask about applications or outside concepts unless mentioned in the text.
-            - Focus on checking if I read the lines carefully.
+    // 4. AI-க்கு அனுப்ப வேண்டிய Prompt (மிகவும் தெளிவாக)
+    const contextText = fullText.substring(0, 2500).replace(/"/g, "'"); 
+    
+    let prompt = `
+    I have studied the following text: 
+    "${contextText}..."
 
-            PART 2: "🚀 Next Level Questions"
-            After the quiz, suggest 3 related advanced questions or topics (e.g., Applications, Derivations) that I should learn next to become an expert in this topic.
-            
-            Format the response professionally with bold headings.
-            `;
+    Please perform these two tasks strictly:
 
-            // 4. Send to AI
-            const inputEl = document.getElementById('msg-input');
-            inputEl.value = prompt;
-            send(); 
-        }
+    1. **QUIZ (${qCount} Questions):** Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the text provided above. 
+    - Do NOT bring outside information. 
+    - Test if I read the text carefully.
+
+    2. **FURTHER LEARNING:** After the quiz, suggest 3 "Next Level Questions" or advanced topics related to this concept that I should study next to deepen my knowledge.
+
+    Format the output with clear bold headings.
+    `;
+
+    // 5. Send to AI (Smooth Send)
+    const inputEl = document.getElementById('msg-input');
+    if (inputEl) {
+        inputEl.value = prompt;
+        // ஒரு சின்ன இடைவெளி விட்டு அனுப்புவோம் (Safety Delay)
+        setTimeout(() => {
+            send();
+        }, 100);
+    }
+}
         // 7. INITIALIZE APP
         checkLogin();
     </script>
