@@ -383,11 +383,44 @@ HTML_TEMPLATE = """
         
         .user-info-text { font-size: 18px; font-weight: 700; color: var(--text); }
         
-        .new-chat-btn { 
-            width: 100%; padding: 12px; background: var(--text); color: var(--bg); 
-            border: none; border-radius: 10px; font-weight: 600; cursor: pointer; 
-            margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
+        /* 👇 PROFESSIONAL NEW CHAT BUTTON 👇 */
+.new-chat-btn {
+    width: 100%;
+    padding: 14px 20px;
+    background: var(--text); /* தீம்க்கு ஏத்த மாதிரி மாறும் */
+    color: var(--bg);        /* எழுத்து கலர் மாறும் */
+    border: none;
+    border-radius: 12px;     /* அழகான வளைவுகள் */
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    margin-bottom: 25px;
+    
+    /* 👇 Flexbox: ஐகானும் எழுத்தும் நேர்கோட்டில் வர */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;               /* ஐகானுக்கும் எழுத்துக்கும் இடைவெளி */
+    
+    /* 👇 நிழல் மற்றும் அனிமேஷன் (Premium Feel) */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effect: மவுஸ் வைத்தால் மேலே எழும் */
+.new-chat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    opacity: 0.95;
+}
+
+/* Click Effect: அமுக்கினால் உள்ளே போகும் */
+.new-chat-btn:active {
+    transform: scale(0.98);
+}
         
         .history-label { color: var(--text-muted); font-size: 12px; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
         #history-list { flex: 1; overflow-y: auto; padding-right: 5px; }
@@ -1250,7 +1283,7 @@ input[type="search"]::-webkit-search-results-decoration {
             </div>
 
             <button class="new-chat-btn" onclick="newChat()">
-                <i class="fas fa-plus"></i> New Chat
+                <i class="fas fa-pen-to-square"></i> <span>New Chat</span>
             </button>
             
             <div class="history-label" style="flex-shrink:0;">Chat History</div>
