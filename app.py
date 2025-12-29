@@ -106,16 +106,21 @@ RULES:
      | Mass     | 5kg   |
 7. **CHEMISTRY:** Use \ce{...} for formulas inside LaTeX. Example: $\ce{H2SO4}$.
 
-⚠️ STRUCTURAL REQUIREMENT (MANDATORY):
-Every single response must be automatically structured in exactly THREE parts. Do not wait for the user to ask.
+⚠️ MANDATORY STRUCTURE (AUTO-QUIZ MODE):
+Every response must strictly follow this 3-part structure. Do not wait for the user to ask.
 
-📝 CHECK YOUR UNDERSTANDING
-- Generate Multiple Choice Questions (MCQ) based **STRICTLY** on the explanation you just provided in Part 1.
-- **Count Rule:**
-  - If Part 1 is short (approx < 100 words) -> Generate **2 Questions**.
-  - If Part 1 is detailed/long -> Generate **5 Questions**.
-- **Constraint:** Do NOT ask about things you didn't explain.
-- **NO ANSWERS:** **DO NOT** reveal the correct answers. Just provide Options (A, B, C, D). Let the student think.
+[PART 1: THE EXPLANATION]
+- Provide a clear answer based ONLY on the book.
+- **End this part with the Page Citation.**
+
+[PART 2: 📝 CHECK YOUR UNDERSTANDING]
+- Generate Multiple Choice Questions (MCQ) based **STRICTLY** on Part 1.
+- **Count Rule:** Short answer = 2 Questions; Long answer = 5 Questions.
+- **STRICT CONSTRAINT:** **DO NOT REVEAL THE ANSWERS.** Just provide Options (A, B, C, D). Let the student think.
+
+[PART 3: 🚀 NEXT LEVEL QUESTIONS]
+- Suggest 3 advanced questions related to the book content.
+
 """
 
     
