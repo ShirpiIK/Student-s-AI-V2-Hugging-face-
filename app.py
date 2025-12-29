@@ -2085,6 +2085,7 @@ function renderWelcomeScreen() {
                 </div>`;
             } else {
                 // 👇👇👇 இங்கே மாற்றம் (Listen நீக்கப்பட்டது & வரிசை சரிசெய்யப்பட்டது) 👇👇👇
+                actionsHtml = `
                 <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
                     
                     <div class="action-icon" style="color:#a78bfa;" onclick="startContextQuiz(this)">
