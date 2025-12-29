@@ -148,18 +148,12 @@ def get_working_model(key):
     except: return None
     return None
 
+# 👇 REPLACED get_book_text (Hybrid: Prints Real Page No if found, else PDF Index) 👇
 def get_book_text(user_details):
     try:
-        # 1. சரியான பாதையை தானாகவே கண்டுபிடித்தல் (Smart Check)
-        if os.path.exists("books/books"):
-            base_path = "books/books" # டபுள் ஃபோல்டர் இருந்தால்
-        elif os.path.exists("books"):
-            base_path = "books"       # சிங்கிள் ஃபோல்டர் இருந்தால்
-        else:
-            print("❌ Error: 'books' folder not found!")
-            return None
-
-        # 2. Path Construction
+        # 1. Path Construction
+        base_path = "books/books" if os.path.exists("books/books") else "books"
+        
         if user_details.get("type") == "school":
             std = user_details.get("standard", "").lower()
             sub = user_details.get("subject", "").lower()
@@ -168,31 +162,35 @@ def get_book_text(user_details):
             dept = user_details.get("dept", "").lower()
             sub = user_details.get("subject", "").lower()
             path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
-            
-        # 3. Debugging Print (இதை வெச்சு பாதை சரியா இருக்கானு செக் பண்ணலாம்)
-        print(f"🔍 Searching for file at: {path}")
+
+        print(f"🔍 Searching: {path}")
 
         if os.path.exists(path):
             text = ""
             with open(path, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
                 
-                # Page Number Logic
-                for i, page in enumerate(reader.pages[:50]): # Limit for speed
+                for i, page in enumerate(reader.pages[:50]): # Speed Limit
                     content = page.extract_text()
                     if content:
                         lines = content.strip().split('\n')
-                        page_label = f"PDF Page {i+1}" 
+                        
+                        # Default: PDF வரிசை எண் (எ.கா: PDF-5)
+                        page_label = f"PDF-{i+1}"
+
+                        # 👇 SMART CHECK: கீழே ஒரிஜினல் நம்பர் இருக்கான்னு பார்க்கிறோம் 👇
                         if lines:
                             last_line = lines[-1].strip()
-                            first_line = lines[0].strip()
-                            if last_line.isdigit(): page_label = f"Page {last_line}"
-                            elif first_line.isdigit(): page_label = f"Page {first_line}"
+                            # கடைசி வரி நம்பராக இருந்தால் (எ.கா: "5" or "12")
+                            # அதுவும் 4 இலக்கத்திற்கு குறைவாக இருந்தால் (வருஷம் 2024 வராமல் இருக்க)
+                            if last_line.isdigit() and len(last_line) < 4:
+                                page_label = f"Page {last_line}"
                         
-                        text += f"\n--- [{page_label}] ---\n{content}\n"
+                        # Marker சேர்க்கிறோம்
+                        text += f"\n\n--- [[{page_label} START]] ---\n{content}\n--- [[{page_label} END]] ---\n"
+            
             return text
         else:
-            print(f"❌ File not found: {path}")
             return None
     except Exception as e: 
         print(f"❌ Error reading PDF: {e}")
