@@ -2584,6 +2584,49 @@ document.addEventListener('click', function(e) {
     filterSettings("");
     inp.blur(); // கீபோர்டு மறைய
     }
+    /* 👇 UPDATED: STRICT QUIZ & NEXT STEPS SUGGESTION 👇 */
+        function startContextQuiz(btn) {
+            // 1. பதிலை (Content) எடுப்பது
+            const msgWrapper = btn.closest('.msg'); 
+            const contentDiv = msgWrapper.querySelector('.ai-content');
+            
+            if (!contentDiv) return;
+
+            // 2. வார்த்தைகளை எண்ணுவது (Questions Count Logic)
+            const fullText = contentDiv.innerText;
+            const wordCount = fullText.trim().split(/\s+/).length;
+            
+            let qCount = 5; 
+            if (wordCount < 60) qCount = 2;       
+            else if (wordCount < 150) qCount = 3; 
+            else qCount = 5;                      
+
+            // 3. AI-யிடம் கேட்க வேண்டிய Strict Prompt
+            const contextText = fullText.substring(0, 2000); 
+            
+            // 👇 இதுதான் அந்த மேஜிக் வரிகள் 👇
+            let prompt = `
+            Act as a strict teacher. I have just studied the following text:
+            "${contextText}..."
+
+            Please do exactly two things:
+
+            PART 1: "📝 Quick Quiz"
+            Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the provided text. 
+            - Do NOT ask about applications or outside concepts unless mentioned in the text.
+            - Focus on checking if I read the lines carefully.
+
+            PART 2: "🚀 Next Level Questions"
+            After the quiz, suggest 3 related advanced questions or topics (e.g., Applications, Derivations) that I should learn next to become an expert in this topic.
+            
+            Format the response professionally with bold headings.
+            `;
+
+            // 4. Send to AI
+            const inputEl = document.getElementById('msg-input');
+            inputEl.value = prompt;
+            send(); 
+        }
         // 7. INITIALIZE APP
         checkLogin();
     </script>
@@ -2664,49 +2707,7 @@ document.addEventListener('click', function(e) {
         }
         type();
     };
-    /* 👇 UPDATED: STRICT QUIZ & NEXT STEPS SUGGESTION 👇 */
-        function startContextQuiz(btn) {
-            // 1. பதிலை (Content) எடுப்பது
-            const msgWrapper = btn.closest('.msg'); 
-            const contentDiv = msgWrapper.querySelector('.ai-content');
-            
-            if (!contentDiv) return;
-
-            // 2. வார்த்தைகளை எண்ணுவது (Questions Count Logic)
-            const fullText = contentDiv.innerText;
-            const wordCount = fullText.trim().split(/\s+/).length;
-            
-            let qCount = 5; 
-            if (wordCount < 60) qCount = 2;       
-            else if (wordCount < 150) qCount = 3; 
-            else qCount = 5;                      
-
-            // 3. AI-யிடம் கேட்க வேண்டிய Strict Prompt
-            const contextText = fullText.substring(0, 2000); 
-            
-            // 👇 இதுதான் அந்த மேஜிக் வரிகள் 👇
-            let prompt = `
-            Act as a strict teacher. I have just studied the following text:
-            "${contextText}..."
-
-            Please do exactly two things:
-
-            PART 1: "📝 Quick Quiz"
-            Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the provided text. 
-            - Do NOT ask about applications or outside concepts unless mentioned in the text.
-            - Focus on checking if I read the lines carefully.
-
-            PART 2: "🚀 Next Level Questions"
-            After the quiz, suggest 3 related advanced questions or topics (e.g., Applications, Derivations) that I should learn next to become an expert in this topic.
-            
-            Format the response professionally with bold headings.
-            `;
-
-            // 4. Send to AI
-            const inputEl = document.getElementById('msg-input');
-            inputEl.value = prompt;
-            send(); 
-        }
+    
         
             
 </script>
