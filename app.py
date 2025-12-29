@@ -1016,43 +1016,7 @@ input[type="search"]::-webkit-search-results-decoration {
         background: transparent; 
         padding: 0; 
     }
-    /* 👇 PAGE WIDTH FIX (Paste inside <style>) 👇 */
-
-/* 1. ஒட்டுமொத்த ஸ்க்ரோல் தடுப்பு */
-body, html {
-    overflow-x: hidden; /* பக்கவாட்டில் ஸ்க்ரோல் ஆகாது */
-    max-width: 100%;
-}
-
-/* 2. மெசேஜ் பாக்ஸ் உடைவதை தடுத்தல் */
-.ai-content, .user-content, .msg-bubble {
-    max-width: 100%;
-    word-wrap: break-word;       /* பெரிய வார்த்தைகளை உடைக்கும் */
-    overflow-wrap: break-word;   /* நவீன பிரவுசர்களுக்கு */
-    white-space: pre-wrap;       /* வரிகளை மடித்துக் காட்டும் */
-}
-
-/* 3. கணித ஃபார்முலா (MathJax) ஸ்க்ரோல் ஆவதை தடுத்தல் */
-mjx-container {
-    overflow-x: auto !important; /* தேவைப்பட்டால் மட்டும் ஸ்க்ரோல் ஆகும் */
-    overflow-y: hidden;
-    max-width: 100% !important;
-    display: block !important;
-}
-
-/* 4. அட்டவணை (Table) பாக்ஸை விட்டு வெளியே போவதை தடுத்தல் */
-table {
-    display: block;
-    width: 100%;
-    overflow-x: auto; /* அட்டவணை மட்டும் ஸ்க்ரோல் ஆகும் */
-    white-space: nowrap;
-}
-
-/* 5. படங்கள் வெளியே போவதை தடுத்தல் */
-img {
-    max-width: 100%;
-    height: auto;
-}
+    
 </style>
 </head>
 <body>
