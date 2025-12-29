@@ -2587,7 +2587,77 @@ document.addEventListener('click', function(e) {
     filterSettings("");
     inp.blur(); // கீபோர்டு மறைய
     }
-    /* 👇 Smart Quiz Function: (Size-based Count + Suggestions) 👇 */
+
+        // 7. INITIALIZE APP
+        checkLogin();
+</script>
+<script>
+    // 1. Add Highlight.js for Colors
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+    document.head.appendChild(link);
+
+    /* 👇 UPDATED TYPEWRITER: பட்டன் உடனே வரும் & டிசைன் உடையாது 👇 */
+typeWriter = function(element, text, callback) {
+    const chatBox = document.getElementById('chat-box');
+    let i = 0;
+    window.typeProgress = 0; 
+    
+    // Markdown & Math Formatting
+    element.innerHTML = formatText(text);
+    const finalHTML = element.innerHTML;
+    element.innerHTML = "";
+    element.style.minHeight = "20px";
+
+    function type() {
+        if (!isGenerating) return; 
+        if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
+
+        if (i < finalHTML.length) {
+            if (finalHTML.charAt(i) === '<') {
+                let tagEnd = finalHTML.indexOf('>', i);
+                i = tagEnd + 1;
+            } else {
+                i += 3; // Typing Speed
+            }
+            element.innerHTML = finalHTML.substring(0, i);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            requestAnimationFrame(type);
+        } else {
+            element.innerHTML = finalHTML;
+            window.typeProgress = 1;
+            
+            // Highlight Code
+            element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+
+            // 👇👇👇 இங்கே தான் "Test Yourself" பட்டன் சேர்க்கப்படுகிறது 👇👇👇
+            const safeText = text.replace(/`/g, '\\`').replace(/"/g, '&quot;');
+            const actionsHtml = `
+                <div class="msg-actions" style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    
+                    <div class="action-icon" style="color:#a78bfa; border:1px solid rgba(167, 139, 250, 0.3); padding:4px 12px; border-radius:15px; cursor:pointer;" onclick="startContextQuiz(this)">
+                        <i class="fas fa-brain"></i> Test Yourself
+                    </div>
+
+                    <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
+                    <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
+                    <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
+                </div>`;
+            
+            element.insertAdjacentHTML('beforeend', actionsHtml);
+            // 👆👆👆 மாற்றம் முடிந்தது 👆👆👆
+
+            if (window.MathJax) MathJax.typesetPromise([element]).catch((err) => console.log(err));
+            if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+            if (callback) callback();
+        }
+    }
+    type();
+};
+            /* 👇 SMART QUIZ LOGIC: Size-based Count + Next Questions Suggestion 👇 */
 function startContextQuiz(btn) {
     console.log("Smart Quiz Started...");
 
@@ -2595,137 +2665,52 @@ function startContextQuiz(btn) {
     const msgWrapper = btn.closest('.msg'); 
     const contentDiv = msgWrapper.querySelector('.ai-content');
     
-    if (!contentDiv) {
-        console.error("Error: Content not found");
-        return;
-    }
+    if (!contentDiv) return;
 
     // 2. வார்த்தைகளை எண்ணுவது (Word Count Logic)
     const fullText = contentDiv.innerText;
-    const wordCount = fullText.trim().split(/\s+/).length; // வார்த்தை எண்ணிக்கை
+    const wordCount = fullText.trim().split(/\s+/).length;
     
     // 3. எண்ணிக்கையை முடிவு செய்தல் (Smart Decision)
-    // 🟢 சின்ன பதில் (Approx 2 Mark) -> 2 கேள்விகள்
-    // 🟡 நடுத்தர பதில் (3 Mark) -> 3 கேள்விகள்
-    // 🔴 பெரிய பதில் (5 Mark/Essay) -> 5 கேள்விகள்
-    
-    let qCount = 5; // Default
+    let qCount = 5; // Default (Large Answer)
 
-    if (wordCount < 60) {
-        qCount = 2; 
+    if (wordCount < 50) {
+        qCount = 2; // சின்ன பதில் (2 Mark) -> 2 கேள்விகள்
     } else if (wordCount < 150) {
-        qCount = 3; 
-    }
+        qCount = 3; // நடுத்தர பதில் (3/5 Mark) -> 3 கேள்விகள்
+    } 
+    // இல்லையென்றால் 5 கேள்விகள் (Big Answer)
 
-    // 4. AI-க்கு அனுப்ப வேண்டிய Prompt (மிகவும் தெளிவாக)
-    const contextText = fullText.substring(0, 2500).replace(/"/g, "'"); 
+    // 4. AI Prompt (மிகவும் தெளிவாக வடிவமைக்கப்பட்டது)
+    const contextText = fullText.substring(0, 3000).replace(/"/g, "'"); 
     
     let prompt = `
-    I have studied the following text: 
+    I have just studied this text: 
     "${contextText}..."
 
-    Please perform these two tasks strictly:
+    Please generate a structured response with exactly TWO parts:
 
-    1. **QUIZ (${qCount} Questions):** Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY AND ONLY** on the text provided above. 
-    - Do NOT bring outside information. 
-    - Test if I read the text carefully.
-
-    2. **FURTHER LEARNING:** After the quiz, suggest 3 "Next Level Questions" or advanced topics related to this concept that I should study next to deepen my knowledge.
-
-    Format the output with clear bold headings.
+    PART 1: 📝 **Quick Quiz**
+    - Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY** on the text above.
+    - Do not ask outside questions.
+    
+    PART 2: 🚀 **Next Level Questions**
+    - After the quiz, suggest 3 advanced or related questions I should ask next to understand this topic deeper.
+    
+    Please use bold headings for "Quick Quiz" and "Next Level Questions".
     `;
 
-    // 5. Send to AI (Smooth Send)
+    // 5. Send to AI
     const inputEl = document.getElementById('msg-input');
     if (inputEl) {
         inputEl.value = prompt;
-        // ஒரு சின்ன இடைவெளி விட்டு அனுப்புவோம் (Safety Delay)
+        
+        // Smooth Send (சின்ன இடைவெளி விட்டு அனுப்புவதால் மிஸ் ஆகாது)
         setTimeout(() => {
             send();
         }, 100);
     }
 }
-        // 7. INITIALIZE APP
-        checkLogin();
-    </script>
-    <script>
-    // 1. Add Highlight.js for Colors
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
-    document.head.appendChild(link);
-
-    /* 👇 UPDATED TYPEWRITER (No Listen Button & Fixed Order) 👇 */
-    typeWriter = function(element, text, callback) {
-        const chatBox = document.getElementById('chat-box');
-        let i = 0;
-        window.typeProgress = 0; 
-        
-        // Formats Markdown & Math
-        element.innerHTML = formatText(text);
-        
-        const finalHTML = element.innerHTML;
-        element.innerHTML = "";
-        element.style.minHeight = "20px";
-
-        function type() {
-            if (!isGenerating) return; 
-            if (finalHTML.length > 0) window.typeProgress = i / finalHTML.length;
-
-            if (i < finalHTML.length) {
-                if (finalHTML.charAt(i) === '<') {
-                    let tagEnd = finalHTML.indexOf('>', i);
-                    i = tagEnd + 1;
-                } else {
-                    i += 3; 
-                }
-                element.innerHTML = finalHTML.substring(0, i);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                requestAnimationFrame(type);
-            } else {
-                element.innerHTML = finalHTML;
-                window.typeProgress = 1;
-                
-                // Highlight Code Blocks
-                element.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
-                element.querySelectorAll('pre').forEach(pre => {
-                    if (pre.querySelector('.code-copy-btn')) return;
-                    pre.style.position = 'relative';
-                    const btn = document.createElement('button');
-                    btn.className = 'code-copy-btn';
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                    btn.style.cssText = "position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.1); color:#a1a1aa; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;";
-                    btn.onclick = () => {
-                        navigator.clipboard.writeText(pre.querySelector('code').innerText).then(() => {
-                            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                            setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i> Copy', 2000);
-                        });
-                    };
-                    pre.appendChild(btn);
-                });
-
-                // 👇👇👇 பட்டன் வரிசை மாற்றம் (Listen நீக்கப்பட்டது) 👇👇👇
-                const actionsHtml = `
-                    <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
-                        <div class="action-icon" onclick="copyText(this, \`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-copy"></i> Copy</div>
-                        <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
-                        <div class="action-icon" onclick="shareContent(\`${text.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)"><i class="fas fa-share-alt"></i> Share</div>
-                    </div>`;
-                element.insertAdjacentHTML('beforeend', actionsHtml);
-                // 👆👆👆 -------------------------------------- 👆👆👆
-
-                if (window.MathJax) {
-                    MathJax.typesetPromise([element]).catch((err) => console.log(err));
-                }
-
-                if (window.mermaid && text.includes("```mermaid")) mermaid.run({ nodes: [element] });
-                chatBox.scrollTop = chatBox.scrollHeight;
-                if (callback) callback();
-            }
-        }
-        type();
-    };
-    
         
             
 </script>
