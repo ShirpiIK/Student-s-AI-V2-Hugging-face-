@@ -2085,8 +2085,12 @@ function renderWelcomeScreen() {
                 </div>`;
             } else {
                 // 👇👇👇 இங்கே மாற்றம் (Listen நீக்கப்பட்டது & வரிசை சரிசெய்யப்பட்டது) 👇👇👇
-                actionsHtml = `
                 <div class="msg-actions" style="margin-top:10px; display:flex; gap:15px; align-items:center;">
+                    
+                    <div class="action-icon" style="color:#a78bfa;" onclick="startContextQuiz(this)">
+                        <i class="fas fa-brain"></i> Test Yourself
+                    </div>
+
                     <div class="action-icon" onclick="copyText(this, \`${safeText}\`)"><i class="fas fa-copy"></i> Copy</div>
                     <div class="action-icon" onclick="regenerateLast()"><i class="fas fa-sync-alt"></i> Regen</div>
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
@@ -2657,6 +2661,30 @@ document.addEventListener('click', function(e) {
         }
         type();
     };
+    /* 👇 SMART QUIZ LOGIC (Auto-detects Length) 👇 */
+        function startContextQuiz(btn) {
+            const msgWrapper = btn.closest('.msg'); 
+            const contentDiv = msgWrapper.querySelector('.ai-content');
+            if (!contentDiv) return;
+
+            // வார்த்தைகளை எண்ணுவது
+            const fullText = contentDiv.innerText;
+            const wordCount = fullText.trim().split(/\s+/).length;
+            
+            // எண்ணிக்கையை முடிவு செய்தல்
+            let qCount = 5; 
+            if (wordCount < 60) qCount = 2;       // 2 Mark -> 2 Questions
+            else if (wordCount < 150) qCount = 3; // Medium -> 3 Questions
+            else qCount = 5;                      // Big -> 5 Questions
+
+            // AI-யிடம் கேட்பது
+            const contextText = fullText.substring(0, 2000); 
+            let prompt = `Generate exactly ${qCount} Multiple Choice Questions (MCQ) to test my understanding. No intro text. The Content is: "${contextText}..."`;
+
+            const inputEl = document.getElementById('msg-input');
+            inputEl.value = prompt;
+            send(); 
+        }
         
             
 </script>
