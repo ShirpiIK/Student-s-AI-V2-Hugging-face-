@@ -179,19 +179,49 @@ def get_book_text(user_details):
                 reader = PyPDF2.PdfReader(f)
                 
                 # Page Number Logic
-                for i, page in enumerate(reader.pages[:50]): # Limit for speed
+                # 👇 REPLACED get_book_text (Old Smart Logic + New Strict Markers) 👇
+def get_book_text(user_details):
+    try:
+        # 1. Path Construction
+        base_path = "books/books" if os.path.exists("books/books") else "books"
+        
+        if user_details.get("type") == "school":
+            std = user_details.get("standard", "").lower()
+            sub = user_details.get("subject", "").lower()
+            path = os.path.join(base_path, "school", std, f"{sub}.pdf")
+        else:
+            dept = user_details.get("dept", "").lower()
+            sub = user_details.get("subject", "").lower()
+            path = os.path.join(base_path, "college", dept, f"{sub}.pdf")
+
+        print(f"🔍 Searching: {path}")
+
+        if os.path.exists(path):
+            text = ""
+            with open(path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                
+                # 👇 பழைய லாஜிக் + புது மார்க்கர் இரண்டும் சேர்ந்தது 👇
+                for i, page in enumerate(reader.pages[:50]): # Speed Limit
                     content = page.extract_text()
                     if content:
+                        # Step A: Default (PDF Index)
+                        page_label = str(i + 1)
+
+                        # Step B: Try to find printed page number (உங்க பழைய கோட்)
                         lines = content.strip().split('\n')
-                        page_label = f"PDF Page {i+1}" 
                         if lines:
                             last_line = lines[-1].strip()
                             first_line = lines[0].strip()
-                            if last_line.isdigit(): page_label = f"Page {last_line}"
-                            elif first_line.isdigit(): page_label = f"Page {first_line}"
+                            # கடைசி வரியிலோ அல்லது முதல் வரியிலோ நம்பர் இருக்கான்னு பார்க்கிறோம்
+                            if last_line.isdigit(): 
+                                page_label = last_line
+                            elif first_line.isdigit(): 
+                                page_label = first_line
                         
-                        text += f"\n--- [{page_label}] ---\n{content}\n"
-            return text
+                        # Step C: AI-க்கு புரியற மாதிரி Strict Marker சேர்க்கிறோம்
+                        text += f"\n\n--- [[PAGE {page_label} START]] ---\n{content}\n--- [[PAGE {page_label} END]] ---\n"
+                return text
         else:
             print(f"❌ File not found: {path}")
             return None
