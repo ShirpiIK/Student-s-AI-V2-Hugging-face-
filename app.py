@@ -2657,60 +2657,57 @@ typeWriter = function(element, text, callback) {
     }
     type();
 };
-            /* 👇 SMART QUIZ LOGIC: Size-based Count + Next Questions Suggestion 👇 */
-function startContextQuiz(btn) {
-    console.log("Smart Quiz Started...");
+
+    /* 👇 இதை Script-இன் கடைசி வரிகளில் போடவும் 👇 */
+window.startContextQuiz = function(btn) {
+    console.log("Quiz Button Clicked!"); // இது கன்சோல்ல வருதான்னு பாருங்க
 
     // 1. பதிலை (Content) எடுப்பது
     const msgWrapper = btn.closest('.msg'); 
-    const contentDiv = msgWrapper.querySelector('.ai-content');
-    
-    if (!contentDiv) return;
+    if (!msgWrapper) return console.error("No message wrapper found");
 
-    // 2. வார்த்தைகளை எண்ணுவது (Word Count Logic)
+    const contentDiv = msgWrapper.querySelector('.ai-content');
+    if (!contentDiv) return console.error("No content found");
+
+    // 2. வார்த்தைகளை எண்ணுவது (Size Logic)
     const fullText = contentDiv.innerText;
     const wordCount = fullText.trim().split(/\s+/).length;
     
-    // 3. எண்ணிக்கையை முடிவு செய்தல் (Smart Decision)
-    let qCount = 5; // Default (Large Answer)
+    // 3. கேள்வி எண்ணிக்கை முடிவு
+    let qCount = 5; 
+    if (wordCount < 50) qCount = 2;       // 2 Mark Answer
+    else if (wordCount < 150) qCount = 3; // Medium Answer
 
-    if (wordCount < 50) {
-        qCount = 2; // சின்ன பதில் (2 Mark) -> 2 கேள்விகள்
-    } else if (wordCount < 150) {
-        qCount = 3; // நடுத்தர பதில் (3/5 Mark) -> 3 கேள்விகள்
-    } 
-    // இல்லையென்றால் 5 கேள்விகள் (Big Answer)
-
-    // 4. AI Prompt (மிகவும் தெளிவாக வடிவமைக்கப்பட்டது)
+    // 4. AI Prompt (Strict Quiz + Suggestions)
     const contextText = fullText.substring(0, 3000).replace(/"/g, "'"); 
     
     let prompt = `
     I have just studied this text: 
     "${contextText}..."
 
-    Please generate a structured response with exactly TWO parts:
+    Please perform TWO tasks professionally:
 
     PART 1: 📝 **Quick Quiz**
     - Generate exactly ${qCount} Multiple Choice Questions (MCQ) based **STRICTLY** on the text above.
-    - Do not ask outside questions.
+    - Do NOT ask outside questions.
     
     PART 2: 🚀 **Next Level Questions**
-    - After the quiz, suggest 3 advanced or related questions I should ask next to understand this topic deeper.
+    - After the quiz, suggest 3 advanced questions I should ask next to understand this topic deeper.
     
-    Please use bold headings for "Quick Quiz" and "Next Level Questions".
+    Format nicely with bold headings.
     `;
 
     // 5. Send to AI
     const inputEl = document.getElementById('msg-input');
     if (inputEl) {
         inputEl.value = prompt;
-        
-        // Smooth Send (சின்ன இடைவெளி விட்டு அனுப்புவதால் மிஸ் ஆகாது)
+        // Button Click Simulation
         setTimeout(() => {
-            send();
+            if(typeof send === 'function') send();
+            else console.error("Send function not found!");
         }, 100);
     }
-}
+};
         
             
 </script>
