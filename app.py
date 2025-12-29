@@ -2098,7 +2098,6 @@ function renderWelcomeScreen() {
                     
                     <div class="action-icon" onclick="shareContent(\`${safeText}\`)"><i class="fas fa-share-alt"></i> Share</div>
                 </div>`;
-            }
                 // 👆👆👆 ---------------------------------------------------- 👆👆👆
             }
 
